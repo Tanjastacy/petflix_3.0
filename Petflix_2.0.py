@@ -289,9 +289,10 @@ async def ensure_player(db, chat_id: int, user_id: int, username: str):
     )
 
 async def echo_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print(f"Nachricht empfangen: {update.effective_message.text}")
-
-
+    if not is_allowed_chat(update): return
+    msg = update.effective_message
+    txt = getattr(msg, "text", None)
+    print(f"Nachricht empfangen: {txt}")
 
 async def set_cd(db, chat_id: int, user_id: int, key: str, seconds: int):
     ts = int(time.time()) + seconds
@@ -319,6 +320,11 @@ async def get_cd_left(db, chat_id: int, user_id: int, key: str) -> int:
 async def mark_chat_and_maybe_announce(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
     """Merkt die Gruppe und sendet 'Bot online' genau 1x pro Neustart."""
     now = int(time.time())
+
+    # ✅ Nur die erlaubte Gruppe merken
+    if chat_id != ALLOWED_CHAT_ID:
+        return
+
     async with aiosqlite.connect(DB) as db:
         # last_seen aktualisieren / Chat eintragen
         await db.execute(
@@ -329,25 +335,33 @@ async def mark_chat_and_maybe_announce(context: ContextTypes.DEFAULT_TYPE, chat_
             """,
             (chat_id, now),
         )
+
         # Prüfen, ob wir für diesen Boot schon announced haben
         async with db.execute(
             "SELECT last_boot_announce FROM known_chats WHERE chat_id=?",
-            (chat_id,)
+            (chat_id,),
         ) as cur:
             row = await cur.fetchone()
 
         last_boot_announce = row[0] if row else None
         if last_boot_announce is None or last_boot_announce < BOOT_TS:
             try:
-                await context.bot.send_message(chat_id=chat_id, text="✅ Petflix 2.0 - Human Edition ist jetzt online!")
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text="✅ Petflix 2.0 - Human Edition ist jetzt online!",
+                    disable_notification=True   # nicht nervig pingen
+                )
                 log.info(f"Boot-Ansage gesendet in Chat {chat_id}")
             except Exception as e:
                 log.error(f"Fehler bei Boot-Ansage an {chat_id}: {e}")
+
             await db.execute(
                 "UPDATE known_chats SET last_boot_announce=? WHERE chat_id=?",
-                (BOOT_TS, chat_id)
+                (BOOT_TS, chat_id),
             )
+
         await db.commit()
+
 
 # =========================
 # Auto-Registrierung + Coins
@@ -514,8 +528,11 @@ async def cmd_nsfw(update, context):
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Nur in der erlaubten Gruppe
     if not is_allowed_chat(update):
-        await update.effective_message.reply_text("Dieses Spiel läuft nur in einer Speziellen Gruppe.")
-        return
+        await update.effective_message.reply_text(
+            "❌ Dieses Spiel läuft nur in einer speziellen Gruppe.",
+            quote=False
+        )
+        return   # <<< WICHTIG! Stoppt hier, wenn Gruppe nicht erlaubt ist
     
     legende = """
 🐾 **Willkommen bei Petflix – Deinem verruchten Haustier-Spiel** 🐾
@@ -743,6 +760,17 @@ async def cmd_release(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def is_allowed_chat(update: Update) -> bool:
     return update.effective_chat and update.effective_chat.id == ALLOWED_CHAT_ID
+
+async def deny_other_chats(update, context):
+    # Nicht zitieren, sonst 400er in Service-Events
+    try:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="❌ Dieses Spiel läuft nur in unserer Stammgruppe.",
+            disable_notification=True
+        )
+    except Exception:
+        pass  # im Zweifel einfach schweigen
 
 async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Nur in der erlaubten Gruppe
