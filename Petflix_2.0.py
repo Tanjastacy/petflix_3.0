@@ -824,13 +824,21 @@ async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     asyncio.create_task(_shutdown())
 
 # =========================
-# App-Setup (robust unter systemd + PTB 22.3)
+# App-Setup (final für PTB 20.7 + systemd)
 # =========================
 
-async def _build_app():
+def main():
+    # 1) DB einmalig initialisieren (async -> synchron ausführen)
+    asyncio.run(db_init())
+
+    # 2) Eigene Event-Loop setzen, damit run_polling() unter systemd nicht mault
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    # 3) Application bauen
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # === Handlers registrieren ===
+    # 4) Handlers registrieren (JEDE Zeile genau einmal)
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("balance", cmd_balance))
     app.add_handler(CommandHandler("daily", cmd_daily))
@@ -858,21 +866,11 @@ async def _build_app():
 
     # Debug/Echo zuletzt
     app.add_handler(MessageHandler(filters.ALL, echo_all), group=2)
-    return app
-
-async def main():
-    await db_init()
-    app = await _build_app()
 
     log.info("Bot startet, warte auf Updates...")
 
-    # KORREKTER PTB-22.x Lifecycle ohne Updater-API
-    await app.initialize()
-    await app.start()
-    await app.start_polling()  
-    await app.wait_closed()    
-    await app.stop()
-    await app.shutdown()
+    # 5) Der EINZIGE Lifecycle-Call in PTB 20.7
+    app.run_polling()  # kein await, kein updater, kein start_polling/wait_closed
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
