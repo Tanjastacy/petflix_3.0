@@ -32,7 +32,7 @@ USER_BASE_PRICE = 100      # Kaufpreis für jeden User
 USER_PRICE_STEP = 50     # Nach jedem Kauf steigt der Preis um 100 Coins
 ALLOWED_CHAT_ID = -1002550303601  # Nur diese Gruppe darf den Bot nutzen
 ADMIN_ID = 8172388048  # Deine Telegram User-ID
-MESSAGE_THROTTLE_S = 0   # Zeit in Sekunden zwischen Nachrichten-Coins
+MESSAGE_THROTTLE_S = 1   # Zeit in Sekunden zwischen Nachrichten-Coins
 CARE_COOLDOWN_S = 120   # 2 Minuten zwischen Pflegeaktionen pro Besitzer×Haustier
 RUNAWAY_HOURS = 48
 
@@ -367,39 +367,45 @@ async def mark_chat_and_maybe_announce(context: ContextTypes.DEFAULT_TYPE, chat_
 # Auto-Registrierung + Coins
 # =========================
 async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Registriert User bei erster Aktivität und verteilt 1 Coin pro Nachricht."""
-    if not is_group(update):
+    # Nur Super-/Gruppenchat + richtige Gruppe
+    if not is_group(update) or update.effective_chat.id != ALLOWED_CHAT_ID:
         return
+
     msg = update.effective_message
     user = update.effective_user
     chat = update.effective_chat
+
+    # Harte Guards
     if not msg or not user or user.is_bot:
         return
-
-    # Boot-Ansage-Mechanik: jede Aktivität in Gruppe markiert Chat und triggert ggf. Startmeldung
-    await mark_chat_and_maybe_announce(context, chat.id)
-
-    # Coins nur für "normale" Textnachrichten, keine Commands (beginnt mit '/'), keine Forwards
-    if (
-        not msg.text or
-        msg.text.startswith("/") or
-        getattr(msg, "forward_date", None) or
-        msg.text.lower().startswith("/buy") or
-        msg.text.lower().startswith("/prices") or
-        msg.text.lower().startswith("/owner") or
-        msg.text.lower().startswith("/release")
-    ):
+    if not msg.text or msg.text.startswith("/"):
+        return
+    if getattr(msg, "forward_date", None):
         return
 
+    # Boot-Ansage nur für erlaubten Chat
+    await mark_chat_and_maybe_announce(context, chat.id)
+
     async with aiosqlite.connect(DB) as db:
-        # Spieler anlegen/refresh
+        # Spieler einmalig registrieren (überschreibt NICHT coins)
         await ensure_player(db, chat.id, user.id, user.username or user.full_name or "")
 
-        # Keine Throttle, jede Nachricht zählt
+        # Optional: Throttle pro User, damit Spammer nicht eskalieren
+        if MESSAGE_THROTTLE_S > 0:
+            left = await get_cd_left(db, chat.id, user.id, "msgcoin")
+            if left > 0:
+                await db.commit()
+                return
+
+        # Coin nur für den Absender, niemand sonst
         await db.execute(
-            "UPDATE players SET coins=coins+? WHERE chat_id=? AND user_id=?",
-            (MESSAGE_REWARD, chat.id, user.id)
+            "UPDATE players SET coins = coins + ? WHERE chat_id = ? AND user_id = ?",
+            (MESSAGE_REWARD, chat.id, user.id),
         )
+
+        if MESSAGE_THROTTLE_S > 0:
+            await set_cd(db, chat.id, user.id, "msgcoin", MESSAGE_THROTTLE_S)
+
         await db.commit()
 
 # =========================
@@ -690,6 +696,25 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{nice_name(buyer)} hat {target_tag} für {price} Coins gekauft. Neuer Preis: {new_price}."
     )
 
+async def cmd_top(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if update.effective_chat.id != ALLOWED_CHAT_ID: return
+        chat_id = update.effective_chat.id
+        async with aiosqlite.connect(DB) as db:
+            async with db.execute(
+                "SELECT username, user_id, coins FROM players WHERE chat_id=? ORDER BY coins DESC LIMIT 10",
+                (chat_id,)
+            ) as cur:
+                rows = await cur.fetchall()
+        if not rows:
+            await update.effective_message.reply_text("Noch keine Spieler.")
+            return
+        lines = []
+        for uname, uid, c in rows:
+            tag = f"@{uname}" if uname else f"ID:{uid}"
+            lines.append(f"{tag}: {c}")
+        await update.effective_message.reply_text("🏆 Top 10:\n" + "\n".join(lines))
+
+
 # =========================
 # Helferfunktionen für Besitz
 # =========================
@@ -821,13 +846,22 @@ async def main():
 
     app.add_handler(MessageHandler(filters.ALL, echo_all))
     app.add_handler(CommandHandler("stop", cmd_stop))
+    app.add_handler(CommandHandler("top", cmd_top))
+
 
 
     # Mitgliedsstatus-Updates (bot hinzugefügt/entfernt)
     app.add_handler(ChatMemberHandler(on_my_chat_member, ChatMemberHandler.MY_CHAT_MEMBER), group=0)
 
     # Alle Updates einmal durchlassen, um Chat zu markieren und ggf. Boot-Ansage zu senden
-    app.add_handler(MessageHandler(filters.ALL, autoload_and_reward), group=1)
+    app.add_handler(
+    MessageHandler(
+        filters.Chat(ALLOWED_CHAT_ID) & filters.TEXT & ~filters.COMMAND & ~filters.FORWARDED,
+        autoload_and_reward
+    ),
+    group=1
+)
+
 
     log.info("Bot startet, warte auf Updates...")
     await app.run_polling(close_loop=False)
