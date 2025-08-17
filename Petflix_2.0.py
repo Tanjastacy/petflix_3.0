@@ -424,6 +424,144 @@ async def cmd_prices(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg += f"{uname}: {price} Coins\n"
     await update.effective_message.reply_text(msg)
 
+# =============== Admin: Coins steuern ===============
+
+def _is_admin_here(update: Update) -> bool:
+    return is_allowed_chat(update) and update.effective_user and update.effective_user.id == ADMIN_ID
+
+async def _resolve_target(db, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Zieluser bestimmen:
+    - per Reply: Ziel = Reply-Absender
+    - per Args:  /cmd @username <amount>  ODER  /cmd <user_id> <amount>
+                 (bei /setcoins auch /cmd @username <value>)
+    Gibt (user_id, username_str) zurück, username_str kann None sein.
+    """
+    msg = update.effective_message
+    # 1) Reply?
+    if msg.reply_to_message and msg.reply_to_message.from_user:
+        u = msg.reply_to_message.from_user
+        return u.id, (u.username or None)
+
+    # 2) Args?
+    if not context.args:
+        return None, None
+
+    first = context.args[0].lstrip("@")
+    # Zahl => direkte user_id
+    if first.isdigit():
+        return int(first), None
+
+    # Sonst: Username in DB des Chats auflösen
+    chat_id = update.effective_chat.id
+    async with aiosqlite.connect(DB) as adb:
+        async with adb.execute(
+            "SELECT user_id FROM players WHERE chat_id=? AND username=?",
+            (chat_id, first)
+        ) as cur:
+            row = await cur.fetchone()
+    if row:
+        return int(row[0]), first
+    return None, None
+
+async def _ensure_player_entry(db, chat_id: int, user_id: int, username: str | None):
+    await ensure_player(db, chat_id, user_id, username or "")
+
+async def _get_coins(db, chat_id: int, user_id: int) -> int:
+    async with db.execute("SELECT coins FROM players WHERE chat_id=? AND user_id=?", (chat_id, user_id)) as cur:
+        row = await cur.fetchone()
+    return int(row[0]) if row else 0
+
+def _parse_amount_from_args(context: ContextTypes.DEFAULT_TYPE, needs_two_args_when_no_reply: bool = True) -> int | None:
+    # Reply: Wert ist args[0]; Ohne Reply: Wert ist letztes Argument
+    if context.args:
+        try:
+            return int(context.args[-1])
+        except ValueError:
+            return None
+    return None
+
+async def cmd_addcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ /addcoins <@user|id> <amount>   oder als Reply: /addcoins <amount> """
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("Nett versucht. Nur der Owner darf auszahlen.")
+
+    amount = _parse_amount_from_args(context)
+    if amount is None or amount <= 0:
+        return await update.effective_message.reply_text("Nutzung: als Reply `/addcoins 50` oder `/addcoins @user 50`.", parse_mode="Markdown")
+
+    async with aiosqlite.connect(DB) as db:
+        tid, uname = await _resolve_target(db, update, context)
+        if not tid:
+            return await update.effective_message.reply_text("Ziel nicht gefunden. Antworte auf den User oder nutze @username bzw. user_id.")
+        chat_id = update.effective_chat.id
+        await _ensure_player_entry(db, chat_id, tid, uname)
+        old = await _get_coins(db, chat_id, tid)
+        new = old + amount
+        await db.execute("UPDATE players SET coins=? WHERE chat_id=? AND user_id=?", (new, chat_id, tid))
+        await db.commit()
+    tag = f"@{uname}" if uname else f"ID:{tid}"
+    await update.effective_message.reply_text(f"✅ {amount} Coins an {tag} vergeben. Neuer Kontostand: {new}.")
+
+async def cmd_takecoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ /takecoins <@user|id> <amount>   oder als Reply: /takecoins <amount> """
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("Nur der Owner darf abkassieren. Kapitalismus bleibt in der Familie.")
+
+    amount = _parse_amount_from_args(context)
+    if amount is None or amount <= 0:
+        return await update.effective_message.reply_text("Nutzung: als Reply `/takecoins 50` oder `/takecoins @user 50`.", parse_mode="Markdown")
+
+    async with aiosqlite.connect(DB) as db:
+        tid, uname = await _resolve_target(db, update, context)
+        if not tid:
+            return await update.effective_message.reply_text("Ziel nicht gefunden.")
+        chat_id = update.effective_chat.id
+        await _ensure_player_entry(db, chat_id, tid, uname)
+        old = await _get_coins(db, chat_id, tid)
+        new = max(0, old - amount)
+        await db.execute("UPDATE players SET coins=? WHERE chat_id=? AND user_id=?", (new, chat_id, tid))
+        await db.commit()
+    tag = f"@{uname}" if uname else f"ID:{tid}"
+    await update.effective_message.reply_text(f"🧾 {amount} Coins bei {tag} eingezogen. Neuer Kontostand: {new}.")
+
+async def cmd_setcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ /setcoins <@user|id> <value>   oder als Reply: /setcoins <value> """
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("Nur der Owner darf den Kontostand setzen.")
+
+    value = _parse_amount_from_args(context)
+    if value is None or value < 0:
+        return await update.effective_message.reply_text("Nutzung: als Reply `/setcoins 123` oder `/setcoins @user 123`.", parse_mode="Markdown")
+
+    async with aiosqlite.connect(DB) as db:
+        tid, uname = await _resolve_target(db, update, context)
+        if not tid:
+            return await update.effective_message.reply_text("Ziel nicht gefunden.")
+        chat_id = update.effective_chat.id
+        await _ensure_player_entry(db, chat_id, tid, uname)
+        await db.execute("UPDATE players SET coins=? WHERE chat_id=? AND user_id=?", (value, chat_id, tid))
+        await db.commit()
+    tag = f"@{uname}" if uname else f"ID:{tid}"
+    await update.effective_message.reply_text(f"✏️ Kontostand von {tag} auf {value} Coins gesetzt.")
+
+async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ /resetcoins <@user|id>   oder als Reply: /resetcoins """
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("Nur der Owner darf resetten. Sonst weint die Buchhaltung.")
+
+    async with aiosqlite.connect(DB) as db:
+        tid, uname = await _resolve_target(db, update, context)
+        if not tid:
+            return await update.effective_message.reply_text("Ziel nicht gefunden.")
+        chat_id = update.effective_chat.id
+        await _ensure_player_entry(db, chat_id, tid, uname)
+        await db.execute("UPDATE players SET coins=0 WHERE chat_id=? AND user_id=?", (chat_id, tid))
+        await db.commit()
+    tag = f"@{uname}" if uname else f"ID:{tid}"
+    await update.effective_message.reply_text(f"🧨 Kontostand von {tag} auf 0 gesetzt.")
+
+
 # =========================
 # Commands
 # =========================
@@ -565,8 +703,7 @@ Hier sind alle Befehle:
 • /release als Antwort – Gib dein Haustier wieder frei
 • /top als Antwort – Gib dein Haustier wieder frei
 
-Coins bekommst du für normale Nachrichten (1 Coin pro Nachricht, leicht gedrosselt).
-Hinweis: Group Privacy muss aus sein, sonst sieht der Bot keine Nachrichten.
+Coins bekommst du für normale Nachrichten (1 Coin pro Nachricht, leicht gedrosselt 1sec.).
     """
     await update.effective_message.reply_text(legende, parse_mode="Markdown")
 
@@ -851,6 +988,21 @@ def main():
     app.add_handler(CommandHandler("carestatus", cmd_carestatus))
     app.add_handler(CommandHandler("nsfw", cmd_nsfw))
     app.add_handler(CommandHandler("stop", cmd_stop))
+
+    # Pet Aktionen
+    app.add_handler(CommandHandler("pet", cmd_pet, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("walk", cmd_walk, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("kiss", cmd_kiss, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("dine", cmd_dine, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("massage", cmd_massage, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("lapdance", cmd_lapdance, filters=filters.Chat(ALLOWED_CHAT_ID)))
+
+    # ADMIN Commands
+    app.add_handler(CommandHandler("addcoins", cmd_addcoins))
+    app.add_handler(CommandHandler("takecoins", cmd_takecoins))
+    app.add_handler(CommandHandler("setcoins", cmd_setcoins))
+    app.add_handler(CommandHandler("resetcoins", cmd_resetcoins))
+
 
     # Bot hinzugefügt/Rechte geändert → Boot-Ansage
     app.add_handler(ChatMemberHandler(on_my_chat_member, ChatMemberHandler.MY_CHAT_MEMBER))
