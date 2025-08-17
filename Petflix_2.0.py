@@ -9,6 +9,9 @@ import aiosqlite
 import datetime
 import hashlib
 from typing import Optional
+from datetime import time as dtime
+from zoneinfo import ZoneInfo  # Python 3.9+
+
 
 from telegram import Update
 from telegram.constants import ChatType, ChatMemberStatus
@@ -35,6 +38,8 @@ ADMIN_ID = 8172388048  # Deine Telegram User-ID
 MESSAGE_THROTTLE_S = 1   # Zeit in Sekunden zwischen Nachrichten-Coins
 CARE_COOLDOWN_S = 120   # 2 Minuten zwischen Pflegeaktionen pro Besitzer×Haustier
 RUNAWAY_HOURS = 48
+PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")  # Serverzeit, per Env änderbar
+DAILY_GIFT_COINS = 15
 
 # Boot-Timestamp, um nur EINMAL pro Neustart eine Startmeldung je Chat zu schicken
 BOOT_TS = int(time.time())
@@ -252,6 +257,71 @@ async def cmd_carestatus(update, context):
         f"Letzte Pflege: {'noch nie' if hours_since is None else str(hours_since) + 'h her'}\n"
         f"{random.choice(pflege_sprüche)}\n"
         f"{comment}"
+    )
+
+async def _pick_random_player(chat_id: int):
+    async with aiosqlite.connect(DB) as db:
+        async with db.execute(
+            "SELECT user_id, username FROM players WHERE chat_id=?",
+            (chat_id,)
+        ) as cur:
+            rows = await cur.fetchall()
+    if not rows:
+        return None, None
+    return random.choice(rows)
+
+def _mention_from_uid_username(user_id: int, username: str | None) -> str:
+    # @name wenn vorhanden, sonst klickbare Mention per ID
+    return f"@{username}" if username else f"[ID:{user_id}](tg://user?id={user_id})"
+
+_SAVAGE_LINES = [
+    "Guck mal, {user}, {coins} Coins. Damit du endlich Satzzeichen kaufen kannst.",
+    "{user}, {coins} Coins vom Haus. Nicht ausgeben wie deine Geduld beim Lesen.",
+    "Hier, {user}: {coins} Coins. Damit du nicht nur im Chat arm klingst.",
+    "{user} kriegt {coins} Coins. Belohnung fürs konsequente Nichtstun.",
+    "{user}, {coins} Coins. Kauf dir was Schönes – z. B. eine Meinung mit Belegen.",
+    "Jackpot, {user}: {coins} Coins. Reicht für 3 halbgare Hot Takes.",
+    "{user}, {coins} Coins. Schreib was – aber diesmal ohne CAPSLOCK, ok?",
+]
+
+async def daily_gift_job(context: ContextTypes.DEFAULT_TYPE):
+    chat_id = ALLOWED_CHAT_ID
+    today = today_ymd()
+    cd_key = f"dailygift:{today}"
+
+    # Einmal-pro-Tag-Guard (falls der Bot rund um 10:00 rumzickt)
+    async with aiosqlite.connect(DB) as db:
+        left = await get_cd_left(db, chat_id, 0, cd_key)  # user_id=0 als Sentinel
+        if left > 0:
+            return  # heute schon erledigt
+
+        uid, uname = await _pick_random_player(chat_id)
+        if not uid:
+            # trotzdem markieren, damit er nicht dauernd spammt, wenn noch keiner spielt
+            await set_cd(db, chat_id, 0, cd_key, _secs_until_tomorrow())
+            await db.commit()
+            return
+
+        # Coins gutschreiben
+        await db.execute(
+            "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
+            (DAILY_GIFT_COINS, chat_id, uid)
+        )
+
+        # Markieren bis Mitternacht
+        await set_cd(db, chat_id, 0, cd_key, _secs_until_tomorrow())
+        await db.commit()
+
+    user_mention = _mention_from_uid_username(uid, uname)
+    line = random.choice(_SAVAGE_LINES).format(
+        user=user_mention, coins=DAILY_GIFT_COINS
+    )
+
+    # Markdown für tg://user Mention aktivieren
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=f"🎁 Tägliche Almosen-Time!\n{line}",
+        parse_mode="Markdown"
     )
 
 
@@ -1202,6 +1272,14 @@ def main():
     app.add_handler(
     MessageHandler(filters.COMMAND & ~filters.Chat(ALLOWED_CHAT_ID), deny_other_chats),
     group=0
+    )
+
+    #  Daily Gift um 10:00 einplanen 
+    gift_time = dtime(hour=10, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
+    app.job_queue.run_daily(
+        daily_gift_job,
+        time=gift_time,
+        name="daily_gift_10am"
     )
 
     # Debug/Echo zuletzt
