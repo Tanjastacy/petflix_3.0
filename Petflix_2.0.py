@@ -831,14 +831,14 @@ async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 # App-Setup
 # =========================
-def main():
-    # ggf. await db_init() -> in sync-Umgebung umziehen:
-    import asyncio
-    asyncio.run(db_init())
+async def main():
+    # DB vorbereiten
+    await db_init()
 
+    # Application bauen
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # Handlers registrieren 
+    # === Handlers registrieren ===
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("balance", cmd_balance))
     app.add_handler(CommandHandler("daily", cmd_daily))
@@ -852,7 +852,7 @@ def main():
     app.add_handler(CommandHandler("nsfw", cmd_nsfw))
     app.add_handler(CommandHandler("stop", cmd_stop))
 
-    # Coins-Handler eng filtern
+    # Coins-Handler: NUR Text, keine Commands/Forwards, NUR erlaubte Gruppe
     app.add_handler(
         MessageHandler(
             filters.Chat(ALLOWED_CHAT_ID) & filters.TEXT & ~filters.COMMAND & ~filters.FORWARDED,
@@ -861,11 +861,19 @@ def main():
         group=1
     )
 
-    # Debug / Echo zuletzt
+    # Debug/Echo zuletzt
     app.add_handler(MessageHandler(filters.ALL, echo_all), group=2)
 
     log.info("Bot startet, warte auf Updates...")
-    app.run_polling(close_loop=False) 
+
+    # === PTB v20+ korrekter Lifecycle ===
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()   # beginnt Polling
+    await app.updater.idle()            # blockiert bis Stop
+    await app.updater.stop()
+    await app.stop()
+    await app.shutdown()
 
 if __name__ == "__main__":
-    main()  
+    asyncio.run(main())
