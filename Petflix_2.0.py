@@ -17,20 +17,19 @@ from telegram.ext import (
 )
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]           # Pflicht
-ALLOWED_CHAT_ID = int(os.environ["ALLOWED_CHAT_ID"])  # Pflicht, deine Gruppen-ID
-DB = os.environ.get("DB_PATH", "petflix_2.0.db")  # Optional
+ALLOWED_CHAT_ID = int(os.environ.get("ALLOWED_CHAT_ID", "-1002550303601"))
+DB = os.environ.get("DB_PATH", "petflix_2.0.db")
+
 
 # =========================
 # Konfiguration
 # =========================
-DB = "petflix_2.0.db"
 START_COINS = 0           # Jeder User startet mit 0 Coins
 DAILY_COINS = 0
 DAILY_COOLDOWN_S = 22 * 3600
 MESSAGE_REWARD = 1      # Pro Nachricht gibt es 1 Coin
 USER_BASE_PRICE = 100      # Kaufpreis für jeden User
 USER_PRICE_STEP = 50     # Nach jedem Kauf steigt der Preis um 100 Coins
-ALLOWED_CHAT_ID = -1002550303601  # Nur diese Gruppe darf den Bot nutzen
 ADMIN_ID = 8172388048  # Deine Telegram User-ID
 MESSAGE_THROTTLE_S = 1   # Zeit in Sekunden zwischen Nachrichten-Coins
 CARE_COOLDOWN_S = 120   # 2 Minuten zwischen Pflegeaktionen pro Besitzer×Haustier
@@ -195,7 +194,6 @@ async def do_care(update, context, action_key, tame_lines, spicy_lines):
     except:
         pass
 
-    import random
     lines = spicy_lines if spicy else tame_lines
     text = random.choice(lines).format(owner=nice_name(owner), pet=nice_name(pet), n=done)
     await msg.reply_text(text)
@@ -209,11 +207,12 @@ async def cmd_carestatus(update, context):
     uid = update.effective_user.id
 
     async with aiosqlite.connect(DB) as db:
-        # Holt Daten: letzter Pflegezeitpunkt + Zähler für heute
+        # Hole den EINEN Pet-Eintrag, bei dem der User owner ist (wenn mehrere möglich, nimm irgendeinen)
         async with db.execute("""
-            SELECT last_care_ts, daily_care_count
+            SELECT last_care_ts, care_done_today, day_ymd
             FROM pets
             WHERE chat_id=? AND owner_id=?
+            LIMIT 1
         """, (chat_id, uid)) as cur:
             row = await cur.fetchone()
 
@@ -223,15 +222,13 @@ async def cmd_carestatus(update, context):
         )
         return
 
-    last_ts, care_count = row
+    last_ts, care_done_today, day_ymd = row
     now = int(time.time())
+    today = today_ymd()
+    care_today = care_done_today if day_ymd == today else 0
 
-    if last_ts:
-        hours_since = (now - last_ts) // 3600
-    else:
-        hours_since = None
+    hours_since = (now - last_ts) // 3600 if last_ts else None
 
-    # Humor-Status
     if hours_since is None:
         comment = "Dein Haustier kennt dich nur vom Hörensagen."
     elif hours_since < 12:
@@ -243,20 +240,19 @@ async def cmd_carestatus(update, context):
     else:
         comment = "💔 Dein Haustier ist schon fast weg… es übt schon den Abgang."
 
-    # Pflegezähler witzig verpacken
     pflege_sprüche = [
-        f"Du hast heute {care_count}/2 Pflegeaktionen gemacht. Ein bisschen mager, findest du nicht?",
-        f"Heute {care_count} von 2 Pflegepunkten erledigt – das ist wie halber Sex: enttäuschend.",
-        f"{care_count}/2 heute… immerhin kein Totalausfall, aber so wird das nix im Tierporno."
+        f"Du hast heute {care_today}/2 Pflegeaktionen gemacht. Ein bisschen mager, findest du nicht?",
+        f"Heute {care_today} von 2 Pflegepunkten erledigt – das ist wie halber Sex: enttäuschend.",
+        f"{care_today}/2 heute… immerhin kein Totalausfall, aber so wird das nix im Tierporno."
     ]
 
-    # Nachricht senden
     await update.effective_message.reply_text(
         f"📊 Pflege-Status für dein Haustier:\n"
         f"Letzte Pflege: {'noch nie' if hours_since is None else str(hours_since) + 'h her'}\n"
         f"{random.choice(pflege_sprüche)}\n"
         f"{comment}"
     )
+
 
 def is_group(update: Update) -> bool:
     return update.effective_chat and update.effective_chat.type in {ChatType.GROUP, ChatType.SUPERGROUP}
@@ -832,11 +828,11 @@ async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # App-Setup
 # =========================
 async def main():
-    # DB vorbereiten
     await db_init()
-
-    # Application bauen
     app = Application.builder().token(BOT_TOKEN).build()
+
+    # handlers ...
+    app.add_handler(CommandHandler("start", cmd_start))
 
     # === Handlers registrieren ===
     app.add_handler(CommandHandler("start", cmd_start))
@@ -861,17 +857,20 @@ async def main():
         group=1
     )
 
+    app.add_handler(ChatMemberHandler(on_my_chat_member, ChatMemberHandler.MY_CHAT_MEMBER))
+
+
     # Debug/Echo zuletzt
     app.add_handler(MessageHandler(filters.ALL, echo_all), group=2)
 
     log.info("Bot startet, warte auf Updates...")
 
-    # === PTB v20+ korrekter Lifecycle ===
     await app.initialize()
     await app.start()
-    await app.updater.start_polling()   # beginnt Polling
-    await app.updater.idle()            # blockiert bis Stop
-    await app.updater.stop()
+    # Achtung: In PTB v21 kann .updater entfallen. Wenn vorhanden, nutze ihn so:
+    await app.updater.start_polling()
+    await app.updater.idle()
+    # orderly shutdown
     await app.stop()
     await app.shutdown()
 
