@@ -163,7 +163,7 @@ async def do_care(update, context, action_key, tame_lines, spicy_lines):
             return
 
         # cooldown pro owner×pet
-        cd_key = f"care:{owner.id}:{pet.id}"
+        cd_key = f"care:{action_key}:{owner.id}:{pet.id}"
         # Reuse deiner Cooldown-Funktionen
         left = await get_cd_left(db, chat_id, owner.id, cd_key)
         if left > 0:
@@ -489,14 +489,8 @@ def _is_admin_here(update: Update) -> bool:
     return is_allowed_chat(update) and update.effective_user and update.effective_user.id == ADMIN_ID
 
 async def _resolve_target(db, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Zieluser bestimmen:
-    - per Reply: Ziel = Reply-Absender
-    - per Args:  /cmd @username <amount>  ODER  /cmd <user_id> <amount>
-                 (bei /setcoins auch /cmd @username <value>)
-    Gibt (user_id, username_str) zurück, username_str kann None sein.
-    """
     msg = update.effective_message
+
     # 1) Reply?
     if msg.reply_to_message and msg.reply_to_message.from_user:
         u = msg.reply_to_message.from_user
@@ -507,18 +501,19 @@ async def _resolve_target(db, update: Update, context: ContextTypes.DEFAULT_TYPE
         return None, None
 
     first = context.args[0].lstrip("@")
-    # Zahl => direkte user_id
+
+    # numerische ID
     if first.isdigit():
         return int(first), None
 
-    # Sonst: Username in DB des Chats auflösen
+    # Username im aktuellen Chat auflösen
     chat_id = update.effective_chat.id
-    async with aiosqlite.connect(DB) as adb:
-        async with adb.execute(
-            "SELECT user_id FROM players WHERE chat_id=? AND username=?",
-            (chat_id, first)
-        ) as cur:
-            row = await cur.fetchone()
+    async with db.execute(
+        "SELECT user_id FROM players WHERE chat_id=? AND username=?",
+        (chat_id, first)
+    ) as cur:
+        row = await cur.fetchone()
+
     if row:
         return int(row[0]), first
     return None, None
@@ -812,7 +807,7 @@ Hier sind alle Befehle:
 • /prices – Zeigt die Kaufpreise aller User im Chat
 • /owner <username> oder als Antwort – Zeigt den Besitzer eines Users
 • /release als Antwort – Gib dein Haustier wieder frei
-• /top als Antwort – Gib dein Haustier wieder frei
+• /top – Top-10-Spieler nach Coins
 
 Coins bekommst du für normale Nachrichten (1 Coin pro Nachricht, leicht gedrosselt 1sec.).
     """
@@ -967,6 +962,61 @@ async def cmd_top(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for chunk in [text[i:i+4000] for i in range(0, len(text), 4000)]:
         await update.effective_message.reply_text(chunk, quote=False)
 
+# =========================
+# Auto-Purge bei Austritt
+# =========================
+async def on_chat_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    cmu = update.chat_member
+    if not cmu:
+        return
+    chat_id = cmu.chat.id
+    if chat_id != ALLOWED_CHAT_ID:
+        return
+
+    old = cmu.old_chat_member
+    new = cmu.new_chat_member
+    user = new.user  # betroffener User
+
+    # Statuswechsel in "left" oder "kicked" → löschen
+    left_statuses = {"left", "kicked"}
+    try:
+        old_status = getattr(old, "status", None)
+        new_status = getattr(new, "status", None)
+    except Exception:
+        return
+
+    if new_status in left_statuses and old_status not in left_statuses:
+        await purge_user_from_db(chat_id, user.id)
+        # leise loggen; Chat nicht zuspammen
+        log.info(f"Purged user {user.id} ({getattr(user, 'username', None)}) from chat {chat_id} due to leave/kick.")
+
+
+# =========================
+# User vollständig purgen
+# =========================
+async def purge_user_from_db(chat_id: int, user_id: int):
+    async with aiosqlite.connect(DB) as db:
+        # Spieler-Datensatz weg
+        await db.execute("DELETE FROM players WHERE chat_id=? AND user_id=?", (chat_id, user_id))
+        # Besitz-Beziehungen weg (als Pet oder als Owner)
+        await db.execute("DELETE FROM pets WHERE chat_id=? AND (pet_id=? OR owner_id=?)", (chat_id, user_id, user_id))
+        # Cooldowns weg
+        await db.execute("DELETE FROM cooldowns WHERE chat_id=? AND user_id=?", (chat_id, user_id))
+        await db.commit()
+
+async def cmd_purgeuser(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("Nur der Owner darf löschen. Versuch niedlich, aber nein.")
+
+    async with aiosqlite.connect(DB) as db:
+        tid, uname = await _resolve_target(db, update, context)
+    if not tid:
+        return await update.effective_message.reply_text("Ziel nicht gefunden. Nutze Reply, @username oder user_id.")
+
+    chat_id = update.effective_chat.id
+    await purge_user_from_db(chat_id, tid)
+    tag = f"@{uname}" if uname else f"ID:{tid}"
+    await update.effective_message.reply_text(f"🗑️ {tag} aus allen Petflix-Tabellen entfernt.")
 
 
 # =========================
@@ -1113,10 +1163,14 @@ def main():
     app.add_handler(CommandHandler("lapdance", cmd_lapdance, filters=filters.Chat(ALLOWED_CHAT_ID)))
 
     # ADMIN Commands
-    app.add_handler(CommandHandler("addcoins", cmd_addcoins))
-    app.add_handler(CommandHandler("takecoins", cmd_takecoins))
-    app.add_handler(CommandHandler("setcoins", cmd_setcoins))
-    app.add_handler(CommandHandler("resetcoins", cmd_resetcoins))
+    app.add_handler(CommandHandler("addcoins",   cmd_addcoins,   filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("takecoins",  cmd_takecoins,  filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("setcoins",   cmd_setcoins,   filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("resetcoins", cmd_resetcoins, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    # Admin: manuell purgen
+    app.add_handler(CommandHandler("purgeuser", cmd_purgeuser, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    # Auto-Purge bei Austritt
+    app.add_handler(ChatMemberHandler(on_chat_member, ChatMemberHandler.CHAT_MEMBER))
 
 
     # Bot hinzugefügt/Rechte geändert → Boot-Ansage
@@ -1129,6 +1183,11 @@ def main():
             autoload_and_reward
         ),
         group=1
+    )
+    # Befehle in falschen Chats abfangen
+    app.add_handler(
+    MessageHandler(filters.COMMAND & ~filters.Chat(ALLOWED_CHAT_ID), deny_other_chats),
+    group=0
     )
 
     # Debug/Echo zuletzt
