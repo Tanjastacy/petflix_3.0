@@ -711,7 +711,7 @@ async def cmd_top(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rows = await cur.fetchall()
 
     if not rows:
-        await update.effective_message.reply_text("Noch keine Spieler.", quote=False)
+        await update.effective_message.reply_text("Noch keine Spieler.")
         return
 
     lines = []
