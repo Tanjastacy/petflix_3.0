@@ -568,6 +568,7 @@ Hier sind alle Befehle:
 • /prices – Zeigt die Kaufpreise aller User im Chat
 • /owner <username> oder als Antwort – Zeigt den Besitzer eines Users
 • /release als Antwort – Gib dein Haustier wieder frei
+• /top als Antwort – Gib dein Haustier wieder frei
 
 Coins bekommst du für normale Nachrichten (1 Coin pro Nachricht, leicht gedrosselt).
 Hinweis: Group Privacy muss aus sein, sonst sieht der Bot keine Nachrichten.
@@ -697,22 +698,32 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def cmd_top(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if update.effective_chat.id != ALLOWED_CHAT_ID: return
-        chat_id = update.effective_chat.id
-        async with aiosqlite.connect(DB) as db:
-            async with db.execute(
-                "SELECT username, user_id, coins FROM players WHERE chat_id=? ORDER BY coins DESC LIMIT 10",
-                (chat_id,)
-            ) as cur:
-                rows = await cur.fetchall()
-        if not rows:
-            await update.effective_message.reply_text("Noch keine Spieler.")
-            return
-        lines = []
-        for uname, uid, c in rows:
-            tag = f"@{uname}" if uname else f"ID:{uid}"
-            lines.append(f"{tag}: {c}")
-        await update.effective_message.reply_text("🏆 Top 10:\n" + "\n".join(lines))
+    # Nur in erlaubter Gruppe
+    if update.effective_chat.id != ALLOWED_CHAT_ID:
+        return
+    chat_id = update.effective_chat.id
+
+    async with aiosqlite.connect(DB) as db:
+        async with db.execute(
+            "SELECT username, user_id, coins FROM players WHERE chat_id=? ORDER BY coins DESC LIMIT 10",
+            (chat_id,)
+        ) as cur:
+            rows = await cur.fetchall()
+
+    if not rows:
+        await update.effective_message.reply_text("Noch keine Spieler.", quote=False)
+        return
+
+    lines = []
+    for i, (uname, uid, c) in enumerate(rows, start=1):
+        tag = f"@{uname}" if uname else f"ID:{uid}"
+        lines.append(f"{i}. {tag}: {c} 💰")
+
+    # Telegram erlaubt max. ~4096 Zeichen pro Nachricht → ggf. splitten
+    text = "📋 Rangliste Top 10 Spieler:\n\n" + "\n".join(lines)
+    for chunk in [text[i:i+4000] for i in range(0, len(text), 4000)]:
+        await update.effective_message.reply_text(chunk, quote=False)
+
 
 
 # =========================
@@ -825,6 +836,7 @@ async def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
     # Commands
+    app.add_handler(CommandHandler("top", cmd_top), group=0)
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("balance", cmd_balance))
     app.add_handler(CommandHandler("daily", cmd_daily))
@@ -846,9 +858,6 @@ async def main():
 
     app.add_handler(MessageHandler(filters.ALL, echo_all))
     app.add_handler(CommandHandler("stop", cmd_stop))
-    app.add_handler(CommandHandler("top", cmd_top))
-
-
 
     # Mitgliedsstatus-Updates (bot hinzugefügt/entfernt)
     app.add_handler(ChatMemberHandler(on_my_chat_member, ChatMemberHandler.MY_CHAT_MEMBER), group=0)
