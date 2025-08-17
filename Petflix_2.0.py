@@ -824,12 +824,10 @@ async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     asyncio.create_task(_shutdown())
 
 # =========================
-# App-Setup und Lifecycle
+# App-Setup (robust unter systemd + PTB 22.3)
 # =========================
 
-def main():
-    asyncio.run(db_init())
-
+async def _build_app():
     app = Application.builder().token(BOT_TOKEN).build()
 
     # === Handlers registrieren ===
@@ -846,8 +844,10 @@ def main():
     app.add_handler(CommandHandler("nsfw", cmd_nsfw))
     app.add_handler(CommandHandler("stop", cmd_stop))
 
+    # Bot hinzugefügt/Rechte geändert → Boot-Ansage
     app.add_handler(ChatMemberHandler(on_my_chat_member, ChatMemberHandler.MY_CHAT_MEMBER))
 
+    # Coins-Handler: nur erlaubte Gruppe, nur Text, keine Commands/Forwards
     app.add_handler(
         MessageHandler(
             filters.Chat(ALLOWED_CHAT_ID) & filters.TEXT & ~filters.COMMAND & ~filters.FORWARDED,
@@ -856,10 +856,23 @@ def main():
         group=1
     )
 
+    # Debug/Echo zuletzt
     app.add_handler(MessageHandler(filters.ALL, echo_all), group=2)
+    return app
+
+async def main():
+    await db_init()
+    app = await _build_app()
 
     log.info("Bot startet, warte auf Updates...")
-    app.run_polling()   # <<< EINZIGER Lifecycle-Call
+
+    # KORREKTER PTB-22.x Lifecycle ohne Updater-API
+    await app.initialize()
+    await app.start()
+    await app.start_polling()  
+    await app.wait_closed()    
+    await app.stop()
+    await app.shutdown()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
