@@ -831,12 +831,14 @@ async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 # App-Setup
 # =========================
-async def main():
-    await db_init()
+def main():
+    # ggf. await db_init() -> in sync-Umgebung umziehen:
+    import asyncio
+    asyncio.run(db_init())
+
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # Commands
-    app.add_handler(CommandHandler("top", cmd_top), group=0)
+    # Handlers registrieren 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("balance", cmd_balance))
     app.add_handler(CommandHandler("daily", cmd_daily))
@@ -845,38 +847,25 @@ async def main():
     app.add_handler(CommandHandler("owner", cmd_owner))
     app.add_handler(CommandHandler("release", cmd_release))
     app.add_handler(CommandHandler("prices", cmd_prices))
-    #---------------------------------------------------
-    app.add_handler(CommandHandler("pet", cmd_pet))
-    app.add_handler(CommandHandler("walk", cmd_walk))
-    app.add_handler(CommandHandler("kiss", cmd_kiss))
-    app.add_handler(CommandHandler("dine", cmd_dine))
-    app.add_handler(CommandHandler("massage", cmd_massage))
-    app.add_handler(CommandHandler("lapdance", cmd_lapdance))
-    #----------------------------------------------------
+    app.add_handler(CommandHandler("top", cmd_top))
     app.add_handler(CommandHandler("carestatus", cmd_carestatus))
     app.add_handler(CommandHandler("nsfw", cmd_nsfw))
-
-    app.add_handler(MessageHandler(filters.ALL, echo_all))
     app.add_handler(CommandHandler("stop", cmd_stop))
 
-    # Mitgliedsstatus-Updates (bot hinzugefügt/entfernt)
-    app.add_handler(ChatMemberHandler(on_my_chat_member, ChatMemberHandler.MY_CHAT_MEMBER), group=0)
-
-    # Alle Updates einmal durchlassen, um Chat zu markieren und ggf. Boot-Ansage zu senden
+    # Coins-Handler eng filtern
     app.add_handler(
-    MessageHandler(
-        filters.Chat(ALLOWED_CHAT_ID) & filters.TEXT & ~filters.COMMAND & ~filters.FORWARDED,
-        autoload_and_reward
-    ),
-    group=1
-)
+        MessageHandler(
+            filters.Chat(ALLOWED_CHAT_ID) & filters.TEXT & ~filters.COMMAND & ~filters.FORWARDED,
+            autoload_and_reward
+        ),
+        group=1
+    )
 
+    # Debug / Echo zuletzt
+    app.add_handler(MessageHandler(filters.ALL, echo_all), group=2)
 
     log.info("Bot startet, warte auf Updates...")
-    await app.run_polling(close_loop=False)
+    app.run_polling(close_loop=False) 
 
 if __name__ == "__main__":
-    import nest_asyncio
-    nest_asyncio.apply()
-    import asyncio
-    asyncio.get_event_loop().run_until_complete(main())
+    main()  
