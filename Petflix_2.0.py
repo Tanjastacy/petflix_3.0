@@ -7,7 +7,9 @@ import time
 import logging
 import aiosqlite
 import datetime
+import hashlib
 from typing import Optional
+
 
 from telegram import Update
 from telegram.constants import ChatType
@@ -309,6 +311,63 @@ async def get_cd_left(db, chat_id: int, user_id: int, key: str) -> int:
         if not row:
             return 0
         return max(0, row[0] - int(time.time()))
+    
+
+# =========================
+# Schatzsuche: Helfer & Texte
+# =========================
+
+def _secs_until_tomorrow() -> int:
+    now = datetime.datetime.now()
+    tomorrow = (now + datetime.timedelta(days=1)).date()
+    midnight = datetime.datetime.combine(tomorrow, datetime.time.min)
+    return max(1, int((midnight - now).total_seconds()))
+
+def _daily_treasure_amount(user_id: int, chat_id: int, day_ymd: str) -> int:
+    # deterministisch: 1..50, ändert sich täglich je User/Chat
+    seed = f"{user_id}:{chat_id}:{day_ymd}".encode("utf-8")
+    h = hashlib.sha256(seed).hexdigest()
+    return (int(h[:8], 16) % 50) + 1
+
+_WORLD_PLACES = [
+    "den Dünen der Sahara", "unter dem Eiffelturm", "im Central Park", "am Fuji",
+    "im Amazonasdschungel", "unter der Golden-Gate-Bridge", "am Great Barrier Reef",
+    "in der Atacama", "auf Island zwischen Geysiren", "an der Chinesischen Mauer",
+    "in Venedig, zwischen zu teuren Gelati", "in der Wüste Gobi", "am Tafelberg",
+    "in den Alpen, da wo keiner hinläuft", "bei den Pyramiden von Gizeh",
+    "in Neuschwanstein, Touri-Falle inklusive", "am Nordkap", "in der Serengeti",
+    "in Petra, Jordanien", "in Machu Picchu", "auf Santorini", "in Dubrovniks Gassen",
+    "in Angkor Wat", "am Kilimandscharo", "am Bodensee, warum nicht",
+    "auf den Lofoten", "in der Toskana", "am Grand Canyon", "in Barcelona, irgendwo zwischen Tapas",
+    "in Seoul, im Nachtmarkt", "in Phuket am Strand", "in Kopenhagen am Nyhavn",
+    "in Amsterdam, nein nicht da", "in Prag auf der Karlsbrücke",
+]
+
+_TREASURE_METHODS = {
+    "graben": "gräbt wie ein Maulwurf",
+    "buddeln": "buddeln wie ein Terrier",
+    "tauchen": "taucht zwischen Korallen",
+    "karte": "folgt einer mysteriösen Karte",
+    "hacken": "hackt eine verrostete Truhe auf",
+    "klauen": "stibitzt sie einem Piraten",
+    "pendeln": "pendelt mit fragwürdiger Esoterik",
+    "orakel": "befragt ein übermüdetes Orakel",
+    "klettern": "klettert an einer bröseligen Klippe",
+}
+
+def _pick_method(args) -> str:
+    if not args:
+        return random.choice(list(_TREASURE_METHODS.values()))
+    key = args[0].lower()
+    return _TREASURE_METHODS.get(key, random.choice(list(_TREASURE_METHODS.values())))
+
+_TREASURE_STORIES = [
+    "{user} {method} bei {place} und zieht eine Truhe raus. Inhalt: {coins} Coins. Produktivität besiegt Reality-TV, knapp.",
+    "{user} stolpert bei {place} über eine halb vergrabene Kiste. {coins} Coins später fühlt sich Faulheit plötzlich clever an.",
+    "{user} folgt Spuren bis {place}, reißt die Truhe auf und findet {coins} Coins. Steuer frei, Moral fraglich.",
+    "{user} wühlt bei {place} im Dreck und fischt {coins} Coins raus. Schatz 1, Realismus 0.",
+    "{user} macht bei {place} kurz auf Pirat: Truhe auf, {coins} Coins raus, Würde wieder zu.",
+]
 
 # =========================
 # Boot-Ansage: Chat-ID automatisch erkennen
@@ -566,6 +625,54 @@ async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Commands
 # =========================
 
+# =========================
+# Schatzsuche Command
+# =========================
+async def cmd_treasure(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # nur in erlaubter Gruppe
+    if not is_group(update) or update.effective_chat.id != ALLOWED_CHAT_ID:
+        return
+
+    chat_id = update.effective_chat.id
+    user = update.effective_user
+    uid = user.id
+    today = today_ymd()
+    cd_key = f"treasure:{today}"
+
+    async with aiosqlite.connect(DB) as db:
+        # Spieler anlegen falls neu
+        await ensure_player(db, chat_id, uid, user.username or user.full_name or "")
+
+        # Schon heute gesucht?
+        left = await get_cd_left(db, chat_id, uid, cd_key)
+        if left > 0:
+            h = left // 3600
+            m = (left % 3600) // 60
+            return await update.effective_message.reply_text(
+                f"Du hast heute schon gegraben. Wieder möglich in {h}h {m}m."
+            )
+
+        # Betrag deterministisch für heute
+        amount = _daily_treasure_amount(uid, chat_id, today)
+
+        # Coins gutschreiben
+        await db.execute(
+            "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
+            (amount, chat_id, uid)
+        )
+
+        # Cooldown bis Mitternacht
+        await set_cd(db, chat_id, uid, cd_key, _secs_until_tomorrow())
+        await db.commit()
+
+    place = random.choice(_WORLD_PLACES)
+    method = _pick_method(context.args)
+    story = random.choice(_TREASURE_STORIES).format(
+        user=nice_name(user), method=method, place=place, coins=amount
+    )
+    await update.effective_message.reply_text(story)
+
+
 # Pet Aktionen
 # =========================
 
@@ -683,6 +790,10 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /dine – Dein Haustier mit einem heißen Dinner verwöhnen.  
 /massage – Massieren… manchmal an Stellen, die Google nicht zeigen darf.  
 /lapdance – Du weißt, was das ist. Der Stuhl überlebt vielleicht.  
+
+** Tägliche Schatzsuche: **
+/treasure [methode] – Einmal täglich Schatzsuche (1–50 Coins). 
+Probiere mal: graben, tauchen, karte, hacken, klauen, pendeln, orakel, klettern.
 
 📅 **Regeln**  
 • Du musst dich **2x am Tag** um dein Haustier kümmern  
@@ -988,6 +1099,10 @@ def main():
     app.add_handler(CommandHandler("carestatus", cmd_carestatus))
     app.add_handler(CommandHandler("nsfw", cmd_nsfw))
     app.add_handler(CommandHandler("stop", cmd_stop))
+    
+    # Schatzsuche (Alias /hunt optional)
+    app.add_handler(CommandHandler(["treasure", "hunt"], cmd_treasure, filters=filters.Chat(ALLOWED_CHAT_ID)))
+
 
     # Pet Aktionen
     app.add_handler(CommandHandler("pet", cmd_pet, filters=filters.Chat(ALLOWED_CHAT_ID)))
