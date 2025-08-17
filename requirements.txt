@@ -1,4 +1,4 @@
-python-telegram-bot==22.3
+python-telegram-bot
 aiosqlite
 nest_asyncio
 python-dotenv

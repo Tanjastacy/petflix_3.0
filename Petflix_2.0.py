@@ -430,7 +430,6 @@ async def cmd_prices(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Pet Aktionen
 # =========================
-import random
 
 # === Pflegeaktionen ===
 
@@ -825,14 +824,13 @@ async def cmd_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     asyncio.create_task(_shutdown())
 
 # =========================
-# App-Setup
+# App-Setup und Lifecycle
 # =========================
-async def main():
-    await db_init()
-    app = Application.builder().token(BOT_TOKEN).build()
 
-    # handlers ...
-    app.add_handler(CommandHandler("start", cmd_start))
+def main():
+    asyncio.run(db_init())
+
+    app = Application.builder().token(BOT_TOKEN).build()
 
     # === Handlers registrieren ===
     app.add_handler(CommandHandler("start", cmd_start))
@@ -848,7 +846,8 @@ async def main():
     app.add_handler(CommandHandler("nsfw", cmd_nsfw))
     app.add_handler(CommandHandler("stop", cmd_stop))
 
-    # Coins-Handler: NUR Text, keine Commands/Forwards, NUR erlaubte Gruppe
+    app.add_handler(ChatMemberHandler(on_my_chat_member, ChatMemberHandler.MY_CHAT_MEMBER))
+
     app.add_handler(
         MessageHandler(
             filters.Chat(ALLOWED_CHAT_ID) & filters.TEXT & ~filters.COMMAND & ~filters.FORWARDED,
@@ -857,22 +856,10 @@ async def main():
         group=1
     )
 
-    app.add_handler(ChatMemberHandler(on_my_chat_member, ChatMemberHandler.MY_CHAT_MEMBER))
-
-
-    # Debug/Echo zuletzt
     app.add_handler(MessageHandler(filters.ALL, echo_all), group=2)
 
     log.info("Bot startet, warte auf Updates...")
-
-    await app.initialize()
-    await app.start()
-    # Achtung: In PTB v21 kann .updater entfallen. Wenn vorhanden, nutze ihn so:
-    await app.updater.start_polling()
-    await app.updater.idle()
-    # orderly shutdown
-    await app.stop()
-    await app.shutdown()
+    app.run_polling()   # <<< EINZIGER Lifecycle-Call
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
