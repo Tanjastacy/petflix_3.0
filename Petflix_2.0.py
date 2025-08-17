@@ -792,7 +792,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /lapdance – Du weißt, was das ist. Der Stuhl überlebt vielleicht.  
 
 ** Tägliche Schatzsuche: **
-/treasure [methode] – Einmal täglich Schatzsuche (1–50 Coins). 
+/treasure [methode] – Einmal täglich Schatzsuche 
 Probiere mal: graben, tauchen, karte, hacken, klauen, pendeln, orakel, klettern.
 
 📅 **Regeln**  
