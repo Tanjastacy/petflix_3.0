@@ -10,9 +10,8 @@ import datetime
 import hashlib
 from typing import Optional
 
-
 from telegram import Update
-from telegram.constants import ChatType
+from telegram.constants import ChatType, ChatMemberStatus
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, ChatMemberHandler,
     ContextTypes, filters
@@ -969,25 +968,40 @@ async def on_chat_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cmu = update.chat_member
     if not cmu:
         return
+
     chat_id = cmu.chat.id
     if chat_id != ALLOWED_CHAT_ID:
         return
 
-    old = cmu.old_chat_member
-    new = cmu.new_chat_member
-    user = new.user  # betroffener User
+    old_status = getattr(cmu.old_chat_member, "status", None)
+    new_status = getattr(cmu.new_chat_member, "status", None)
+    user = cmu.new_chat_member.user
 
-    # Statuswechsel in "left" oder "kicked" → löschen
-    left_statuses = {"left", "kicked"}
-    try:
-        old_status = getattr(old, "status", None)
-        new_status = getattr(new, "status", None)
-    except Exception:
-        return
+    # robust: alles was nicht mehr "drin" ist, zählt als raus
+    leftish = {
+        ChatMemberStatus.LEFT,
+        ChatMemberStatus.KICKED
+    }
+    still_in = {
+        ChatMemberStatus.MEMBER,
+        ChatMemberStatus.ADMINISTRATOR,
+        ChatMemberStatus.CREATOR
+    }
 
-    if new_status in left_statuses and old_status not in left_statuses:
-        await purge_user_from_db(chat_id, user.id)
-        # leise loggen; Chat nicht zuspammen
+    # nur reagieren, wenn der Status wirklich von "drin" -> "draußen" wechselt
+    if (old_status in still_in or old_status is None) and (new_status in leftish):
+        try:
+            await purge_user_from_db(chat_id, user.id)
+        except Exception as e:
+            log.error(f"Purge für {user.id} scheiterte: {e}")
+        else:
+            # bissige Abschiedsbotschaft
+            bye = f"👋 {nice_name(user)} ist weg. Daten weg, Coins weg – Konsequenzen lernen ist auch ein Feature."
+            try:
+                await context.bot.send_message(chat_id=chat_id, text=bye)
+            except Exception as e:
+                log.error(f"Bye-Message für {user.id} scheiterte: {e}")
+
         log.info(f"Purged user {user.id} ({getattr(user, 'username', None)}) from chat {chat_id} due to leave/kick.")
 
 
@@ -996,11 +1010,11 @@ async def on_chat_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 async def purge_user_from_db(chat_id: int, user_id: int):
     async with aiosqlite.connect(DB) as db:
-        # Spieler-Datensatz weg
-        await db.execute("DELETE FROM players WHERE chat_id=? AND user_id=?", (chat_id, user_id))
-        # Besitz-Beziehungen weg (als Pet oder als Owner)
-        await db.execute("DELETE FROM pets WHERE chat_id=? AND (pet_id=? OR owner_id=?)", (chat_id, user_id, user_id))
-        # Cooldowns weg
+        # Spieler-Datensatz
+        await db.execute("DELETE FROM players  WHERE chat_id=? AND user_id=?", (chat_id, user_id))
+        # Besitz-Beziehungen (als Pet oder Owner)
+        await db.execute("DELETE FROM pets     WHERE chat_id=? AND (pet_id=? OR owner_id=?)", (chat_id, user_id, user_id))
+        # Cooldowns
         await db.execute("DELETE FROM cooldowns WHERE chat_id=? AND user_id=?", (chat_id, user_id))
         await db.commit()
 
