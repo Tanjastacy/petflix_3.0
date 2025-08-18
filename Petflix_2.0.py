@@ -20,7 +20,7 @@ from telegram.ext import (
     ContextTypes, filters
 )
 
-BOT_TOKEN = os.environ["BOT_TOKEN"]           # Pflicht
+BOT_TOKEN = os.environ["BOT_TOKEN"]
 ALLOWED_CHAT_ID = int(os.environ.get("ALLOWED_CHAT_ID", "-1002550303601"))
 DB = os.environ.get("DB_PATH", "petflix_2.0.db")
 
@@ -53,15 +53,29 @@ log = logging.getLogger("Petflix_2.0")
 # =========================
 # DB-Setup 
 # =========================
-# Ruf später einfach: await db_init(reset=True)  # einmalig für frische DB
-async def db_init(reset: bool = False):
 
-    async with aiosqlite.connect(DB) as db:
-        # Pragmas
-        await db.execute("PRAGMA journal_mode=WAL;")
-        await db.execute("PRAGMA foreign_keys=ON;")
+# === Migration helpers ===
+SCHEMA_VERSION = 1  # erhöhe bei jedem Schema-Upgrade
 
-        # Alles sauber droppen und neu anlegen
+async def _get_user_version(db) -> int:
+    async with db.execute("PRAGMA user_version") as cur:
+        row = await cur.fetchone()
+    return int(row[0]) if row else 0
+
+async def _set_user_version(db, v: int):
+    await db.execute(f"PRAGMA user_version={v}")
+
+async def _table_has_column(db, table: str, col: str) -> bool:
+    async with db.execute(f"PRAGMA table_info({table})") as cur:
+        cols = await cur.fetchall()
+    return any(c[1] == col for c in cols)  # (cid, name, type, notnull, dflt_value, pk)
+
+async def migrate_db(db):
+    current = await _get_user_version(db)
+
+    # v0 -> v1: (Beispiel) sicherstellen, dass alle Tabellen existieren
+    if current < 1:
+        # Deine bestehenden CREATEs sind idempotent:
         await db.executescript("""
         CREATE TABLE IF NOT EXISTS players(
           chat_id   INTEGER,
@@ -72,17 +86,15 @@ async def db_init(reset: bool = False):
           opted_out INTEGER DEFAULT 0,
           PRIMARY KEY(chat_id, user_id)
         );
-
         CREATE TABLE IF NOT EXISTS pets(
           chat_id          INTEGER,
-          pet_id           INTEGER,   -- der, der gekauft wird
-          owner_id         INTEGER,   -- Besitzer
+          pet_id           INTEGER,
+          owner_id         INTEGER,
           last_care_ts     INTEGER DEFAULT NULL,
           care_done_today  INTEGER DEFAULT 0,
           day_ymd          TEXT,
           PRIMARY KEY(chat_id, pet_id)
         );
-
         CREATE TABLE IF NOT EXISTS cooldowns(
           chat_id INTEGER,
           user_id INTEGER,
@@ -90,25 +102,41 @@ async def db_init(reset: bool = False):
           ts      INTEGER,
           PRIMARY KEY(chat_id, user_id, key)
         );
-
         CREATE TABLE IF NOT EXISTS known_chats(
           chat_id             INTEGER PRIMARY KEY,
           last_seen           INTEGER,
           last_boot_announce  INTEGER
         );
-
         CREATE TABLE IF NOT EXISTS settings(
           chat_id INTEGER PRIMARY KEY,
           nsfw    INTEGER DEFAULT 0
         );
-
         CREATE INDEX IF NOT EXISTS idx_players_chat_coins  ON players(chat_id, coins);
         CREATE INDEX IF NOT EXISTS idx_players_chat_price  ON players(chat_id, price);
         CREATE INDEX IF NOT EXISTS idx_pets_owner          ON pets(chat_id, owner_id);
         CREATE INDEX IF NOT EXISTS idx_cd_user             ON cooldowns(chat_id, user_id);
         """)
+        await _set_user_version(db, 1)
+        current = 1
+    
+    # v1 -> v2 Beispiel (später): Spalte hinzufügen, vorher prüfen
+    # if current < 2:
+    #     if not await _table_has_column(db, "players", "last_msg_ts"):
+    #         await db.execute("ALTER TABLE players ADD COLUMN last_msg_ts INTEGER DEFAULT NULL")
+    #     await _set_user_version(db, 2)
+
+
+async def db_init():
+    async with aiosqlite.connect(DB) as db:
+        # Pragmas
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA foreign_keys=ON;")
+
+        # Migrationen laufen IMMER, keine Drops!
+        await migrate_db(db)
 
         await db.commit()
+
 
 # Helpers (falls noch nicht vorhanden)
 def today_ymd():
