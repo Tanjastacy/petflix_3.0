@@ -1455,7 +1455,8 @@ def main():
     )
 
     # Debug/Echo zuletzt
-    app.add_handler(MessageHandler(filters.ALL, echo_all), group=2)
+    MessageHandler(filters.TEXT & ~filters.COMMAND, autoload_and_reward)
+    MessageHandler(filters.TEXT & ~filters.COMMAND, echo_all)
 
     log.info("Bot startet, warte auf Updates...")
 
