@@ -197,6 +197,7 @@ async def apply_moraltax_if_needed(db, chat_id: int, user_id: int, text: str) ->
         return 0
     await db.execute("UPDATE players SET coins=coins-? WHERE chat_id=? AND user_id=?", (deduct, chat_id, user_id))
     await db.commit()
+    log.info(f"[MORALTAX] chat={chat_id} user={user_id} text='{text[:60]}' deducted={deduct}")
     return deduct
 
 def today_ymd():
@@ -604,11 +605,18 @@ async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         # Moralsteuer prüfen und ggf. abziehen
         deducted = await apply_moraltax_if_needed(db, chat.id, user.id, msg.text)
-        if deducted:
-            try:
-                await msg.reply_text(f"Du hast gerade 'nett' gesagt. Minus {deducted} Coins für diese Schwäche.")
-            except Exception:
-                pass
+        if deducted is not None:  # wurde getriggert, auch wenn 0 abgezogen
+            if deducted > 0:
+                try:
+                    await msg.reply_text(f"Du warst zu nett. −{deducted} Coins.")
+                except Exception:
+                    pass
+            else:
+                try:
+                    await msg.reply_text("Nettigkeit erkannt – diesmal 0 Coins, weil du pleite bist. Beim nächsten Mal kassiere ich 😈")
+                except Exception:
+                    pass
+
 
         # Optional: Throttle pro User, damit Spammer nicht eskalieren
         if MESSAGE_THROTTLE_S > 0:
@@ -806,32 +814,37 @@ async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 
 async def cmd_moraltax(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if user_id != ADMIN_ID:
-        await update.message.reply_text(f"🚫 Nur der Admin darf das. (Deine ID: {user_id})")
-        return
+    # nur Admin in der erlaubten Gruppe
+    if not is_allowed_chat(update) or not update.effective_user or update.effective_user.id != ADMIN_ID:
+        return await update.effective_message.reply_text("🚫 Nur der Bot-Admin darf das hier.")
 
-    await update.message.reply_text("✅ Admin-Check erfolgreich!")
-
-
-""" async def cmd_moraltax(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if user_id != ADMIN_ID:
-        await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
-        return
-    if not is_group(update): return
     chat_id = update.effective_chat.id
-    if not context.args or context.args[0] not in ("on","off"):
-        return await update.effective_message.reply_text("Nutzung: /moraltax on|off")
-    val = 1 if context.args[0] == "on" else 0
+    arg = (context.args[0].lower() if context.args else "status")
+
     async with aiosqlite.connect(DB) as db:
-        # ensure row
-        await db.execute("INSERT INTO settings(chat_id) VALUES(?) ON CONFLICT(chat_id) DO NOTHING", (chat_id,))
-        await db.execute("UPDATE settings SET moraltax_enabled=? WHERE chat_id=?", (val, chat_id))
-        await db.commit()
-    await update.effective_message.reply_text(
-        f"Moralische Steuer: {'aktiv' if val else 'deaktiviert'}. Zu nett sein bleibt eine Entscheidung, keine Tugend."
-    ) """
+        # Defaults sicherstellen (legt Row ggf. an)
+        enabled, amount = await get_moraltax_settings(db, chat_id)
+
+        if arg in ("on", "off"):
+            val = 1 if arg == "on" else 0
+            await db.execute(
+                "INSERT INTO settings(chat_id) VALUES(?) ON CONFLICT(chat_id) DO NOTHING",
+                (chat_id,)
+            )
+            await db.execute("UPDATE settings SET moraltax_enabled=? WHERE chat_id=?", (val, chat_id))
+            await db.commit()
+            return await update.effective_message.reply_text(
+                f"🧾 Moralische Steuer: {'AKTIV' if val else 'deaktiviert'} (aktueller Betrag: {amount} Coins)."
+            )
+
+        if arg == "status":
+            return await update.effective_message.reply_text(
+                f"🧾 Moralische Steuer ist {'AKTIV' if enabled else 'deaktiviert'} – Betrag: {amount} Coins.\n"
+                f"Nutze `/moraltax on|off` oder `/moraltaxset <betrag>`.",
+                parse_mode="Markdown"
+            )
+
+        return await update.effective_message.reply_text("Nutzung: /moraltax on | off | status")
 
 async def cmd_moraltaxset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -1407,8 +1420,8 @@ def main():
     app.add_handler(CommandHandler(["treasure", "hunt"], cmd_treasure, filters=filters.Chat(ALLOWED_CHAT_ID)))
 
     # Moral steuer 
-    app.add_handler(CommandHandler("moraltax", cmd_moraltax))
-    app.add_handler(CommandHandler("moraltaxset", cmd_moraltaxset))
+    app.add_handler(CommandHandler("moraltax", cmd_moraltax, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("moraltaxset", cmd_moraltaxset, filters=filters.Chat(ALLOWED_CHAT_ID)))
 
     # Pet Aktionen
     app.add_handler(CommandHandler("pet", cmd_pet, filters=filters.Chat(ALLOWED_CHAT_ID)))
