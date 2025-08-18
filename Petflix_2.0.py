@@ -8,6 +8,7 @@ import logging
 import aiosqlite
 import datetime
 import hashlib
+import re
 from typing import Optional
 from datetime import time as dtime
 from zoneinfo import ZoneInfo  # Python 3.9+
@@ -41,6 +42,19 @@ RUNAWAY_HOURS = 48
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")  # Serverzeit, per Env änderbar
 DAILY_GIFT_COINS = 15
 
+# Konfig Moralische Steuer
+MORAL_TAX_DEFAULT = 5
+MORAL_TAX_TRIGGERS = [
+    r"\bbitte\b",
+    r"\bdanke\b",
+    r"\bentschuldigung\b",
+    r"\bsorry\b",
+    r"\bkannst du\b",
+    r"\bkönntest du\b",
+    r"\bwärst du so lieb\b",
+    r"🙏"
+]
+
 # Boot-Timestamp, um nur EINMAL pro Neustart eine Startmeldung je Chat zu schicken
 BOOT_TS = int(time.time())
 
@@ -55,7 +69,7 @@ log = logging.getLogger("Petflix_2.0")
 # =========================
 
 # === Migration helpers ===
-SCHEMA_VERSION = 1  # erhöhe bei jedem Schema-Upgrade
+SCHEMA_VERSION = 2  # erhöhe bei jedem Schema-Upgrade
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -119,12 +133,14 @@ async def migrate_db(db):
         await _set_user_version(db, 1)
         current = 1
     
-    # v1 -> v2 Beispiel (später): Spalte hinzufügen, vorher prüfen
-    # if current < 2:
-    #     if not await _table_has_column(db, "players", "last_msg_ts"):
-    #         await db.execute("ALTER TABLE players ADD COLUMN last_msg_ts INTEGER DEFAULT NULL")
-    #     await _set_user_version(db, 2)
-
+    # v1 -> v2: Moralische Steuer Spalten ergänzen
+    if current < 2:
+        if not await _table_has_column(db, "settings", "moraltax_enabled"):
+            await db.execute("ALTER TABLE settings ADD COLUMN moraltax_enabled INTEGER DEFAULT 1")
+        if not await _table_has_column(db, "settings", "moraltax_amount"):
+            await db.execute("ALTER TABLE settings ADD COLUMN moraltax_amount INTEGER DEFAULT 5")
+        await _set_user_version(db, 2)
+        current = 2
 
 async def db_init():
     async with aiosqlite.connect(DB) as db:
@@ -139,6 +155,50 @@ async def db_init():
 
 
 # Helpers (falls noch nicht vorhanden)
+
+async def get_moraltax_settings(db, chat_id: int):
+    async with db.execute("SELECT moraltax_enabled, moraltax_amount FROM settings WHERE chat_id=?", (chat_id,)) as cur:
+        row = await cur.fetchone()
+    if not row:
+        # Defaults anlegen
+        await db.execute(
+            "INSERT INTO settings(chat_id, nsfw, moraltax_enabled, moraltax_amount) VALUES(?,?,?,?) "
+            "ON CONFLICT(chat_id) DO UPDATE SET moraltax_enabled=COALESCE(moraltax_enabled,excluded.moraltax_enabled), "
+            "moraltax_amount=COALESCE(moraltax_amount,excluded.moraltax_amount)",
+            (chat_id, 0, 1, MORAL_TAX_DEFAULT)
+        )
+        await db.commit()
+        return True, MORAL_TAX_DEFAULT
+    enabled = bool(row[0]) if row[0] is not None else True
+    amount = int(row[1]) if row[1] is not None else MORAL_TAX_DEFAULT
+    return enabled, amount
+
+def is_too_nice(text: str) -> bool:
+    if not text:
+        return False
+    t = text.lower()
+    return any(re.search(pat, t) for pat in MORAL_TAX_TRIGGERS)
+
+async def apply_moraltax_if_needed(db, chat_id: int, user_id: int, text: str) -> Optional[int]:
+    """Zieht Coins ab, wenn 'zu nett'. Gibt abgezogene Höhe zurück oder None."""
+    if not text or not is_too_nice(text):
+        return None
+    enabled, amount = await get_moraltax_settings(db, chat_id)
+    if not enabled or amount <= 0:
+        return None
+    # aktuelles Guthaben holen
+    async with db.execute("SELECT coins FROM players WHERE chat_id=? AND user_id=?", (chat_id, user_id)) as cur:
+        row = await cur.fetchone()
+    coins = row[0] if row else 0
+    deduct = min(amount, max(coins, amount))  # wir lassen auch negatives Guthaben zu? Wenn nicht: min(amount, coins)
+    # wenn du KEIN negatives Guthaben willst, nimm:
+    deduct = min(amount, coins)
+    if deduct <= 0:
+        return 0
+    await db.execute("UPDATE players SET coins=coins-? WHERE chat_id=? AND user_id=?", (deduct, chat_id, user_id))
+    await db.commit()
+    return deduct
+
 def today_ymd():
     return datetime.date.today().isoformat()
 
@@ -542,6 +602,14 @@ async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE
         # Spieler einmalig registrieren (überschreibt NICHT coins)
         await ensure_player(db, chat.id, user.id, user.username or user.full_name or "")
 
+        # Moralsteuer prüfen und ggf. abziehen
+        deducted = await apply_moraltax_if_needed(db, chat.id, user.id, msg.text)
+        if deducted:
+            try:
+                await msg.reply_text(f"Du hast gerade 'nett' gesagt. Minus {deducted} Coins für diese Schwäche.")
+            except Exception:
+                pass
+
         # Optional: Throttle pro User, damit Spammer nicht eskalieren
         if MESSAGE_THROTTLE_S > 0:
             left = await get_cd_left(db, chat.id, user.id, "msgcoin")
@@ -716,6 +784,42 @@ async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 # Commands
 # =========================
+
+# =========================
+# moral steuer Command
+# =========================
+
+async def cmd_moraltax(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update): return
+    chat_id = update.effective_chat.id
+    if not context.args or context.args[0] not in ("on","off"):
+        return await update.effective_message.reply_text("Nutzung: /moraltax on|off")
+    val = 1 if context.args[0] == "on" else 0
+    async with aiosqlite.connect(DB) as db:
+        # ensure row
+        await db.execute("INSERT INTO settings(chat_id) VALUES(?) ON CONFLICT(chat_id) DO NOTHING", (chat_id,))
+        await db.execute("UPDATE settings SET moraltax_enabled=? WHERE chat_id=?", (val, chat_id))
+        await db.commit()
+    await update.effective_message.reply_text(
+        f"Moralische Steuer: {'aktiv' if val else 'deaktiviert'}. Zu nett sein bleibt eine Entscheidung, keine Tugend."
+    )
+
+async def cmd_moraltaxset(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update): return
+    chat_id = update.effective_chat.id
+    if not context.args or not context.args[0].isdigit():
+        return await update.effective_message.reply_text("Nutzung: /moraltaxset <betrag in coins>")
+    amount = int(context.args[0])
+    if amount < 0: amount = 0
+    async with aiosqlite.connect(DB) as db:
+        await db.execute("INSERT INTO settings(chat_id) VALUES(?) ON CONFLICT(chat_id) DO NOTHING", (chat_id,))
+        await db.execute("UPDATE settings SET moraltax_amount=? WHERE chat_id=?", (amount, chat_id))
+        await db.commit()
+    await update.effective_message.reply_text(
+        f"Moralische Steuer gesetzt auf {amount} Coins. Nettigkeit hat jetzt Preisschild."
+    )
+
+
 
 # =========================
 # Schatzsuche Command
@@ -1265,6 +1369,9 @@ def main():
     # Schatzsuche (Alias /hunt optional)
     app.add_handler(CommandHandler(["treasure", "hunt"], cmd_treasure, filters=filters.Chat(ALLOWED_CHAT_ID)))
 
+    # Moral steuer 
+    app.add_handler(CommandHandler("moraltax", cmd_moraltax))
+    app.add_handler(CommandHandler("moraltaxset", cmd_moraltaxset))
 
     # Pet Aktionen
     app.add_handler(CommandHandler("pet", cmd_pet, filters=filters.Chat(ALLOWED_CHAT_ID)))
