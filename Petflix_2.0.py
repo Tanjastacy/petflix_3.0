@@ -701,6 +701,10 @@ def _parse_amount_from_args(context: ContextTypes.DEFAULT_TYPE, needs_two_args_w
     return None
 
 async def cmd_addcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
+        return
     """ /addcoins <@user|id> <amount>   oder als Reply: /addcoins <amount> """
     if not _is_admin_here(update):
         return await update.effective_message.reply_text("Nett versucht. Nur der Owner darf auszahlen.")
@@ -723,6 +727,10 @@ async def cmd_addcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(f"✅ {amount} Coins an {tag} vergeben. Neuer Kontostand: {new}.")
 
 async def cmd_takecoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
+        return
     """ /takecoins <@user|id> <amount>   oder als Reply: /takecoins <amount> """
     if not _is_admin_here(update):
         return await update.effective_message.reply_text("Nur der Owner darf abkassieren. Kapitalismus bleibt in der Familie.")
@@ -745,6 +753,10 @@ async def cmd_takecoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(f"🧾 {amount} Coins bei {tag} eingezogen. Neuer Kontostand: {new}.")
 
 async def cmd_setcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
+        return
     """ /setcoins <@user|id> <value>   oder als Reply: /setcoins <value> """
     if not _is_admin_here(update):
         return await update.effective_message.reply_text("Nur der Owner darf den Kontostand setzen.")
@@ -765,6 +777,10 @@ async def cmd_setcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(f"✏️ Kontostand von {tag} auf {value} Coins gesetzt.")
 
 async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
+        return
     """ /resetcoins <@user|id>   oder als Reply: /resetcoins """
     if not _is_admin_here(update):
         return await update.effective_message.reply_text("Nur der Owner darf resetten. Sonst weint die Buchhaltung.")
@@ -790,6 +806,10 @@ async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 
 async def cmd_moraltax(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
+        return
     if not is_group(update): return
     chat_id = update.effective_chat.id
     if not context.args or context.args[0] not in ("on","off"):
@@ -805,6 +825,10 @@ async def cmd_moraltax(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def cmd_moraltaxset(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
+        return
     if not is_group(update): return
     chat_id = update.effective_chat.id
     if not context.args or not context.args[0].isdigit():
@@ -956,6 +980,10 @@ async def cmd_lapdance(update, context):
 
 
 async def cmd_nsfw(update, context):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
+        await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
+        return
     if not is_group(update): return
     chat_id = update.effective_chat.id
     if not context.args or context.args[0] not in ("on","off"):
@@ -1370,8 +1398,8 @@ def main():
     app.add_handler(CommandHandler(["treasure", "hunt"], cmd_treasure, filters=filters.Chat(ALLOWED_CHAT_ID)))
 
     # Moral steuer 
-    app.add_handler(CommandHandler("moraltax", cmd_moraltax))
-    app.add_handler(CommandHandler("moraltaxset", cmd_moraltaxset))
+    app.add_handler(CommandHandler("moraltax", cmd_moraltax, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("moraltaxset", cmd_moraltaxset, filters=filters.Chat(ALLOWED_CHAT_ID)))
 
     # Pet Aktionen
     app.add_handler(CommandHandler("pet", cmd_pet, filters=filters.Chat(ALLOWED_CHAT_ID)))
