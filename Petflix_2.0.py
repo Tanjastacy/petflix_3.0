@@ -1407,8 +1407,8 @@ def main():
     app.add_handler(CommandHandler(["treasure", "hunt"], cmd_treasure, filters=filters.Chat(ALLOWED_CHAT_ID)))
 
     # Moral steuer 
-    app.add_handler(CommandHandler("moraltax", cmd_moraltax, filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("moraltaxset", cmd_moraltaxset, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("moraltax", cmd_moraltax))
+    app.add_handler(CommandHandler("moraltaxset", cmd_moraltaxset))
 
     # Pet Aktionen
     app.add_handler(CommandHandler("pet", cmd_pet, filters=filters.Chat(ALLOWED_CHAT_ID)))
