@@ -35,7 +35,7 @@ DAILY_COOLDOWN_S = 22 * 3600
 MESSAGE_REWARD = 1      # Pro Nachricht gibt es 1 Coin
 USER_BASE_PRICE = 100      # Kaufpreis für jeden User
 USER_PRICE_STEP = 50     # Nach jedem Kauf steigt der Preis um 100 Coins
-ADMIN_ID = 8172388048  # Deine Telegram User-ID
+ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 MESSAGE_THROTTLE_S = 1   # Zeit in Sekunden zwischen Nachrichten-Coins
 CARE_COOLDOWN_S = 120   # 2 Minuten zwischen Pflegeaktionen pro Besitzer×Haustier
 RUNAWAY_HOURS = 48
@@ -808,6 +808,15 @@ async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_moraltax(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id != ADMIN_ID:
+        await update.message.reply_text(f"🚫 Nur der Admin darf das. (Deine ID: {user_id})")
+        return
+
+    await update.message.reply_text("✅ Admin-Check erfolgreich!")
+
+
+""" async def cmd_moraltax(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if user_id != ADMIN_ID:
         await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
         return
     if not is_group(update): return
@@ -822,7 +831,7 @@ async def cmd_moraltax(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await db.commit()
     await update.effective_message.reply_text(
         f"Moralische Steuer: {'aktiv' if val else 'deaktiviert'}. Zu nett sein bleibt eine Entscheidung, keine Tugend."
-    )
+    ) """
 
 async def cmd_moraltaxset(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
