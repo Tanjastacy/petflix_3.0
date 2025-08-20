@@ -241,8 +241,26 @@ async def do_care(update, context, action_key, tame_lines, spicy_lines):
     chat_id = update.effective_chat.id
     owner = update.effective_user
     if not msg.reply_to_message or not msg.reply_to_message.from_user:
-        await msg.reply_text("Antworte auf dein Haustier mit diesem Befehl.")
-        return
+        # Fallback: nimm das letzte Haustier des Users aus der DB
+        async with aiosqlite.connect(DB) as db:
+            async with db.execute("""
+                SELECT pet_id FROM pets
+                WHERE chat_id=? AND owner_id=?
+                ORDER BY last_care_ts DESC LIMIT 1
+            """, (chat_id, owner.id)) as cur:
+                row = await cur.fetchone()
+
+        if not row:
+            await msg.reply_text("❌ Antworte auf dein Haustier oder kaufe dir eines mit /buy.")
+            return
+
+        class Obj: pass
+        pet = Obj()
+        pet.id = row[0]
+        pet.first_name = "Dein Haustier"
+        pet.username = None
+    else:
+        pet = msg.reply_to_message.from_user
     pet = msg.reply_to_message.from_user
     if pet.id == owner.id:
         await msg.reply_text("Selbstpflege ist wichtig, aber zählt hier nicht.")
