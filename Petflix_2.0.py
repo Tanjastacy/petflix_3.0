@@ -1296,7 +1296,6 @@ async def cmd_nsfw(update, context):
     await update.effective_message.reply_text(f"NSFW-Modus: {'an' if val else 'aus'}")
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Chat-Gate (wenn du so eine Funktion nutzt)
     if not is_allowed_chat(update):
         await update.effective_message.reply_text(
             "❌ Dieses Spiel läuft nur in der vorgesehenen Gruppe."
@@ -1304,28 +1303,35 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     legende = """
-🐾 <b>Willkommen bei Petflix – Deinem verruchten Haustier-Spiel</b> 🐾
+<b>🐾 Willkommen bei Petflix – Deinem verruchten Haustier-Spiel 🐾</b>
 
-💋 <b>Klassische Pflege-Befehle</b><br/>
-/pet, /walk, /kiss, /dine, /massage, /lapdance
+Hier geht’s nicht um Netflix, hier geht’s um Macht, Pflege, Schande und ein bisschen Liebe.  
 
-⛓️ <b>Skurril-BDSM</b><br/>
+<b>💋 Klassische Pflege-Befehle</b><br/>
+/pet, /walk, /kiss, /dine, /massage, /lapdance  
+
+<b>⛓️ Skurril-BDSM</b><br/>
 /knien, /kriechen, /klaps, /knabbern, /leine, /halsband, /lecken, /verweigern,<br/>
 /kaefig, /schande, /erregen, /betteln, /stumm, /bestrafen, /loben, /dienen,<br/>
-/demuetigen, /melken, /ohrfeige, /belohnen
+/demuetigen, /melken, /ohrfeige, /belohnen  
 
-💰 <b>Tägliche Schatzsuche</b><br/>
-/treasure [methode] – einmal pro Tag (graben, tauchen, karte, hacken, klauen, pendeln, orakel, klettern)
+<b>💰 Tägliche Schatzsuche</b><br/>
+/treasure [methode] – graben, tauchen, karte, hacken, klauen, pendeln, orakel, klettern  
 
-📅 <b>Regeln</b><br/>
-• Pflege <b>{CARES_PER_DAY}×</b> täglich • Weglaufen nach <b>{RUNAWAY_HOURS}h</b> • Jede Aktion zählt 1 von {CARES_PER_DAY}
+<b>📅 Regeln</b><br/>
+• {CARES_PER_DAY}× Pflege am Tag<br/>
+• Nach {RUNAWAY_HOURS}h Ignorieren läuft dein Pet weg<br/>
+• Jede Aktion zählt 1 von {CARES_PER_DAY}  
 
-⚙️ <b>Standard</b><br/>
-/start, /balance, /buy &lt;username&gt;, /prices, /owner, /release, /top
+<b>⚙️ Standard</b><br/>
+/start, /balance, /buy &lt;username&gt;, /prices, /owner, /release, /top  
 
-💸 <b>Coins</b><br/>
-1 Coin pro Nachricht (1s Drosselung).
+<b>💸 Coins</b><br/>
+1 Coin pro Nachricht (1s Drosselung)
 """.strip()
+
+    await update.effective_message.reply_text(legende, parse_mode=ParseMode.HTML)
+
 
     # HTML senden, in Blöcke gesplittet, ohne parse_mode pro Nachricht,
     # denn der Default wird global auf HTML gesetzt
