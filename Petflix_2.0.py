@@ -37,8 +37,9 @@ USER_BASE_PRICE = 100      # Kaufpreis für jeden User
 USER_PRICE_STEP = 50     # Nach jedem Kauf steigt der Preis um 100 Coins
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 MESSAGE_THROTTLE_S = 1   # Zeit in Sekunden zwischen Nachrichten-Coins
-CARE_COOLDOWN_S = 120   # 2 Minuten zwischen Pflegeaktionen pro Besitzer×Haustier
-RUNAWAY_HOURS = 48
+CARE_COOLDOWN_S = 20   # 2 Minuten zwischen Pflegeaktionen pro Besitzer×Haustier
+CARES_PER_DAY = 5
+RUNAWAY_HOURS = 24
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")  # Serverzeit, per Env änderbar
 DAILY_GIFT_COINS = 15
 
@@ -270,7 +271,7 @@ async def do_care(update, context, action_key, tame_lines, spicy_lines):
         else:
             done = care["done"]
 
-        if done >= 2:
+        if done >= CARES_PER_DAY:
             await msg.reply_text("Heute ist das Haustier bereits bestens versorgt. Morgen wieder.")
             return
 
@@ -336,9 +337,9 @@ async def cmd_carestatus(update, context):
         comment = "💔 Dein Haustier ist schon fast weg… es übt schon den Abgang."
 
     pflege_sprüche = [
-        f"Du hast heute {care_today}/2 Pflegeaktionen gemacht. Ein bisschen mager, findest du nicht?",
-        f"Heute {care_today} von 2 Pflegepunkten erledigt – das ist wie halber Sex: enttäuschend.",
-        f"{care_today}/2 heute… immerhin kein Totalausfall, aber so wird das nix im Tierporno."
+        f"Du hast heute {care_today}/{CARES_PER_DAY} Pflegeaktionen gemacht. Ein bisschen mager, findest du nicht?",
+        f"Heute {care_today} von {CARES_PER_DAY} Pflegepunkten erledigt – das ist wie halber Sex: enttäuschend.",
+        f"{care_today}/{CARES_PER_DAY} heute… immerhin kein Totalausfall, aber so wird das nix im Tierporno."
     ]
 
     await update.effective_message.reply_text(
@@ -810,6 +811,277 @@ async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 
 # =========================
+# BDSM / Skurrile Pet-Commands (Deutsch)
+# =========================
+
+# Helper: alle Befehle laufen über do_care mit eigenen Textlisten.
+# WICHTIG: Diese Commands müssen als Reply auf eine Nachricht des Haustiers ausgeführt werden.
+
+async def cmd_knien(update, context):
+    tame = [
+        "{pet} geht auf die Knie. {owner} nickt zufrieden. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} hebt nur die Augenbraue – {pet} kniet. Pflege {n}/{CARES_PER_DAY}.",
+        "Knie stauben ab, Ego auch ein bisschen. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "{owner} tippt mit dem Finger – {pet} kniet sofort. Blickkontakt verboten. Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} kniet vor {owner}. Haltung: perfekt, Stolz: weg. Pflege {n}/{CARES_PER_DAY}.",
+        "Knie am Boden, Puls oben. {owner} lächelt dünn. Pflege {n}/{CARES_PER_DAY}."
+        "{owner} zwingt {pet} auf die Knie. Wo ist Platz? Knie nieder du Sklavensau! Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "knien", tame, spicy)
+
+async def cmd_kriechen(update, context):
+    tame = [
+        "{pet} kriecht ein Stück nach vorn. Der Chat schaut lieber weg. Pflege {n}/{CARES_PER_DAY}.",
+        "Auf allen Vieren? {pet} seufzt, {owner} zählt. Pflege {n}/{CARES_PER_DAY}.",
+        "Der Boden ist sauberer als {pets} Ruf. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "{pet} kriecht langsam zu {owner} und hält den Blick unten. Pflege {n}/{CARES_PER_DAY}.",
+        "Jedes Kniegeräusch ein Geständnis. {owner} genießt. Pflege {n}/{CARES_PER_DAY}.",
+        "Kriechen, anhalten, warten. {owner} entscheidet die nächsten Zentimeter. Pflege {n}/{CARES_PER_DAY}."
+        "{pets} kriecht auf allen Vieren zu {owner} und zeigt den Arsch. Pflege {n}/{CARES_PER_DAY}."
+        "{pets} kriecht zu {owner} und küsst die Füße. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "kriechen", tame, spicy)
+
+async def cmd_klaps(update, context):
+    tame = [
+        "{owner} klopft {pet} symbolisch auf den Hintern. Echo: peinlich. Pflege {n}/{CARES_PER_DAY}.",
+        "Fünf sanfte Klapse. Der Chat nickt wertend. Pflege {n}/{CARES_PER_DAY}.",
+        "Klaps, Klaps, Klaps… Würde bleibt gerade so. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "{owner} verteilt fünf deutliche Klapse. {pet} zählt mit zitternder Stimme. Pflege {n}/{CARES_PER_DAY}.",
+        "Handabdruck inklusive. {pet} knurrt leise. Pflege {n}/{CARES_PER_DAY}.",
+        "Jeder Klaps eine Erinnerung, wer hier entscheidet. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "klaps", tame, spicy)
+
+async def cmd_knabbern(update, context):
+    tame = [
+        "{pet} darf vorsichtig knabbern. {owner} setzt Grenzen. Pflege {n}/{CARES_PER_DAY}.",
+        "Kleines Knabbern, große Aufregung. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} lässt {pet} kurz… dann Stopp. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "{pet} knabbert frech – {owner}s Blick sagt: genau so. Pflege {n}/{CARES_PER_DAY}.",
+        "Zähne spüren, Grenzen testen. {owner} entscheidet Tempo. Pflege {n}/{CARES_PER_DAY}.",
+        "Knabbern, innehalten, Befehl abwarten. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "knabbern", tame, spicy)
+
+async def cmd_leine(update, context):
+    tame = [
+        "{owner} klickt die Leine ein. Spaziergang der Kontrolle. Pflege {n}/{CARES_PER_DAY}.",
+        "Leine dran, Freiheit aus. {pet} folgt dicht. Pflege {n}/{CARES_PER_DAY}.",
+        "Ein leises Klicken – {pet} gehorcht. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "{owner} führt {pet} an kurzer Leine. Jede Bewegung ein Befehl. Pflege {n}/{CARES_PER_DAY}.",
+        "Leine spannt, {pet} hält still. Die Regeln sind klar. Pflege {n}/{CARES_PER_DAY}.",
+        "Zwei Schritte vor, Stopp. {owner} bestimmt den Takt. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "leine", tame, spicy)
+
+async def cmd_halsband(update, context):
+    tame = [
+        "{owner} legt {pet} ein Halsband an. Passt erschreckend gut. Pflege {n}/{CARES_PER_DAY}.",
+        "Klick. Besitzverhältnis sichtbar. Pflege {n}/{CARES_PER_DAY}.",
+        "Halsband sitzt, Haltung besser. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Das Halsband schnappt zu. {pet} atmet ruhiger, {owner} lächelt. Pflege {n}/{CARES_PER_DAY}.",
+        "Markiert und geführt. {pet} gehört sichtbar {owner}. Pflege {n}/{CARES_PER_DAY}.",
+        "Das Etikett: 'brav'. Das Gefühl: abhängig. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "halsband", tame, spicy)
+
+async def cmd_lecken(update, context):
+    tame = [
+        "{pet} leckt artig die Finger. {owner} prüft Sauberkeit. Pflege {n}/{CARES_PER_DAY}.",
+        "Ein bisschen zu eifrig. {owner} hebt die Hand. Pflege {n}/{CARES_PER_DAY}.",
+        "Dienst mit Zunge, Disziplin im Blick. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "{pet} leckt langsam, wartet auf Anerkennung. Pflege {n}/{CARES_PER_DAY}.",
+        "Zungenarbeit nach Vorschrift. {owner} gibt knappe Kommandos. Pflege {n}/{CARES_PER_DAY}.",
+        "Tempo runter, Blick hoch. {owner} entscheidet, wann genug ist. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "lecken", tame, spicy)
+
+async def cmd_verweigern(update, context):
+    tame = [
+        "{owner} schiebt die Belohnung weg. 'Nicht heute.' Pflege {n}/{CARES_PER_DAY}.",
+        "Tür zu. Erwartung bleibt draußen. Pflege {n}/{CARES_PER_DAY}.",
+        "Verweigerung als Lektion. {pet} nickt… zähneknirschend. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Tease ohne Erlösung. {pet} beisst sich auf die Lippe. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} flüstert 'später' und meint 'gar nicht'. Pflege {n}/{CARES_PER_DAY}.",
+        "Versprochen war nichts. Gehalten wurde alles. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "verweigern", tame, spicy)
+
+async def cmd_kaefig(update, context):
+    tame = [
+        "{pet} in den Käfig. Kurze Pause von Entscheidungen. Pflege {n}/{CARES_PER_DAY}.",
+        "Tür zu, Schlüssel klimpert. Ruhe kehrt ein. Pflege {n}/{CARES_PER_DAY}.",
+        "Käfigzeit: Ordnung im Kopf. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Gitter klirren leise, {pet} atmet flach. {owner} prüft die Haltung. Pflege {n}/{CARES_PER_DAY}.",
+        "Käfig ist klein, Lektion groß. Pflege {n}/{CARES_PER_DAY}.",
+        "Schlüssel dreht, Augen senken. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "kaefig", tame, spicy)
+
+async def cmd_schande(update, context):
+    tame = [
+        "{owner} versieht {pet} mit einem 'Schand'-Tag. Der Chat merkt es sich. Pflege {n}/{CARES_PER_DAY}.",
+        "Neues Label, gleiche Person: 'Heute unartig'. Pflege {n}/{CARES_PER_DAY}.",
+        "Scham als Accessoire. Passt dir leider. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Öffentliche Schande. {pet} hält still, {owner} genießt die Röte. Pflege {n}/{CARES_PER_DAY}.",
+        "Ein Tag, ein Blick, ein Befehl: Kopf runter. Pflege {n}/{CARES_PER_DAY}.",
+        "Schande sitzt fester als das Halsband. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "schande", tame, spicy)
+
+async def cmd_erregen(update, context):  # Ersatz für /edge
+    tame = [
+        "Anheizen ohne Finale. {pet} jault leise. Pflege {n}/{CARES_PER_DAY}.",
+        "Kurz davor, lange warten. {owner} zählt Rückwärts. Pflege {n}/{CARES_PER_DAY}.",
+        "Tease bis zur Vernunft. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "{owner} spielt mit Geduld und Nerven. {pet} bettelt stumm. Pflege {n}/{CARES_PER_DAY}.",
+        "Randnah, niemals drüber. Das ist die Kunst. Pflege {n}/{CARES_PER_DAY}.",
+        "Jeder Atemzug ein Verbot. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "erregen", tame, spicy)
+
+async def cmd_betteln(update, context):
+    tame = [
+        "{pet} sagt bitte. {owner} sagt: noch nicht. Pflege {n}/{CARES_PER_DAY}.",
+        "Betteln in ganzen Sätzen. Grammatik sitzt, Belohnung nicht. Pflege {n}/{CARES_PER_DAY}.",
+        "Wimmern bringt Punkte. Manchmal. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Knie tiefer, Stimme leiser. Jetzt klingt es überzeugend. Pflege {n}/{CARES_PER_DAY}.",
+        "Betteln mit Blicken. {owner} bleibt kalt. Pflege {n}/{CARES_PER_DAY}.",
+        "Die Worte sind richtig, der Zeitpunkt nicht. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "betteln", tame, spicy)
+
+async def cmd_stumm(update, context):
+    tame = [
+        "{owner} erhebt die Hand: Ruhe. {pet} schweigt. Pflege {n}/{CARES_PER_DAY}.",
+        "Schweigeminute. Der Chat dankt. Pflege {n}/{CARES_PER_DAY}.",
+        "Stille als Befehl. Funktioniert erstaunlich. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Stumm bedeutet stumm, halts Maul! Pflege {n}/{CARES_PER_DAY}.",
+        "Worte verboten, nur Gehorsam! Pflege {n}/{CARES_PER_DAY}.",
+        "Ruhe. {owner} hört gern das Zittern. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "stumm", tame, spicy)
+
+async def cmd_bestrafen(update, context):
+    tame = [
+        "{owner} verhängt eine Strafe aus der milden Hölle. Pflege {n}/{CARES_PER_DAY}.",
+        "Strafe mit Stil, nicht mit Wut. Pflege {n}/{CARES_PER_DAY}.",
+        "Ordnung wiederhergestellt. Zähne zusammenbeißen. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Zufällige Strafe, gezielte Wirkung. {pet} nickt klein. Pflege {n}/{CARES_PER_DAY}.",
+        "Weniger Jammern, mehr Lernen. Pflege {n}/{CARES_PER_DAY}.",
+        "Strafe sitzt, Lektion bleibt. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "bestrafen", tame, spicy)
+
+async def cmd_loben(update, context):
+    tame = [
+        "{owner} sagt: brav. Kurz, knapp, verdient. Pflege {n}/{CARES_PER_DAY}.",
+        "Ein Lob wie ein Sonnenstrahl im Keller. Pflege {n}/{CARES_PER_DAY}.",
+        "Gutes Timing, gute Haltung. Lob erteilt. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Knappes Lob flüstert über {pets} Nacken. Gänsehaut inklusive. Pflege {n}/{CARES_PER_DAY}.",
+        "Anerkennung als kleine Droge. Nicht überdosieren. Pflege {n}/{CARES_PER_DAY}.",
+        "Ein leises 'gut' – mehr braucht es nicht. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "loben", tame, spicy)
+
+async def cmd_dienen(update, context):
+    tame = [
+        "{pet} dient {owner} mit Hingabe. To-do: alles. Pflege {n}/{CARES_PER_DAY}.",
+        "Diener-Haltung sitzt. {owner} wirkt entspannter. Pflege {n}/{CARES_PER_DAY}.",
+        "Service mit Haltung, kein Murren. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Dienen ohne Widerwort. {owner} entscheidet jeden Handgriff. Pflege {n}/{CARES_PER_DAY}.",
+        "Auftrag, Ausführung, Augen runter. Pflege {n}/{CARES_PER_DAY}.",
+        "Dienst an der Grenze zur Versuchung. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "dienen", tame, spicy)
+
+async def cmd_demuetigen(update, context):
+    tame = [
+        "Ein peinlicher Satz, sauber platziert. {pet} wird rot. Pflege {n}/{CARES_PER_DAY}.",
+        "Demütigung light. Wirkung heavy. Pflege {n}/{CARES_PER_DAY}.",
+        "Ein kleiner Stich ins Ego. Pädagogisch wertvoll. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Demütigung im richtigen Ton. {pet} nickt… und lernt. Pflege {n}/{CARES_PER_DAY}.",
+        "Öffentlichkeit macht’s schärfer. {owner} dosiert. Pflege {n}/{CARES_PER_DAY}.",
+        "Rang klären, Stolz falten. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "demuetigen", tame, spicy)
+
+async def cmd_melken(update, context):
+    tame = [
+        "{owner} 'erntet' Ergebnistreue. {pet} erledigt den Rest. Pflege {n}/{CARES_PER_DAY}.",
+        "Produktivität hat viele Formen. Heute diese. Pflege {n}/{CARES_PER_DAY}.",
+        "Ergebnis wird pflichtbewusst abgeliefert. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Ruhig bleiben, atmen, liefern. {owner} zählt. Pflege {n}/{CARES_PER_DAY}.",
+        "Ausdauertraining mit eindeutiger Bilanz. Pflege {n}/{CARES_PER_DAY}.",
+        "Ziel erreicht. {owner} ist zufrieden, {pet} erschöpft. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "melken", tame, spicy)
+
+async def cmd_ohrfeige(update, context):
+    tame = [
+        "Ein schneller Klapps ins Gesicht. Respekt wächst plötzlich. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner}s Hand trifft sanft, Wirkung sitzt. Pflege {n}/{CARES_PER_DAY}.",
+        "Impuls, Blick, Ruhe. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Die Wange brennt, der Blick gehorcht. Pflege {n}/{CARES_PER_DAY}.",
+        "Eine klare Linie, ein klares Signal. Pflege {n}/{CARES_PER_DAY}.",
+        "Stille nach dem Schlag. Nur Gehorsam bleibt. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "ohrfeige", tame, spicy)
+
+async def cmd_belohnen(update, context):
+    tame = [
+        "{owner} gibt {pet} ein Leckerli. Geschmack: Pflicht. Pflege {n}/{CARES_PER_DAY}.",
+        "Belohnung klein, Wirkung groß. Pflege {n}/{CARES_PER_DAY}.",
+        "Heute gibt’s was Nettes. Nicht einbilden. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    spicy = [
+        "Belohnung nach Regelbruch? Sicher nicht. Nach Gehorsam? Vielleicht. Pflege {n}/{CARES_PER_DAY}.",
+        "Ein kaum verdientes Geschenk. {owner} bleibt streng. Pflege {n}/{CARES_PER_DAY}.",
+        "Belohnung dosiert, Sehnsucht nicht. Pflege {n}/{CARES_PER_DAY}."
+    ]
+    await do_care(update, context, "belohnen", tame, spicy)
+
+
+# =========================
 # moral steuer Command
 # =========================
 
@@ -922,79 +1194,79 @@ async def cmd_treasure(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_pet(update, context):
     tame = [
-        "{owner} streichelt {pet} so liebevoll, dass selbst der Kühlschrank eifersüchtig wird. Pflege {n}/2.",
-        "{owner} krault {pet}… und alle denken: 'Was läuft da?'. Pflege {n}/2.",
-        "{owner} gibt {pet} sanfte Kopfmassagen. Der Chat errötet kollektiv. Pflege {n}/2."
+        "{owner} streichelt {pet} so liebevoll, dass selbst der Kühlschrank eifersüchtig wird. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} krault {pet}… und alle denken: 'Was läuft da?'. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} gibt {pet} sanfte Kopfmassagen. Der Chat errötet kollektiv. Pflege {n}/{CARES_PER_DAY}."
     ]
     spicy = [
-        "{owner} fährt mit den Fingern langsam über {pet}s Rücken – bis der Chat sich räuspert. Pflege {n}/2.",
-        "{owner} streichelt {pet} an Stellen, wo Unschuld Urlaub macht. Pflege {n}/2.",
-        "{owner} lässt die Hände wandern… und {pet} lächelt verdächtig. Pflege {n}/2."
+        "{owner} fährt mit den Fingern langsam über {pet}s Rücken – bis der Chat sich räuspert. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} streichelt {pet} an Stellen, wo Unschuld Urlaub macht. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} lässt die Hände wandern… und {pet} lächelt verdächtig. Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "pet", tame, spicy)
 
 async def cmd_walk(update, context):
     tame = [
-        "{owner} führt {pet} durchs Rotlichtviertel – rein aus… kulturellem Interesse. Pflege {n}/2.",
-        "{owner} nimmt {pet} mit auf einen Spaziergang. Drei Gassen später wissen beide zu viel. Pflege {n}/2.",
-        "{owner} und {pet} gehen 'frische Luft schnappen'. Die Luft war nicht das Frischeste. Pflege {n}/2."
+        "{owner} führt {pet} durchs Rotlichtviertel – rein aus… kulturellem Interesse. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} nimmt {pet} mit auf einen Spaziergang. Drei Gassen später wissen beide zu viel. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} und {pet} gehen 'frische Luft schnappen'. Die Luft war nicht das Frischeste. Pflege {n}/{CARES_PER_DAY}."
     ]
     spicy = [
-        "{owner} spaziert mit {pet} Hand in Hand… und zwischendurch eher Lippen an Lippen. Pflege {n}/2.",
-        "{owner} nimmt {pet} auf eine 'Runde' mit – zurück kommen beide mit verwuschelten Haaren. Pflege {n}/2.",
-        "{owner} führt {pet} an der kurzen Leine durch dunkle Gassen. Kichern inklusive. Pflege {n}/2."
+        "{owner} spaziert mit {pet} Hand in Hand… und zwischendurch eher Lippen an Lippen. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} nimmt {pet} auf eine 'Runde' mit – zurück kommen beide mit verwuschelten Haaren. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} führt {pet} an der kurzen Leine durch dunkle Gassen. Kichern inklusive. Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "walk", tame, spicy)
 
 async def cmd_kiss(update, context):
     tame = [
-        "{owner} drückt {pet} einen Kuss auf – so laut, dass die Nachbarn klatschen. Pflege {n}/2.",
-        "{owner} küsst {pet}, als gäbe es Bonuspunkte. Spoiler: gibt es. Pflege {n}/2.",
-        "{owner} und {pet} tauschen Zuneigung aus, die selbst Emojis erröten lässt. Pflege {n}/2."
+        "{owner} drückt {pet} einen Kuss auf – so laut, dass die Nachbarn klatschen. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} küsst {pet}, als gäbe es Bonuspunkte. Spoiler: gibt es. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} und {pet} tauschen Zuneigung aus, die selbst Emojis erröten lässt. Pflege {n}/{CARES_PER_DAY}."
     ]
     spicy = [
-        "{owner} küsst {pet} so lange, bis der Bot errötet. Pflege {n}/2.",
-        "{owner} flüstert {pet} etwas zu… Sekunden später sind beide mit den Lippen beschäftigt. Pflege {n}/2.",
-        "{owner} küsst {pet} so tief, dass der Chat nach Luft ringt. Pflege {n}/2."
+        "{owner} küsst {pet} so lange, bis der Bot errötet. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} flüstert {pet} etwas zu… Sekunden später sind beide mit den Lippen beschäftigt. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} küsst {pet} so tief, dass der Chat nach Luft ringt. Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "kiss", tame, spicy)
 
 async def cmd_dine(update, context):
     tame = [
-        "{owner} füttert {pet} – Löffel für Löffel, Blick für Blick. Pflege {n}/2.",
-        "{owner} serviert {pet} ein Dinner, das fast so heiß ist wie ihre Chats. Pflege {n}/2.",
-        "{owner} bringt {pet} Essen… und eine Portion zweideutige Kommentare. Pflege {n}/2."
+        "{owner} füttert {pet} – Löffel für Löffel, Blick für Blick. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} serviert {pet} ein Dinner, das fast so heiß ist wie ihre Chats. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} bringt {pet} Essen… und eine Portion zweideutige Kommentare. Pflege {n}/{CARES_PER_DAY}."
     ]
     spicy = [
-        "{owner} füttert {pet} langsam… und lässt den Löffel extra lange im Mund. Pflege {n}/2.",
-        "{owner} serviert {pet} etwas, das auf der Zunge schmilzt – und nicht nur da. Pflege {n}/2.",
-        "{owner} reicht {pet} Häppchen zwischen langen Blicken. Pflege {n}/2."
+        "{owner} füttert {pet} langsam… und lässt den Löffel extra lange im Mund. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} serviert {pet} etwas, das auf der Zunge schmilzt – und nicht nur da. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} reicht {pet} Häppchen zwischen langen Blicken. Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "dine", tame, spicy)
 
 async def cmd_massage(update, context):
     tame = [
-        "{owner} knetet {pet} die Schultern, bis alle Sorgen auswandern. Pflege {n}/2.",
-        "{owner} gibt {pet} eine Massage – professionell unprofessionell. Pflege {n}/2.",
-        "{owner} massiert {pet} so gut, dass Netflix kurz pausiert. Pflege {n}/2."
+        "{owner} knetet {pet} die Schultern, bis alle Sorgen auswandern. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} gibt {pet} eine Massage – professionell unprofessionell. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} massiert {pet} so gut, dass Netflix kurz pausiert. Pflege {n}/{CARES_PER_DAY}."
     ]
     spicy = [
-        "{owner}s Hände erkunden {pet}… und finden jedes spannende Plätzchen. Pflege {n}/2.",
-        "{owner} massiert {pet} dort, wo normale Hände nicht hinfinden. Pflege {n}/2.",
-        "{owner} knetet {pet} langsam und genießt jede Reaktion. Pflege {n}/2."
+        "{owner}s Hände erkunden {pet}… und finden jedes spannende Plätzchen. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} massiert {pet} dort, wo normale Hände nicht hinfinden. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} knetet {pet} langsam und genießt jede Reaktion. Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "massage", tame, spicy)
 
 async def cmd_lapdance(update, context):
     tame = [
-        "{owner} schenkt {pet} einen Lap Dance – Stuhl knarzt, Moral auch. Pflege {n}/2.",
-        "{owner} tanzt auf {pet}s Komfortzone. Standing Ovations von der inneren Stimme. Pflege {n}/2.",
-        "{owner} bewegt sich so, dass selbst der Bot den Takt mitklopft. Pflege {n}/2."
+        "{owner} schenkt {pet} einen Lap Dance – Stuhl knarzt, Moral auch. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} tanzt auf {pet}s Komfortzone. Standing Ovations von der inneren Stimme. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} bewegt sich so, dass selbst der Bot den Takt mitklopft. Pflege {n}/{CARES_PER_DAY}."
     ]
     spicy = [
-        "{owner} liefert einen Lap Dance, bei dem sogar GIFs schwitzen. Pflege {n}/2.",
-        "{owner} bewegt sich langsam… {pet} atmet schneller. Pflege {n}/2.",
-        "{owner} tanzt wie ein Geheimnis, das man nie erzählen will. Pflege {n}/2."
+        "{owner} liefert einen Lap Dance, bei dem sogar GIFs schwitzen. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} bewegt sich langsam… {pet} atmet schneller. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} tanzt wie ein Geheimnis, das man nie erzählen will. Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "lapdance", tame, spicy)
 
@@ -1430,6 +1702,28 @@ def main():
     app.add_handler(CommandHandler("dine", cmd_dine, filters=filters.Chat(ALLOWED_CHAT_ID)))
     app.add_handler(CommandHandler("massage", cmd_massage, filters=filters.Chat(ALLOWED_CHAT_ID)))
     app.add_handler(CommandHandler("lapdance", cmd_lapdance, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    # BDSM / Skurrile Pet-Commands (Deutsch)
+    app.add_handler(CommandHandler("knien",     cmd_knien,     filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("kriechen",  cmd_kriechen,  filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("klaps",     cmd_klaps,     filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("knabbern",  cmd_knabbern,  filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("leine",     cmd_leine,     filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("halsband",  cmd_halsband,  filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("lecken",    cmd_lecken,    filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("verweigern",cmd_verweigern,filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("kaefig",    cmd_kaefig,    filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("schande",   cmd_schande,   filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("erregen",    cmd_erregen,    filters=filters.Chat(ALLOWED_CHAT_ID)))   # Ersatz für /edge
+    app.add_handler(CommandHandler("betteln",   cmd_betteln,   filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("stumm",     cmd_stumm,     filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("bestrafen", cmd_bestrafen, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("loben",     cmd_loben,     filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("dienen",    cmd_dienen,    filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("demuetigen",cmd_demuetigen,filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("melken",    cmd_melken,    filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("ohrfeige",  cmd_ohrfeige,  filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("belohnen",  cmd_belohnen,  filters=filters.Chat(ALLOWED_CHAT_ID)))
+
 
     # ADMIN Commands
     app.add_handler(CommandHandler("addcoins",   cmd_addcoins,   filters=filters.Chat(ALLOWED_CHAT_ID)))
