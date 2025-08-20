@@ -8,3 +8,5 @@ __pycache__/
 .env
 .env.*
 *.log
+
+petflix_2.0.db
