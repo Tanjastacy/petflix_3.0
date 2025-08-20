@@ -1555,6 +1555,10 @@ async def cmd_purgeuser(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tag = f"@{uname}" if uname else f"ID:{tid}"
     await update.effective_message.reply_text(f"🗑️ {tag} aus allen Petflix-Tabellen entfernt.")
 
+# Debug-Handler zum Gegencheck
+async def cmd_ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.effective_message.reply_text("pong")
+    
 
 # =========================
 # Helferfunktionen für Besitz
@@ -1691,6 +1695,8 @@ def main():
     app.add_handler(CommandHandler("carestatus", cmd_carestatus))
     app.add_handler(CommandHandler("nsfw", cmd_nsfw))
     app.add_handler(CommandHandler("stop", cmd_stop))
+
+    app.add_handler(CommandHandler("ping", cmd_ping))
     
     # Schatzsuche (Alias /hunt optional)
     app.add_handler(CommandHandler(["treasure", "hunt"], cmd_treasure, filters=filters.Chat(ALLOWED_CHAT_ID)))
