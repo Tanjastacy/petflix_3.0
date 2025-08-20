@@ -1356,38 +1356,35 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Mini-Ping, damit du siehst, dass der Handler feuert
     await update.effective_message.reply_text("✅ Petflix Starterpaket kommt gleich…")
 
-    legende = f"""
-🐾 <b>Willkommen bei Petflix – Deinem verruchten Haustier-Spiel</b> 🐾
-
-💋 <b>Klassische Pflege-Befehle</b><br/>
-/pet, /walk, /kiss, /dine, /massage, /lapdance
-
-⛓️ <b>Skurril-BDSM</b><br/>
-/knien, /kriechen, /klaps, /knabbern, /leine, /halsband, /lecken, /verweigern,<br/>
-/kaefig, /schande, /erregen, /betteln, /stumm, /bestrafen, /loben, /dienen,<br/>
-/demuetigen, /melken, /ohrfeige, /belohnen
-
-💰 <b>Tägliche Schatzsuche</b><br/>
-/treasure [methode] – einmal pro Tag (graben, tauchen, karte, hacken, klauen, pendeln, orakel, klettern)
-
-📅 <b>Regeln</b><br/>
-• Pflege <b>{CARES_PER_DAY}×</b> täglich<br/>
-• Weglaufen nach <b>{RUNAWAY_HOURS}h</b><br/>
-• Jede Aktion zählt 1 von {CARES_PER_DAY}
-
-⚙️ <b>Standard</b><br/>
-/start, /balance, /buy &lt;username&gt;, /prices, /owner, /release, /top
-
-💸 <b>Coins</b><br/>
-1 Coin pro Nachricht (1s Drosselung).
-""".strip()
-
+    legende = (
+        "🐾 <b>Willkommen bei Petflix – Deinem verruchten Haustier-Spiel</b> 🐾\n\n"
+        "💋 <b>Klassische Pflege-Befehle</b>\n"
+        "/pet, /walk, /kiss, /dine, /massage, /lapdance\n\n"
+        "⛓️ <b>Skurril-BDSM</b>\n"
+        "/knien, /kriechen, /klaps, /knabbern, /leine, /halsband, /lecken, /verweigern,\n"
+        "/kaefig, /schande, /erregen, /betteln, /stumm, /bestrafen, /loben, /dienen,\n"
+        "/demuetigen, /melken, /ohrfeige, /belohnen\n\n"
+        "💰 <b>Tägliche Schatzsuche</b>\n"
+        "/treasure [methode] – einmal pro Tag (graben, tauchen, karte, hacken, klauen, pendeln, orakel, klettern)\n\n"
+        "📅 <b>Regeln</b>\n"
+        f"• Pflege <b>{CARES_PER_DAY}×</b> täglich\n"
+        f"• Weglaufen nach <b>{RUNAWAY_HOURS}h</b>\n"
+        f"• Jede Aktion zählt 1 von {CARES_PER_DAY}\n\n"
+        "⚙️ <b>Standard</b>\n"
+        "/start, /balance, /buy &lt;username&gt;, /prices, /owner, /release, /top\n\n"
+        "💸 <b>Coins</b>\n"
+        "1 Coin pro Nachricht (1s Drosselung)."
+    )
+    
     try:
+        # Wichtig: wir vertrauen auf Defaults(parse_mode=HTML). Kein parse_mode hier setzen.
         for chunk in split_chunks(legende):
-            await update.effective_message.reply_text(chunk)
+            await update.effective_message.reply_text(chunk, disable_web_page_preview=True)
     except Exception as e:
+        # Diesmal mit genauer Fehlbeschreibung zurückmelden
         await update.effective_message.reply_text(
-            f"⚠️ Starttext konnte nicht gesendet werden: <code>{type(e).__name__}</code>"
+            f"⚠️ Starttext-Fehler: <code>{type(e).__name__}</code> — {getattr(e, 'message', str(e))}",
+            parse_mode=ParseMode.HTML
         )
 
 async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
