@@ -39,7 +39,7 @@ USER_PRICE_STEP = 50     # Nach jedem Kauf steigt der Preis um 100 Coins
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 MESSAGE_THROTTLE_S = 1   # Zeit in Sekunden zwischen Nachrichten-Coins
 CARE_COOLDOWN_S = 20   # 2 Minuten zwischen Pflegeaktionen pro Besitzer×Haustier
-CARES_PER_DAY = 5
+CARES_PER_DAY = 100  # Maximal 100 Pflegeaktionen pro Tag
 RUNAWAY_HOURS = 24
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")  # Serverzeit, per Env änderbar
 DAILY_GIFT_COINS = 15
@@ -1768,28 +1768,28 @@ def main():
     app.add_handler(CommandHandler("dine", cmd_dine, filters=filters.Chat(ALLOWED_CHAT_ID)))
     app.add_handler(CommandHandler("massage", cmd_massage, filters=filters.Chat(ALLOWED_CHAT_ID)))
     app.add_handler(CommandHandler("lapdance", cmd_lapdance, filters=filters.Chat(ALLOWED_CHAT_ID)))
-    # BDSM / Skurrile Pet-Commands (Deutsch)
-    app.add_handler(CommandHandler("knien",     cmd_knien,     filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("kriechen",  cmd_kriechen,  filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("klaps",     cmd_klaps,     filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("knabbern",  cmd_knabbern,  filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("leine",     cmd_leine,     filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("halsband",  cmd_halsband,  filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("lecken",    cmd_lecken,    filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("verweigern",cmd_verweigern,filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("kaefig",    cmd_kaefig,    filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("schande",   cmd_schande,   filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("erregen",    cmd_erregen,    filters=filters.Chat(ALLOWED_CHAT_ID)))   # Ersatz für /edge
-    app.add_handler(CommandHandler("betteln",   cmd_betteln,   filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("stumm",     cmd_stumm,     filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("bestrafen", cmd_bestrafen, filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("loben",     cmd_loben,     filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("dienen",    cmd_dienen,    filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("demuetigen",cmd_demuetigen,filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("melken",    cmd_melken,    filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("ohrfeige",  cmd_ohrfeige,  filters=filters.Chat(ALLOWED_CHAT_ID)))
-    app.add_handler(CommandHandler("belohnen",  cmd_belohnen,  filters=filters.Chat(ALLOWED_CHAT_ID)))
 
+    # BDSM / Skurrile Pet-Commands (Deutsch)
+    app.add_handler(CommandHandler("knien", cmd_knien,     filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("kriechen", cmd_kriechen,  filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("klaps", cmd_klaps,     filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("knabbern", cmd_knabbern,  filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("leine", cmd_leine,     filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("halsband", cmd_halsband,  filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("lecken", cmd_lecken,    filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("verweigern",cmd_verweigern,filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("kaefig", cmd_kaefig,    filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("schande", cmd_schande,   filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("erregen", cmd_erregen,    filters=filters.Chat(ALLOWED_CHAT_ID)))   # Ersatz für /edge
+    app.add_handler(CommandHandler("betteln", cmd_betteln,   filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("stumm", cmd_stumm,     filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("bestrafen", cmd_bestrafen, filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("loben", cmd_loben,     filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("dienen", cmd_dienen,    filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("demuetigen",cmd_demuetigen,filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("melken", cmd_melken,    filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("ohrfeige", cmd_ohrfeige,  filters=filters.Chat(ALLOWED_CHAT_ID)))
+    app.add_handler(CommandHandler("belohnen", cmd_belohnen,  filters=filters.Chat(ALLOWED_CHAT_ID)))
 
     # ADMIN Commands
     app.add_handler(CommandHandler("addcoins",   cmd_addcoins,   filters=filters.Chat(ALLOWED_CHAT_ID)))
