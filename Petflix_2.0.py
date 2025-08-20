@@ -15,15 +15,16 @@ from zoneinfo import ZoneInfo  # Python 3.9+
 
 
 from telegram import Update
-from telegram.constants import ChatType, ChatMemberStatus
+from telegram.constants import ChatType, ChatMemberStatus, ParseMode
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, ChatMemberHandler,
-    ContextTypes, filters
+    ContextTypes, filters, Defaults
 )
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 ALLOWED_CHAT_ID = int(os.environ.get("ALLOWED_CHAT_ID", "-1002550303601"))
 DB = os.environ.get("DB_PATH", "petflix_2.0.db")
+BACKUP_DIR = os.getenv("BACKUP_DIR", "data")
 
 
 # =========================
@@ -1296,68 +1297,33 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "❌ Dieses Spiel läuft nur in einer speziellen Gruppe.",
             quote=False
         )
-        return   # <<< WICHTIG! Stoppt hier, wenn Gruppe nicht erlaubt ist
-    
+        return   # <<< Stoppt hier, wenn Gruppe nicht erlaubt ist
+
     legende = """
-        🐾 **Willkommen bei Petflix – Deinem verruchten Haustier-Spiel** 🐾
+🐾 <b>Willkommen bei Petflix – Deinem verruchten Haustier-Spiel</b> 🐾
 
-        Hier geht’s nicht um Netflix, hier geht’s um Macht, Pflege, Schande und ein bisschen Liebe.  
+💋 <b>Klassische Pflege-Befehle</b><br/>
+/pet, /walk, /kiss, /dine, /massage, /lapdance
 
-        💋 **Klassische Pflege-Befehle**  
-        /pet – Dein Haustier streicheln (von süß bis „wo war deine Hand gerade?“)  
-        /walk – Mit deinem Haustier „spazieren gehen“… die Orte bleiben diskret.  
-        /kiss – Küssen, knutschen und den Chat erröten lassen.  
-        /dine – Ein Dinner servieren, manchmal heißer als die Mahlzeit.  
-        /massage – Entspannung oder pure Versuchung.  
-        /lapdance – Du weißt, was das ist. Der Stuhl überlebt vielleicht.
+⛓️ <b>Skurril-BDSM</b><br/>
+/knien, /kriechen, /klaps, /knabbern, /leine, /halsband, /lecken, /verweigern,<br/>
+/kaefig, /schande, /erregen, /betteln, /stumm, /bestrafen, /loben, /dienen,<br/>
+/demuetigen, /melken, /ohrfeige, /belohnen
 
-        ⛓️ **Neue Skurril-BDSM-Befehle**  
-        /knien – Dein Pet geht auf die Knie. Haltung: stramm, Stolz: weg.  
-        /kriechen – Nur noch auf allen Vieren. Würde optional.  
-        /klaps – 5 symbolische Hiebe. Ob du zählst, ist egal.  
-        /knabbern – Dein Pet darf vorsichtig die Zähne einsetzen.  
-        /leine – Virtuelle Leine, Kontrolle gesichert.  
-        /halsband – Besitz sichtbar, Klick gemacht.  
-        /lecken – Peinlicher Dienst, Coins-Kosten hoch.  
-        /verweigern – Belohnung gestrichen, Frust gestiegen.  
-        /kaefig – Ab in den Käfig, Coins laufen trotzdem runter.  
-        /schande – Username + Schand-Emoji. Viel Spaß damit.  
-        /erregen – Anheizen bis zur Verzweiflung. Finale? Später.  
-        /betteln – Winseln, flehen, hoffen.  
-        /stumm – Schweigepflicht. Jeder Post danach ist teuer.  
-        /bestrafen – Strafe aus der Bot-Hölle, random und gemein.  
-        /loben – Lob wie aus dem Kaugummiautomaten.  
-        /dienen – Virtuelle Fußmassage und mehr.  
-        /demuetigen – Peinlicher Satz im Chat, live und gnadenlos.  
-        /melken – Ja, so zweideutig ist das gemeint.  
-        /ohrfeige – Virtuelle Hand, echtes Echo.  
-        /belohnen – Ein Leckerli. Geschmack: trockenes Katzenfutter.
+💰 <b>Tägliche Schatzsuche</b><br/>
+/treasure [methode] – einmal pro Tag (graben, tauchen, karte, hacken, klauen, pendeln, orakel, klettern)
 
-        💰 **Tägliche Schatzsuche**  
-        /treasure [methode] – Einmal täglich Schatzsuche.  
-        Probier mal: graben, tauchen, karte, hacken, klauen, pendeln, orakel, klettern.
+📅 <b>Regeln</b><br/>
+• Pflege <b>{CARES_PER_DAY}×</b> täglich • Weglaufen nach <b>{RUNAWAY_HOURS}h</b> • Jede Aktion zählt 1 von {CARES_PER_DAY}
 
-        📅 **Regeln**  
-        • Du musst dich **{CARES_PER_DAY}x am Tag** um dein Haustier kümmern  
-        • Wenn du es **{RUNAWAY_HOURS} Stunden ignorierst**, läuft es weg (mit frechem Kommentar)  
-        • Pflege-Fortschritt: Jede Aktion zählt 1 von {CARES_PER_DAY}
+⚙️ <b>Standard</b><br/>
+/start, /balance, /buy &lt;username&gt;, /prices, /owner, /release, /top
 
-        😏 **Tipp**  
-        Je würziger die Aktion, desto mehr Spaß hat dein Haustier… und desto lauter der Chat.
+💸 <b>Coins</b><br/>
+1 Coin pro Nachricht (1s Drosselung).
+""".strip()
 
-        ⚙️ **Standard-Befehle**  
-        • /start – Zeigt diese Hilfe  
-        • /balance – Dein aktueller Kontostand  
-        • /buy <username> oder als Antwort – Kaufe einen anderen User (falls Coins reichen)  
-        • /prices – Zeigt Kaufpreise aller User  
-        • /owner <username> oder als Antwort – Zeigt den Besitzer eines Users  
-        • /release – Gib dein Haustier frei  
-        • /top – Top-10 Spieler nach Coins  
-
-        💸 **Coins**  
-        Für jede normale Nachricht gibt’s 1 Coin (mit 1s Drosselung).
-    """
-    await update.effective_message.reply_text(legende, parse_mode="Markdown")
+    await update.effective_message.reply_text(legende)
 
 async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update): return
@@ -1695,7 +1661,12 @@ def main():
     asyncio.set_event_loop(loop)
 
     # 3) Application bauen
-    app = Application.builder().token(BOT_TOKEN).build()
+    app = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .defaults(Defaults(parse_mode=ParseMode.HTML))
+        .build()
+    )
 
     # 4) Handlers registrieren (JEDE Zeile genau einmal)
     app.add_handler(CommandHandler("start", cmd_start))
