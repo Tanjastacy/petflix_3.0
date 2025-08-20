@@ -1299,40 +1299,63 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return   # <<< WICHTIG! Stoppt hier, wenn Gruppe nicht erlaubt ist
     
     legende = """
-🐾 **Willkommen bei Petflix – Deinem verruchten Haustier-Spiel** 🐾
+        🐾 **Willkommen bei Petflix – Deinem verruchten Haustier-Spiel** 🐾
 
-💋 **Befehle & ihre Bedeutung**  
-/pet – Dein Haustier streicheln (von süß bis „wo war deine Hand gerade?“)  
-/walk – Mit deinem Haustier „spazieren gehen“… die Orte sind diskret.  
-/kiss – Küssen, knutschen und den Chat in Verlegenheit bringen.  
-/dine – Dein Haustier mit einem heißen Dinner verwöhnen.  
-/massage – Massieren… manchmal an Stellen, die Google nicht zeigen darf.  
-/lapdance – Du weißt, was das ist. Der Stuhl überlebt vielleicht.  
+        Hier geht’s nicht um Netflix, hier geht’s um Macht, Pflege, Schande und ein bisschen Liebe.  
 
-** Tägliche Schatzsuche: **
-/treasure [methode] – Einmal täglich Schatzsuche 
-Probiere mal: graben, tauchen, karte, hacken, klauen, pendeln, orakel, klettern.
+        💋 **Klassische Pflege-Befehle**  
+        /pet – Dein Haustier streicheln (von süß bis „wo war deine Hand gerade?“)  
+        /walk – Mit deinem Haustier „spazieren gehen“… die Orte bleiben diskret.  
+        /kiss – Küssen, knutschen und den Chat erröten lassen.  
+        /dine – Ein Dinner servieren, manchmal heißer als die Mahlzeit.  
+        /massage – Entspannung oder pure Versuchung.  
+        /lapdance – Du weißt, was das ist. Der Stuhl überlebt vielleicht.
 
-📅 **Regeln**  
-• Du musst dich **2x am Tag** um dein Haustier kümmern  
-• Wenn du es **48 Stunden ignorierst**, läuft es weg (und zwar mit frechem Kommentar)  
-• Pflege-Fortschritt: Jede Aktion zählt 1 von 2  
+        ⛓️ **Neue Skurril-BDSM-Befehle**  
+        /knien – Dein Pet geht auf die Knie. Haltung: stramm, Stolz: weg.  
+        /kriechen – Nur noch auf allen Vieren. Würde optional.  
+        /klaps – 5 symbolische Hiebe. Ob du zählst, ist egal.  
+        /knabbern – Dein Pet darf vorsichtig die Zähne einsetzen.  
+        /leine – Virtuelle Leine, Kontrolle gesichert.  
+        /halsband – Besitz sichtbar, Klick gemacht.  
+        /lecken – Peinlicher Dienst, Coins-Kosten hoch.  
+        /verweigern – Belohnung gestrichen, Frust gestiegen.  
+        /kaefig – Ab in den Käfig, Coins laufen trotzdem runter.  
+        /schande – Username + Schand-Emoji. Viel Spaß damit.  
+        /teasen – Anheizen bis zur Verzweiflung. Finale? Später.  
+        /betteln – Winseln, flehen, hoffen.  
+        /stumm – Schweigepflicht. Jeder Post danach ist teuer.  
+        /bestrafen – Strafe aus der Bot-Hölle, random und gemein.  
+        /loben – Lob wie aus dem Kaugummiautomaten.  
+        /dienen – Virtuelle Fußmassage und mehr.  
+        /demuetigen – Peinlicher Satz im Chat, live und gnadenlos.  
+        /melken – Ja, so zweideutig ist das gemeint.  
+        /ohrfeige – Virtuelle Hand, echtes Echo.  
+        /belohnen – Ein Leckerli. Geschmack: trockenes Katzenfutter.
 
-😏 **Tipp**  
-Je würziger deine Aktion, desto mehr Spaß hat dein Haustier… und der Chat.
+        💰 **Tägliche Schatzsuche**  
+        /treasure [methode] – Einmal täglich Schatzsuche.  
+        Probier mal: graben, tauchen, karte, hacken, klauen, pendeln, orakel, klettern.
 
-**Standard Befehle**
+        📅 **Regeln**  
+        • Du musst dich **{CARES_PER_DAY}x am Tag** um dein Haustier kümmern  
+        • Wenn du es **{RUNAWAY_HOURS} Stunden ignorierst**, läuft es weg (mit frechem Kommentar)  
+        • Pflege-Fortschritt: Jede Aktion zählt 1 von {CARES_PER_DAY}
 
-Hier sind alle Befehle:
-• /start – Zeigt diese Hilfe
-• /balance – Zeigt deinen aktuellen Kontostand
-• /buy <username> oder als Antwort – Kaufe einen anderen User, wenn du genug Coins hast
-• /prices – Zeigt die Kaufpreise aller User im Chat
-• /owner <username> oder als Antwort – Zeigt den Besitzer eines Users
-• /release als Antwort – Gib dein Haustier wieder frei
-• /top – Top-10-Spieler nach Coins
+        😏 **Tipp**  
+        Je würziger die Aktion, desto mehr Spaß hat dein Haustier… und desto lauter der Chat.
 
-Coins bekommst du für normale Nachrichten (1 Coin pro Nachricht, leicht gedrosselt 1sec.).
+        ⚙️ **Standard-Befehle**  
+        • /start – Zeigt diese Hilfe  
+        • /balance – Dein aktueller Kontostand  
+        • /buy <username> oder als Antwort – Kaufe einen anderen User (falls Coins reichen)  
+        • /prices – Zeigt Kaufpreise aller User  
+        • /owner <username> oder als Antwort – Zeigt den Besitzer eines Users  
+        • /release – Gib dein Haustier frei  
+        • /top – Top-10 Spieler nach Coins  
+
+        💸 **Coins**  
+        Für jede normale Nachricht gibt’s 1 Coin (mit 1s Drosselung).
     """
     await update.effective_message.reply_text(legende, parse_mode="Markdown")
 
