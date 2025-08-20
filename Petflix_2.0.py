@@ -1322,7 +1322,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         /verweigern – Belohnung gestrichen, Frust gestiegen.  
         /kaefig – Ab in den Käfig, Coins laufen trotzdem runter.  
         /schande – Username + Schand-Emoji. Viel Spaß damit.  
-        /teasen – Anheizen bis zur Verzweiflung. Finale? Später.  
+        /erregen – Anheizen bis zur Verzweiflung. Finale? Später.  
         /betteln – Winseln, flehen, hoffen.  
         /stumm – Schweigepflicht. Jeder Post danach ist teuer.  
         /bestrafen – Strafe aus der Bot-Hölle, random und gemein.  
