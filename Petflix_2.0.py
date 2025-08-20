@@ -25,7 +25,7 @@ BOT_TOKEN = os.environ["BOT_TOKEN"]
 ALLOWED_CHAT_ID = int(os.environ.get("ALLOWED_CHAT_ID", "-1002550303601"))
 DB = os.environ.get("DB_PATH", "petflix_2.0.db")
 BACKUP_DIR = os.getenv("BACKUP_DIR", "data")
-
+MAX_CHUNK = 3500  # unter 4096 bleiben, wegen HTML-Overhead sicher
 
 # =========================
 # Konfiguration
@@ -157,6 +157,11 @@ async def db_init():
 
 
 # Helpers (falls noch nicht vorhanden)
+
+def _send_long_html(message, send_func):
+    # zerlegt lange Texte in sichere Blöcke
+    for i in range(0, len(message), MAX_CHUNK):
+        yield send_func(message[i:i+MAX_CHUNK])
 
 async def get_moraltax_settings(db, chat_id: int):
     async with db.execute("SELECT moraltax_enabled, moraltax_amount FROM settings WHERE chat_id=?", (chat_id,)) as cur:
@@ -1291,13 +1296,12 @@ async def cmd_nsfw(update, context):
     await update.effective_message.reply_text(f"NSFW-Modus: {'an' if val else 'aus'}")
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Nur in der erlaubten Gruppe
+    # Chat-Gate (wenn du so eine Funktion nutzt)
     if not is_allowed_chat(update):
         await update.effective_message.reply_text(
-            "❌ Dieses Spiel läuft nur in einer speziellen Gruppe.",
-            quote=False
+            "❌ Dieses Spiel läuft nur in der vorgesehenen Gruppe."
         )
-        return   # <<< Stoppt hier, wenn Gruppe nicht erlaubt ist
+        return
 
     legende = """
 🐾 <b>Willkommen bei Petflix – Deinem verruchten Haustier-Spiel</b> 🐾
@@ -1323,7 +1327,13 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 1 Coin pro Nachricht (1s Drosselung).
 """.strip()
 
-    await update.effective_message.reply_text(legende)
+    # HTML senden, in Blöcke gesplittet, ohne parse_mode pro Nachricht,
+    # denn der Default wird global auf HTML gesetzt
+    for _ in _send_long_html(
+        legende,
+        lambda chunk: update.effective_message.reply_text(chunk)
+    ):
+        pass
 
 async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update): return
