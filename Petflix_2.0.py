@@ -14,7 +14,7 @@ from datetime import time as dtime
 from zoneinfo import ZoneInfo  # Python 3.9+
 
 
-from telegram import Update
+from telegram import Update, BotCommand
 from telegram.constants import ChatType, ChatMemberStatus, ParseMode
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, ChatMemberHandler,
@@ -162,6 +162,10 @@ def _send_long_html(message, send_func):
     # zerlegt lange Texte in sichere Blöcke
     for i in range(0, len(message), MAX_CHUNK):
         yield send_func(message[i:i+MAX_CHUNK])
+
+def split_chunks(text, size=MAX_CHUNK):
+    for i in range(0, len(text), size):
+        yield text[i:i+size]
 
 async def get_moraltax_settings(db, chat_id: int):
     async with db.execute("SELECT moraltax_enabled, moraltax_amount FROM settings WHERE chat_id=?", (chat_id,)) as cur:
@@ -816,6 +820,54 @@ async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Commands
 # =========================
 
+async def register_commands(application: Application):
+    commands = [
+        BotCommand("start", "Hilfe & Regeln"),
+        BotCommand("ping", "Ping-Test (Antwort: pong)"),
+        BotCommand("balance", "Zeigt deinen Coin-Kontostand"),
+        BotCommand("buy", "Kaufe einen anderen User"),
+        BotCommand("release", "Gib dein Haustier frei"),
+        BotCommand("owner", "Zeigt den Besitzer eines Users"),
+        BotCommand("prices", "Zeigt Kaufpreise aller User"),
+        BotCommand("top", "Top 10 Spieler nach Coins"),
+
+        # Pflege & Fun
+        BotCommand("pet", "Streicheln"),
+        BotCommand("walk", "Spazieren gehen"),
+        BotCommand("kiss", "Küssen"),
+        BotCommand("dine", "Dinner servieren"),
+        BotCommand("massage", "Massage geben"),
+        BotCommand("lapdance", "Lapdance"),
+
+        # Skurril / BDSM
+        BotCommand("knien", "Auf die Knie"),
+        BotCommand("kriechen", "Auf allen Vieren kriechen"),
+        BotCommand("klaps", "5 symbolische Hiebe"),
+        BotCommand("knabbern", "Mit den Zähnen spielen"),
+        BotCommand("leine", "Virtuelle Leine anlegen"),
+        BotCommand("halsband", "Halsband anlegen"),
+        BotCommand("lecken", "Dienst: lecken (teuer)"),
+        BotCommand("verweigern", "Belohnung verweigern"),
+        BotCommand("kaefig", "Ab in den Käfig"),
+        BotCommand("schande", "Schande + Username"),
+        BotCommand("erregen", "Anheizen bis zur Verzweiflung"),
+        BotCommand("betteln", "Flehen & Winseln"),
+        BotCommand("stumm", "Schweigepflicht (Posts kosten)"),
+        BotCommand("bestrafen", "Strafe aus der Bot-Hölle"),
+        BotCommand("loben", "Kleines Lob verteilen"),
+        BotCommand("dienen", "Dienen (z. B. Fußmassage)"),
+        BotCommand("demuetigen", "Peinlichen Satz posten"),
+        BotCommand("melken", "Anzüglich melken"),
+        BotCommand("ohrfeige", "Virtuelle Ohrfeige"),
+        BotCommand("belohnen", "Leckerli geben"),
+
+        # Special
+        BotCommand("treasure", "Tägliche Schatzsuche starten")
+    ]
+    await application.bot.set_my_commands(commands)
+
+
+
 # =========================
 # BDSM / Skurrile Pet-Commands (Deutsch)
 # =========================
@@ -1296,50 +1348,47 @@ async def cmd_nsfw(update, context):
     await update.effective_message.reply_text(f"NSFW-Modus: {'an' if val else 'aus'}")
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Gruppen-Gate
     if not is_allowed_chat(update):
-        await update.effective_message.reply_text(
-            "❌ Dieses Spiel läuft nur in der vorgesehenen Gruppe."
-        )
+        await update.effective_message.reply_text("❌ Dieses Spiel läuft nur in der vorgesehenen Gruppe.")
         return
 
-    legende = """
-<b>🐾 Willkommen bei Petflix – Deinem verruchten Haustier-Spiel 🐾</b>
+    # Mini-Ping, damit du siehst, dass der Handler feuert
+    await update.effective_message.reply_text("✅ Petflix Starterpaket kommt gleich…")
 
-Hier geht’s nicht um Netflix, hier geht’s um Macht, Pflege, Schande und ein bisschen Liebe.  
+    legende = f"""
+🐾 <b>Willkommen bei Petflix – Deinem verruchten Haustier-Spiel</b> 🐾
 
-<b>💋 Klassische Pflege-Befehle</b><br/>
-/pet, /walk, /kiss, /dine, /massage, /lapdance  
+💋 <b>Klassische Pflege-Befehle</b><br/>
+/pet, /walk, /kiss, /dine, /massage, /lapdance
 
-<b>⛓️ Skurril-BDSM</b><br/>
+⛓️ <b>Skurril-BDSM</b><br/>
 /knien, /kriechen, /klaps, /knabbern, /leine, /halsband, /lecken, /verweigern,<br/>
 /kaefig, /schande, /erregen, /betteln, /stumm, /bestrafen, /loben, /dienen,<br/>
-/demuetigen, /melken, /ohrfeige, /belohnen  
+/demuetigen, /melken, /ohrfeige, /belohnen
 
-<b>💰 Tägliche Schatzsuche</b><br/>
-/treasure [methode] – graben, tauchen, karte, hacken, klauen, pendeln, orakel, klettern  
+💰 <b>Tägliche Schatzsuche</b><br/>
+/treasure [methode] – einmal pro Tag (graben, tauchen, karte, hacken, klauen, pendeln, orakel, klettern)
 
-<b>📅 Regeln</b><br/>
-• {CARES_PER_DAY}× Pflege am Tag<br/>
-• Nach {RUNAWAY_HOURS}h Ignorieren läuft dein Pet weg<br/>
-• Jede Aktion zählt 1 von {CARES_PER_DAY}  
+📅 <b>Regeln</b><br/>
+• Pflege <b>{CARES_PER_DAY}×</b> täglich<br/>
+• Weglaufen nach <b>{RUNAWAY_HOURS}h</b><br/>
+• Jede Aktion zählt 1 von {CARES_PER_DAY}
 
-<b>⚙️ Standard</b><br/>
-/start, /balance, /buy &lt;username&gt;, /prices, /owner, /release, /top  
+⚙️ <b>Standard</b><br/>
+/start, /balance, /buy &lt;username&gt;, /prices, /owner, /release, /top
 
-<b>💸 Coins</b><br/>
-1 Coin pro Nachricht (1s Drosselung)
+💸 <b>Coins</b><br/>
+1 Coin pro Nachricht (1s Drosselung).
 """.strip()
 
-    await update.effective_message.reply_text(legende, parse_mode=ParseMode.HTML)
-
-
-    # HTML senden, in Blöcke gesplittet, ohne parse_mode pro Nachricht,
-    # denn der Default wird global auf HTML gesetzt
-    for _ in _send_long_html(
-        legende,
-        lambda chunk: update.effective_message.reply_text(chunk)
-    ):
-        pass
+    try:
+        for chunk in split_chunks(legende):
+            await update.effective_message.reply_text(chunk)
+    except Exception as e:
+        await update.effective_message.reply_text(
+            f"⚠️ Starttext konnte nicht gesendet werden: <code>{type(e).__name__}</code>"
+        )
 
 async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update): return
@@ -1688,8 +1737,12 @@ def main():
         .build()
     )
 
+    # beim Start nach app.build():
+    app.post_init = register_commands
+
     # 4) Handlers registrieren (JEDE Zeile genau einmal)
     app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CommandHandler("help", cmd_start)) # /help ist Alias für /start
     app.add_handler(CommandHandler("balance", cmd_balance))
     app.add_handler(CommandHandler("daily", cmd_daily))
     app.add_handler(CommandHandler("id", cmd_id))
@@ -1751,6 +1804,7 @@ def main():
     # Auto-Purge bei Austritt
     app.add_handler(ChatMemberHandler(on_chat_member, ChatMemberHandler.CHAT_MEMBER))
 
+    
 
     # Bot hinzugefügt/Rechte geändert → Boot-Ansage
     app.add_handler(ChatMemberHandler(on_my_chat_member, ChatMemberHandler.MY_CHAT_MEMBER))
