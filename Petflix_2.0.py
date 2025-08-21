@@ -49,7 +49,7 @@ CARES_PER_DAY = 100
 RUNAWAY_HOURS = 24
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
 DAILY_GIFT_COINS = 15
-CURRENT_MODE = "tame" | "spicy"  # "tame" oder "spicy"; beeinflusst die Textauswahl
+CURRENT_MODE = "tame" # "tame" oder "spicy"; beeinflusst die Textauswahl
 
 # Konfig Moralische Steuer
 MORAL_TAX_DEFAULT = 5
@@ -632,13 +632,14 @@ async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global CURRENT_MODE
-    if not _is_admin_here(update.effective_user.id):
-        return
-    if context.args and context.args[0].lower() in ["tame", "spicy"]:
-        CURRENT_MODE = context.args[0].lower()
-        await update.message.reply_text(f"Modus auf {CURRENT_MODE} gestellt.")
-    else:
-        await update.message.reply_text(f"Aktueller Modus: {CURRENT_MODE}")
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("🚫 Nur der Bot-Admin darf das.")
+    if context.args:
+        m = context.args[0].lower()
+        if m in ("tame", "spicy"):
+            CURRENT_MODE = m
+            return await update.effective_message.reply_text(f"Modus auf {CURRENT_MODE} gestellt.")
+    await update.effective_message.reply_text(f"Aktueller Modus: {CURRENT_MODE}")
 
 # =========================
 # Commands
