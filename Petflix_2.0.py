@@ -44,7 +44,7 @@ USER_BASE_PRICE = 100
 USER_PRICE_STEP = 50  # 100 -> 150 -> 200 ...
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 MESSAGE_THROTTLE_S = 1
-CARE_COOLDOWN_S = 20
+CARE_COOLDOWN_S = 5  # Sekunden zwischen Pflegeaktionen
 CARES_PER_DAY = 25
 RUNAWAY_HOURS = 48
 LOCK_SECONDS = 48 * 3600  # 48h Mindestbesitz
@@ -1460,40 +1460,82 @@ async def cmd_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.effective_message.reply_text(f"Kein Besitzer. Aktueller Preis: {price}.")
 
 async def cmd_ownerlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Zeigt alle aktuellen Besitzverhältnisse mit aktuellem Wert des jeweiligen Pets."""
+    """Zeigt alle Besitzverhältnisse gruppiert nach Besitzer (mit Lockzeit und Wert)."""
     if not is_group(update):
         return
     chat_id = update.effective_chat.id
 
+    now = int(time.time())
+
+    # Daten holen
     async with aiosqlite.connect(DB) as db:
         async with db.execute("""
             SELECT 
-                p.pet_id,
-                pu.username AS pet_username,
                 p.owner_id,
-                ou.username AS owner_username,
-                pl.price AS current_price
+                ou.username   AS owner_username,
+                p.pet_id,
+                pu.username   AS pet_username,
+                pl.price      AS current_price,
+                p.locked_until
             FROM pets p
-            LEFT JOIN players pu ON pu.chat_id=p.chat_id AND pu.user_id=p.pet_id
             LEFT JOIN players ou ON ou.chat_id=p.chat_id AND ou.user_id=p.owner_id
+            LEFT JOIN players pu ON pu.chat_id=p.chat_id AND pu.user_id=p.pet_id
             LEFT JOIN players pl ON pl.chat_id=p.chat_id AND pl.user_id=p.pet_id
             WHERE p.chat_id=?
-            ORDER BY pl.price DESC, p.pet_id ASC
+            ORDER BY p.owner_id ASC, pl.price DESC, p.pet_id ASC
         """, (chat_id,)) as cur:
             rows = await cur.fetchall()
 
     if not rows:
-        return await update.effective_message.reply_text("Noch keine Besitzverhältnisse. Kauf dir erstmal jemanden. 🐾")
+        return await update.effective_message.reply_text(
+            "Noch keine Besitzverhältnisse. Kauf dir erstmal jemanden. 🐾"
+        )
 
-    lines = ["📜 <b>Ownerliste</b> (wer gehört wem, inkl. aktuellem Wert):\n"]
-    for pet_id, pet_uname, owner_id, owner_uname, price in rows:
-        pet_tag = f"@{pet_uname}" if pet_uname else f"<a href='tg://user?id={pet_id}'>ID:{pet_id}</a>"
-        owner_tag = f"@{owner_uname}" if owner_uname else (f"<a href='tg://user?id={owner_id}'>ID:{owner_id}</a>" if owner_id else "—")
-        lines.append(f"• {pet_tag} → {owner_tag}  |  Wert: <b>{price}</b>")
+    # Gruppieren
+    by_owner: dict[int | None, list[tuple[int, str | None, int, int | None]]] = {}
+    for owner_id, owner_uname, pet_id, pet_uname, price, locked_until in rows:
+        by_owner.setdefault(owner_id, []).append((pet_id, pet_uname, price, locked_until))
 
-    text = "\n".join(lines)
+    def tag_uid_name(uid: int | None, uname: str | None) -> str:
+        if uid is None:
+            return "—"
+        return (f"@{uname}" if uname else f"<a href='tg://user?id={uid}'>ID:{uid}</a>")
+
+    parts: list[str] = []
+    parts.append("📜 <b>Ownerliste</b> — gruppiert nach Besitzer:\n")
+
+    owner_keys = [k for k in by_owner.keys() if k is not None] + ([None] if None in by_owner else [])
+    for owner_id in owner_keys:
+        owner_uname = None
+        if owner_id is not None:
+            for o_id, o_uname, *_ in rows:
+                if o_id == owner_id:
+                    owner_uname = o_uname
+                    break
+
+        header = tag_uid_name(owner_id, owner_uname)
+        pets = by_owner[owner_id]
+        total_value = sum(p[2] for p in pets)
+
+        parts.append(f"<b>{header}</b>  <i>({len(pets)} Pet(s), Gesamtwert: {total_value})</i>")
+        for pet_id, pet_uname, price, locked_until in pets:
+            pet_tag = tag_uid_name(pet_id, pet_uname)
+            lock_text = ""
+            if locked_until and locked_until > now:
+                mins = int((locked_until - now) / 60)
+                hrs, mins = divmod(mins, 60)
+                lock_text = f" ⏳{hrs}h{mins:02d}m"
+            parts.append(f" ├─ {pet_tag}  (<b>{price}</b>){lock_text}")
+        parts.append("")
+
+    text = "\n".join(parts).strip()
+
     for i in range(0, len(text), MAX_CHUNK):
-        await update.effective_message.reply_text(text[i:i+MAX_CHUNK], disable_web_page_preview=True)
+        await update.effective_message.reply_text(
+            text[i:i+MAX_CHUNK],
+            disable_web_page_preview=True
+        )
+
 
 async def cmd_release(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Gibt dein aktuelles Haustier frei. Muss als Reply auf das Pet genutzt werden."""
