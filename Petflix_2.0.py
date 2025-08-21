@@ -12,7 +12,7 @@ import re
 from typing import Optional
 from datetime import time as dtime
 from zoneinfo import ZoneInfo  # Python 3.9+
-
+from html import escape
 
 from telegram import Update, BotCommand
 from telegram.constants import ChatType, ChatMemberStatus, ParseMode
@@ -153,6 +153,14 @@ async def db_init():
         await db.commit()
 
 # Helpers
+
+def nice_name(u) -> str:
+    # Anzeige-Name ohne HTML-Sicherheit (wird für Markdown benutzt)
+    return f"@{u.username}" if getattr(u, "username", None) else (u.full_name or str(u.id))
+
+def nice_name_html(u) -> str:
+    # Für alle Antworten, die mit HTML geparst werden (Default!)
+    return escape(nice_name(u), quote=False)
 
 def split_chunks(text, size=MAX_CHUNK):
     for i in range(0, len(text), size):
@@ -323,7 +331,7 @@ async def do_care(update, context, action_key, tame_lines, spicy_lines):
         if care and care["last"] and now - care["last"] >= RUNAWAY_HOURS*3600:
             await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet.id))
             await db.commit()
-            await msg.reply_text(f"{nice_name(pet)} hat die Leine durchgebissen. {RUNAWAY_HOURS} Stunden ohne Pflege – und tschüss.")
+            await msg.reply_text(f"{nice_name_html(pet)} hat die Leine durchgebissen. {RUNAWAY_HOURS} Stunden ohne Pflege – und tschüss.")
             return
 
         # cooldown
@@ -357,10 +365,10 @@ async def do_care(update, context, action_key, tame_lines, spicy_lines):
 
     lines = spicy_lines if spicy else tame_lines
     text = random.choice(lines)
-    # Robust gegen falsche Platzhalter in Textlisten
     text = text.replace("{CARES_PER_DAY}", str(CARES_PER_DAY)).replace("{pets}", "{pet}")
-    text = text.format(owner=nice_name(owner), pet=nice_name(pet), n=done)
+    text = text.format(owner=nice_name_html(owner), pet=nice_name_html(pet), n=done)
     await msg.reply_text(text)
+
 
 # =========================
 # Daily Gift
@@ -551,7 +559,10 @@ async def cmd_addcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await db.execute("UPDATE players SET coins=? WHERE chat_id=? AND user_id=?", (new, chat_id, tid))
         await db.commit()
     tag = f"@{uname}" if uname else f"ID:{tid}"
-    await update.effective_message.reply_text(f"✅ {amount} Coins an {tag} vergeben. Neuer Kontostand: {new}.")
+    await update.effective_message.reply_text(
+        f"✅ {amount} Coins an {escape(tag, quote=False)} vergeben. Neuer Kontostand: {new}."
+    )
+
 
 async def cmd_takecoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -573,7 +584,9 @@ async def cmd_takecoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await db.execute("UPDATE players SET coins=? WHERE chat_id=? AND user_id=?", (new, chat_id, tid))
         await db.commit()
     tag = f"@{uname}" if uname else f"ID:{tid}"
-    await update.effective_message.reply_text(f"🧾 {amount} Coins bei {tag} eingezogen. Neuer Kontostand: {new}.")
+    await update.effective_message.reply_text(
+        f"🧾 {amount} Coins bei {escape(tag, quote=False)} eingezogen. Neuer Kontostand: {new}."
+    )
 
 async def cmd_setcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -593,7 +606,9 @@ async def cmd_setcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await db.execute("UPDATE players SET coins=? WHERE chat_id=? AND user_id=?", (value, chat_id, tid))
         await db.commit()
     tag = f"@{uname}" if uname else f"ID:{tid}"
-    await update.effective_message.reply_text(f"✏️ Kontostand von {tag} auf {value} Coins gesetzt.")
+    await update.effective_message.reply_text(
+        f"✏️ Kontostand von {escape(tag, quote=False)} auf {value} Coins gesetzt."
+    )
 
 async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
@@ -610,7 +625,9 @@ async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await db.execute("UPDATE players SET coins=0 WHERE chat_id=? AND user_id=?", (chat_id, tid))
         await db.commit()
     tag = f"@{uname}" if uname else f"ID:{tid}"
-    await update.effective_message.reply_text(f"🧨 Kontostand von {tag} auf 0 gesetzt.")
+    await update.effective_message.reply_text(
+        f"🧨 Kontostand von {escape(tag, quote=False)} auf 0 gesetzt."
+    )
 
 # =========================
 # Commands
@@ -1121,7 +1138,12 @@ async def cmd_treasure(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     place = random.choice(_WORLD_PLACES)
     method = _pick_method(context.args)
-    story = random.choice(_TREASURE_STORIES).format(user=nice_name(user), method=method, place=place, coins=amount)
+    story = random.choice(_TREASURE_STORIES).format(
+        user=nice_name_html(user),  # HTML-sicher
+        method=escape(method, quote=False),
+        place=escape(place, quote=False),
+        coins=amount
+    )
     await update.effective_message.reply_text(story)
 
 # =========================
@@ -1264,8 +1286,9 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     target_tag = f"@{target_username}" if target_username else f"ID:{target_id}"
     await update.effective_message.reply_text(
-        f"{nice_name(buyer)} hat {target_tag} für {price} Coins gekauft. Neuer Preis: {new_price}."
+        f"{nice_name_html(buyer)} hat {escape(target_tag, quote=False)} für {price} Coins gekauft. Neuer Preis: {new_price}."
     )
+
 
 async def cmd_top(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id != ALLOWED_CHAT_ID:
@@ -1279,11 +1302,14 @@ async def cmd_top(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     lines = []
     for i, (uname, uid, c) in enumerate(rows, start=1):
-        tag = f"@{uname}" if uname else f"ID:{uid}"
+        raw_tag = f"@{uname}" if uname else f"ID:{uid}"
+        tag = escape(raw_tag, quote=False)
         lines.append(f"{i}. {tag}: {c} 💰")
+
     text = "📋 Rangliste Top 10 Spieler:\n\n" + "\n".join(lines)
     for chunk in [text[i:i+4000] for i in range(0, len(text), 4000)]:
         await update.effective_message.reply_text(chunk, quote=False)
+
 
 # Auto-Purge bei Austritt
 async def on_chat_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1304,7 +1330,8 @@ async def on_chat_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             log.error(f"Purge für {user.id} scheiterte: {e}")
         else:
-            bye = f"👋 {nice_name(user)} ist weg. Daten weg, Coins weg – Konsequenzen lernen ist auch ein Feature."
+            bye = f"👋 {nice_name_html(user)} ist weg. Daten weg, Coins weg – Konsequenzen lernen ist auch ein Feature."
+
             try:
                 await context.bot.send_message(chat_id=chat_id, text=bye)
             except Exception as e:
@@ -1328,7 +1355,9 @@ async def cmd_purgeuser(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     await purge_user_from_db(chat_id, tid)
     tag = f"@{uname}" if uname else f"ID:{tid}"
-    await update.effective_message.reply_text(f"🗑️ {tag} aus allen Petflix-Tabellen entfernt.")
+    await update.effective_message.reply_text(
+        f"🗑️ {escape(tag, quote=False)} aus allen Petflix-Tabellen entfernt."
+    )
 
 async def cmd_ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text("pong")
