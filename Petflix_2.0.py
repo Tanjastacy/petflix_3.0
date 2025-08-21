@@ -1501,11 +1501,11 @@ async def cmd_ownerlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
             async with db.execute("""
                 SELECT 
                     p.owner_id,
-                    ou.username                    AS owner_username,
+                    ou.username                                 AS owner_username,
                     p.pet_id,
-                    pu.username                    AS pet_username,
-                    COALESCE(pl.price, 0)          AS current_price,
-                    COALESCE(p.locked_until, 0)    AS locked_until
+                    pu.username                                 AS pet_username,
+                    COALESCE(pl.price, 0)                       AS current_price,
+                    COALESCE(p.purchase_lock_until, 0)          AS locked_until
                 FROM pets p
                 LEFT JOIN players ou ON ou.chat_id=p.chat_id AND ou.user_id=p.owner_id
                 LEFT JOIN players pu ON pu.chat_id=p.chat_id AND pu.user_id=p.pet_id
@@ -1535,7 +1535,6 @@ async def cmd_ownerlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return f"@{uname}" if uname else f"<a href='tg://user?id={uid}'>ID:{uid}</a>"
 
     out = ["📜 <b>Ownerliste</b> — gruppiert nach Besitzer:\n"]
-    # Besitzer mit ID zuerst, dann evtl. „—“ (unbesessen)
     owners_sorted = sorted(by_owner.keys(), key=lambda k: (k[0] is None, k[0] or 0))
     for (owner_id, owner_uname) in owners_sorted:
         pets = by_owner[(owner_id, owner_uname)]
@@ -1555,6 +1554,7 @@ async def cmd_ownerlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = "\n".join(out).strip()
     for i in range(0, len(text), MAX_CHUNK):
         await update.effective_message.reply_text(text[i:i+MAX_CHUNK], disable_web_page_preview=True)
+
 
 
 
