@@ -1255,7 +1255,7 @@ async def cmd_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(f"Chat ID: {update.effective_chat.id}")
 
 async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_group(update): 
+    if not is_group(update):
         return
     chat_id = update.effective_chat.id
     buyer = update.effective_user
@@ -1292,6 +1292,7 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             target_username = update.effective_message.reply_to_message.from_user.username
         await ensure_player(db, chat_id, target_id, target_username or "")
 
+        # Preis + aktueller Besitzer
         price = await get_user_price(db, chat_id, target_id)
         prev_owner = await get_owner_id(db, chat_id, target_id)
         if prev_owner == buyer_id:
@@ -1299,6 +1300,23 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await db.commit()
             return
 
+        # >>> HIER KOMMT DER KAUFSCHUTZ-CHECK REIN <<<
+        # 48h-Kaufschutz prüfen (nur wenn es einen Vorbesitzer gibt, der nicht der Käufer ist)
+        lock_until = await get_pet_lock_until(db, chat_id, target_id)
+        now = int(time.time())
+        if prev_owner and prev_owner != buyer_id and lock_until and lock_until > now:
+            left = lock_until - now
+            h = left // 3600
+            m = (left % 3600) // 60
+            target_tag_inline = f"@{target_username}" if target_username else f"ID:{target_id}"
+            await update.effective_message.reply_text(
+                f"{escape(target_tag_inline, False)} ist noch {h}h {m}m geschützt. Kauf erst danach möglich."
+            )
+            await db.commit()
+            return
+        # <<< ENDE KAUFSCHUTZ-CHECK <<<
+
+        # Coins prüfen
         async with db.execute("SELECT coins FROM players WHERE chat_id=? AND user_id=?", (chat_id, buyer_id)) as cur:
             row = await cur.fetchone()
         buyer_coins = row[0] if row else 0
@@ -1307,23 +1325,21 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await db.commit()
             return
 
-        # Zahl abziehen
+        # Coins abziehen
         await db.execute(
             "UPDATE players SET coins=coins-? WHERE chat_id=? AND user_id=?",
             (price, chat_id, buyer_id)
         )
 
-        # Owner setzen + 48h Kaufschutz
+        # Owner setzen + neuen 48h-Kaufschutz starten
         now = int(time.time())
-        LOCK_SECONDS = 48 * 3600  # ggf. global definieren
-        lock_until_new = now + LOCK_SECONDS
-
+        lock_until_new = now + LOCK_SECONDS  # LOCK_SECONDS = 48*3600 (global)
         await db.execute("""
-        INSERT INTO pets(chat_id, pet_id, owner_id, purchase_lock_until)
-        VALUES(?,?,?,?)
-        ON CONFLICT(chat_id, pet_id) DO UPDATE SET
-            owner_id=excluded.owner_id,
-            purchase_lock_until=excluded.purchase_lock_until
+            INSERT INTO pets(chat_id, pet_id, owner_id, purchase_lock_until)
+            VALUES(?,?,?,?)
+            ON CONFLICT(chat_id, pet_id) DO UPDATE SET
+                owner_id=excluded.owner_id,
+                purchase_lock_until=excluded.purchase_lock_until
         """, (chat_id, target_id, buyer_id, lock_until_new))
 
         # Preis erhöhen
@@ -1334,7 +1350,7 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     target_tag = f"@{target_username}" if target_username else f"ID:{target_id}"
     await update.effective_message.reply_text(
-        f"{nice_name_html(buyer)} hat {escape(target_tag, quote=False)} für {price} Coins gekauft. Neuer Preis: {new_price}."
+        f"{nice_name_html(buyer)} hat {escape(target_tag, False)} für {price} Coins gekauft. Neuer Preis: {new_price}."
     )
 
 
@@ -1450,14 +1466,28 @@ async def cmd_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 r2 = await cur.fetchone()
                 owner_uname = r2[0] if r2 else None
 
+        # --- HIER: Lock-Info laden & Text bauen ---
+        lock_until = await get_pet_lock_until(db, chat_id, target_id)
+        lock_txt = ""
+        now = int(time.time())
+        if lock_until and lock_until > now:
+            left = lock_until - now
+            h = left // 3600
+            m = (left % 3600) // 60
+            lock_txt = f" 🔒{h}h{m:02d}m"
+        # --- ENDE Lock-Block ---
+
     if owner_id:
         tag = f"@{owner_uname}" if owner_uname else f"[ID:{owner_id}](tg://user?id={owner_id})"
         await update.effective_message.reply_text(
-            f"Besitzer: {tag}. Aktueller Preis: {price}.",
+            f"Besitzer: {tag}. Aktueller Preis: {price}.{lock_txt}",
             parse_mode="Markdown"
         )
     else:
-        await update.effective_message.reply_text(f"Kein Besitzer. Aktueller Preis: {price}.")
+        await update.effective_message.reply_text(
+            f"Kein Besitzer. Aktueller Preis: {price}.{lock_txt}"
+        )
+
 
 async def cmd_ownerlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Zeigt alle Besitzverhältnisse gruppiert nach Besitzer (mit Lockzeit und Wert)."""
