@@ -45,8 +45,9 @@ USER_PRICE_STEP = 50  # 100 -> 150 -> 200 ...
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 MESSAGE_THROTTLE_S = 1
 CARE_COOLDOWN_S = 20
-CARES_PER_DAY = 100
+CARES_PER_DAY = 25
 RUNAWAY_HOURS = 48
+LOCK_SECONDS = 48 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
 DAILY_GIFT_COINS = 15
 CURRENT_MODE = os.getenv("PETFLIX_MODE", "tame").lower()
@@ -64,6 +65,8 @@ MORAL_TAX_TRIGGERS = [
     r"\bkannst du\b",
     r"\bkönntest du\b",
     r"\bwärst du so lieb\b",
+    r"\bthx\b",
+    r"\bthank you\b",
     r"🙏"
 ]
 
@@ -79,7 +82,7 @@ log = logging.getLogger("Petflix_2.0")
 # DB-Setup 
 # =========================
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -148,6 +151,12 @@ async def migrate_db(db):
             await db.execute("ALTER TABLE settings ADD COLUMN moraltax_amount INTEGER DEFAULT 5")
         await _set_user_version(db, 2)
         current = 2
+    
+    if current < 3:
+        if not await _table_has_column(db, "pets", "purchase_lock_until"):
+            await db.execute("ALTER TABLE pets ADD COLUMN purchase_lock_until INTEGER DEFAULT 0")
+        await _set_user_version(db, 3)
+        current = 3
 
 async def db_init():
     async with aiosqlite.connect(DB) as db:
@@ -285,6 +294,15 @@ def _secs_until_tomorrow() -> int:
     tomorrow = (now + datetime.timedelta(days=1)).date()
     midnight = datetime.datetime.combine(tomorrow, datetime.time.min)
     return max(1, int((midnight - now).total_seconds()))
+
+# 48h Mindestbesitz
+async def get_pet_lock_until(db, chat_id: int, pet_id: int) -> int:
+    async with db.execute(
+        "SELECT COALESCE(purchase_lock_until,0) FROM pets WHERE chat_id=? AND pet_id=?",
+        (chat_id, pet_id)
+    ) as cur:
+        row = await cur.fetchone()
+    return int(row[0]) if row else 0
 
 # =========================
 # Pflegeaktionen (gemeinsamer Handler)
@@ -1290,11 +1308,25 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         # Zahl abziehen
-        await db.execute("UPDATE players SET coins=coins-? WHERE chat_id=? AND user_id=?", (price, chat_id, buyer_id))
+        await db.execute(
+            "UPDATE players SET coins=coins-? WHERE chat_id=? AND user_id=?",
+            (price, chat_id, buyer_id)
+        )
 
-        # KEIN Pay-out an Vorbesitzer (neue Regel: stehlen ohne Entschädigung)
-        await set_owner(db, chat_id, target_id, buyer_id)
+        # Owner setzen + 48h Kaufschutz
+        now = int(time.time())
+        LOCK_SECONDS = 48 * 3600  # ggf. global definieren
+        lock_until_new = now + LOCK_SECONDS
 
+        await db.execute("""
+        INSERT INTO pets(chat_id, pet_id, owner_id, purchase_lock_until)
+        VALUES(?,?,?,?)
+        ON CONFLICT(chat_id, pet_id) DO UPDATE SET
+            owner_id=excluded.owner_id,
+            purchase_lock_until=excluded.purchase_lock_until
+        """, (chat_id, target_id, buyer_id, lock_until_new))
+
+        # Preis erhöhen
         new_price = price + USER_PRICE_STEP
         await set_user_price(db, chat_id, target_id, new_price)
 
