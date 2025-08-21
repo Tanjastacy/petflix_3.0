@@ -49,6 +49,7 @@ CARES_PER_DAY = 100
 RUNAWAY_HOURS = 24
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
 DAILY_GIFT_COINS = 15
+CURRENT_MODE = "tame" | "spicy"  # "tame" oder "spicy"; beeinflusst die Textauswahl
 
 # Konfig Moralische Steuer
 MORAL_TAX_DEFAULT = 5
@@ -363,7 +364,7 @@ async def do_care(update, context, action_key, tame_lines, spicy_lines):
     except:
         pass
 
-    lines = spicy_lines if spicy else tame_lines
+    lines = tame_lines if CURRENT_MODE == "tame" else spicy_lines
     text = random.choice(lines)
     text = text.replace("{CARES_PER_DAY}", str(CARES_PER_DAY)).replace("{pets}", "{pet}")
     text = text.format(owner=nice_name_html(owner), pet=nice_name_html(pet), n=done)
@@ -628,6 +629,16 @@ async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(
         f"🧨 Kontostand von {escape(tag, quote=False)} auf 0 gesetzt."
     )
+
+async def cmd_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global CURRENT_MODE
+    if not _is_admin_here(update.effective_user.id):
+        return
+    if context.args and context.args[0].lower() in ["tame", "spicy"]:
+        CURRENT_MODE = context.args[0].lower()
+        await update.message.reply_text(f"Modus auf {CURRENT_MODE} gestellt.")
+    else:
+        await update.message.reply_text(f"Aktueller Modus: {CURRENT_MODE}")
 
 # =========================
 # Commands
@@ -1578,7 +1589,10 @@ def main():
     app.add_handler(CommandHandler("resetcoins", cmd_resetcoins, filters=CHAT_FILTER))
 
     # Admin: manuell purgen
-    app.add_handler(CommandHandler("purgeuser", cmd_purgeuser, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("purgeuser", cmd_purgeuser,   filters=CHAT_FILTER))
+    # Admin: tame oder spicy Modus wechseln
+    app.add_handler(CommandHandler("mode",      cmd_mode,        filters=CHAT_FILTER))
+
 
     # Member-Events
     app.add_handler(ChatMemberHandler(on_chat_member,     ChatMemberHandler.CHAT_MEMBER))
