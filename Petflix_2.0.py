@@ -1464,77 +1464,68 @@ async def cmd_ownerlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update):
         return
     chat_id = update.effective_chat.id
-
     now = int(time.time())
 
-    # Daten holen
-    async with aiosqlite.connect(DB) as db:
-        async with db.execute("""
-            SELECT 
-                p.owner_id,
-                ou.username   AS owner_username,
-                p.pet_id,
-                pu.username   AS pet_username,
-                pl.price      AS current_price,
-                p.locked_until
-            FROM pets p
-            LEFT JOIN players ou ON ou.chat_id=p.chat_id AND ou.user_id=p.owner_id
-            LEFT JOIN players pu ON pu.chat_id=p.chat_id AND pu.user_id=p.pet_id
-            LEFT JOIN players pl ON pl.chat_id=p.chat_id AND pl.user_id=p.pet_id
-            WHERE p.chat_id=?
-            ORDER BY p.owner_id ASC, pl.price DESC, p.pet_id ASC
-        """, (chat_id,)) as cur:
-            rows = await cur.fetchall()
+    try:
+        async with aiosqlite.connect(DB) as db:
+            async with db.execute("""
+                SELECT 
+                    p.owner_id,
+                    ou.username                    AS owner_username,
+                    p.pet_id,
+                    pu.username                    AS pet_username,
+                    COALESCE(pl.price, 0)          AS current_price,
+                    COALESCE(p.locked_until, 0)    AS locked_until
+                FROM pets p
+                LEFT JOIN players ou ON ou.chat_id=p.chat_id AND ou.user_id=p.owner_id
+                LEFT JOIN players pu ON pu.chat_id=p.chat_id AND pu.user_id=p.pet_id
+                LEFT JOIN players pl ON pl.chat_id=p.chat_id AND pl.user_id=p.pet_id
+                WHERE p.chat_id=?
+                ORDER BY p.owner_id ASC, current_price DESC, p.pet_id ASC
+            """, (chat_id,)) as cur:
+                rows = await cur.fetchall()
+    except Exception as e:
+        return await update.effective_message.reply_text(
+            f"⚠️ Konnte Ownerliste nicht laden: <code>{type(e).__name__}</code> – {escape(str(e), False)}"
+        )
 
     if not rows:
-        return await update.effective_message.reply_text(
-            "Noch keine Besitzverhältnisse. Kauf dir erstmal jemanden. 🐾"
+        return await update.effective_message.reply_text("Noch keine Besitzverhältnisse. Kauf dir erstmal jemanden. 🐾")
+
+    # Gruppieren nach Owner
+    by_owner = {}
+    for owner_id, owner_uname, pet_id, pet_uname, price, locked_until in rows:
+        by_owner.setdefault((owner_id, owner_uname), []).append(
+            (pet_id, pet_uname, int(price or 0), int(locked_until or 0))
         )
 
-    # Gruppieren
-    by_owner: dict[int | None, list[tuple[int, str | None, int, int | None]]] = {}
-    for owner_id, owner_uname, pet_id, pet_uname, price, locked_until in rows:
-        by_owner.setdefault(owner_id, []).append((pet_id, pet_uname, price, locked_until))
-
-    def tag_uid_name(uid: int | None, uname: str | None) -> str:
+    def tag(uid: int | None, uname: str | None) -> str:
         if uid is None:
             return "—"
-        return (f"@{uname}" if uname else f"<a href='tg://user?id={uid}'>ID:{uid}</a>")
+        return f"@{uname}" if uname else f"<a href='tg://user?id={uid}'>ID:{uid}</a>"
 
-    parts: list[str] = []
-    parts.append("📜 <b>Ownerliste</b> — gruppiert nach Besitzer:\n")
-
-    owner_keys = [k for k in by_owner.keys() if k is not None] + ([None] if None in by_owner else [])
-    for owner_id in owner_keys:
-        owner_uname = None
-        if owner_id is not None:
-            for o_id, o_uname, *_ in rows:
-                if o_id == owner_id:
-                    owner_uname = o_uname
-                    break
-
-        header = tag_uid_name(owner_id, owner_uname)
-        pets = by_owner[owner_id]
+    out = ["📜 <b>Ownerliste</b> — gruppiert nach Besitzer:\n"]
+    # Besitzer mit ID zuerst, dann evtl. „—“ (unbesessen)
+    owners_sorted = sorted(by_owner.keys(), key=lambda k: (k[0] is None, k[0] or 0))
+    for (owner_id, owner_uname) in owners_sorted:
+        pets = by_owner[(owner_id, owner_uname)]
         total_value = sum(p[2] for p in pets)
 
-        parts.append(f"<b>{header}</b>  <i>({len(pets)} Pet(s), Gesamtwert: {total_value})</i>")
+        out.append(f"<b>{tag(owner_id, owner_uname)}</b>  <i>({len(pets)} Pet(s), Gesamtwert: {total_value})</i>")
         for pet_id, pet_uname, price, locked_until in pets:
-            pet_tag = tag_uid_name(pet_id, pet_uname)
-            lock_text = ""
-            if locked_until and locked_until > now:
-                mins = int((locked_until - now) / 60)
-                hrs, mins = divmod(mins, 60)
-                lock_text = f" ⏳{hrs}h{mins:02d}m"
-            parts.append(f" ├─ {pet_tag}  (<b>{price}</b>){lock_text}")
-        parts.append("")
+            pet_tag = tag(pet_id, pet_uname)
+            lock_txt = ""
+            if locked_until > now:
+                mins_total = (locked_until - now) // 60
+                hrs, mins = divmod(mins_total, 60)
+                lock_txt = f" 🔒{hrs}h{mins:02d}m"
+            out.append(f" ├─ {pet_tag}  (<b>{price}</b>){lock_txt}")
+        out.append("")
 
-    text = "\n".join(parts).strip()
-
+    text = "\n".join(out).strip()
     for i in range(0, len(text), MAX_CHUNK):
-        await update.effective_message.reply_text(
-            text[i:i+MAX_CHUNK],
-            disable_web_page_preview=True
-        )
+        await update.effective_message.reply_text(text[i:i+MAX_CHUNK], disable_web_page_preview=True)
+
 
 
 async def cmd_release(update: Update, context: ContextTypes.DEFAULT_TYPE):
