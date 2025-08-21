@@ -49,7 +49,10 @@ CARES_PER_DAY = 100
 RUNAWAY_HOURS = 24
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
 DAILY_GIFT_COINS = 15
-CURRENT_MODE = "tame" # "tame" oder "spicy"; beeinflusst die Textauswahl
+CURRENT_MODE = os.getenv("PETFLIX_MODE", "tame").lower()
+if CURRENT_MODE not in ("tame", "spicy"):
+    CURRENT_MODE = "tame"
+
 
 # Konfig Moralische Steuer
 MORAL_TAX_DEFAULT = 5
@@ -640,6 +643,7 @@ async def cmd_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
             CURRENT_MODE = m
             return await update.effective_message.reply_text(f"Modus auf {CURRENT_MODE} gestellt.")
     await update.effective_message.reply_text(f"Aktueller Modus: {CURRENT_MODE}")
+
 
 # =========================
 # Commands
