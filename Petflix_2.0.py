@@ -878,45 +878,62 @@ async def cmd_hass(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update) or update.effective_chat.id != ALLOWED_CHAT_ID:
         return
     if not _is_admin_here(update):
-        return await update.effective_message.reply_text("🚫 Admin-only. Du nicht. Setz dich wieder hin.")
+        return await update.effective_message.reply_text(
+            "🚫 Admin-only. Nett gefragt ist trotzdem nein."
+        )
 
     chat_id = update.effective_chat.id
     admin = update.effective_user
 
     async with aiosqlite.connect(DB) as db:
-        # Nur eine aktive Hass-Runde gleichzeitig
-        active = await _get_active_hass_for_chat(db, chat_id)
-        if active:
-            uid, uname, _, _, expires_ts, required, done, penalty = active
-            left = max(0, int(expires_ts) - int(time.time()))
-            h = left // 3600
-            m = (left % 3600) // 60
-            mention = mention_html(int(uid), uname if uname else None)
+        # bereits aktive Hass-Ziele sammeln
+        active_ids = await _get_active_hass_user_ids(db, chat_id)
+        active_ids.add(admin.id)  # Admin nie Ziel
+
+        # neuen Kandidaten wählen
+        uid, uname = await pick_random_player_excluding(
+            chat_id,
+            exclude_ids=active_ids
+        )
+
+        if not uid:
             return await update.effective_message.reply_text(
-                f"⏳ Läuft schon: {mention} hat Hass-Status. ({done}/{required}) Noch {h}h {m}m. Strafe: −{penalty} Coins.",
-                parse_mode=ParseMode.HTML
+                "Keine weiteren Opfer verfügbar. Alle anderen leiden bereits."
             )
 
-        # Kandidaten: aus players, Admin ausgeschlossen
-        uid, uname = await pick_random_player_excluding(chat_id, exclude_ids={admin.id})
-        if not uid:
-            return await update.effective_message.reply_text("Keine Kandidaten. Müssen halt Leute schreiben, bevor du sie quälen kannst.")
-
-        expires = await _start_hass(db, chat_id, int(uid), uname, admin.id)
+        expires = await _start_hass(
+            db,
+            chat_id,
+            int(uid),
+            uname,
+            admin.id
+        )
         await db.commit()
 
-    until = datetime.datetime.fromtimestamp(expires, tz=ZoneInfo(PETFLIX_TZ)).strftime("%d.%m.%Y %H:%M")
-    target = mention_html(int(uid), uname if uname else None)
+        until = datetime.datetime.fromtimestamp(
+            expires, tz=ZoneInfo(PETFLIX_TZ)
+        ).strftime("%d.%m.%Y %H:%M")
 
-    await update.effective_message.reply_text(
-        f"🖤 <b>/hass</b> aktiviert.\n"
-        f"Ziel: {target}\n"
-        f"Regel: 2 Stunden Zeit, <b>{HASS_REQUIRED}× /selbst</b>.\n"
-        f"Deadline: <b>{until}</b>\n"
-        f"Wenn nicht geschafft: <b>−{HASS_PENALTY} Coins</b>.\n"
-        f"Alles transparent, weil Demütigung ohne Publikum ja sinnlos wäre.",
-        parse_mode=ParseMode.HTML
-    )
+        target = mention_html(int(uid), uname if uname else None)
+
+        await update.effective_message.reply_text(
+            f"🖤 <b>/hass</b> aktiviert.\n"
+            f"Ziel: {target}\n"
+            f"Regel: 2 Stunden Zeit, <b>{HASS_REQUIRED}× /selbst</b>\n"
+            f"Deadline: <b>{until}</b>\n"
+            f"Versagen kostet: <b>−{HASS_PENALTY} Coins</b>\n"
+            f"Mehrere Hass-Ziele können gleichzeitig existieren.",
+            parse_mode=ParseMode.HTML
+        )
+
+async def _get_active_hass_user_ids(db, chat_id: int):
+    async with db.execute("""
+        SELECT user_id
+        FROM hass_challenges
+        WHERE chat_id=? AND active=1
+    """, (chat_id,)) as cur:
+        rows = await cur.fetchall()
+    return {int(r[0]) for r in rows}
 
 async def cmd_selbst(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update) or update.effective_chat.id != ALLOWED_CHAT_ID:
