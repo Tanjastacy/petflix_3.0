@@ -693,7 +693,15 @@ async def cmd_pet(update, context):
     tame = [
         "{owner} gräbt die Finger brutal in {pet}s Haar, reißt den Kopf zurück und zwingt den Blickkontakt – nur um zu zeigen, wer hier atmet und wer nur darf. Pflege {n}/{CARES_PER_DAY}.",
         "Die Hand gleitet über {pet}s Rücken, Nägel ritzen rote Linien in die Haut – eine Karte des Besitzes, die morgen noch brennt.. Pflege {n}/{CARES_PER_DAY}.",
-        "{owner} streicht langsam über {pet}s Kehle, drückt gerade so fest zu, dass die Panik aufsteigt – und lässt dann los. Gnade? Nur für heute. Pflege {n}/{CARES_PER_DAY}."
+        "{owner} streicht langsam über {pet}s Kehle, drückt gerade so fest zu, dass die Panik aufsteigt – und lässt dann los. Gnade? Nur für heute. Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme:
+        "{owner} vergräbt die Faust in {pet}s Haaren, reißt so hart, dass Büschel ausfallen – 'Schau mich an, während du merkst, wie wertlos du bist.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} spürt {owner}s Fingernägel, die tiefe Furchen in den Rücken reißen, Blut perlt – 'Das ist mein Autogramm auf deinem Kadaver.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} würgt {pet} bis die Augen hervortreten, lässt los und lacht: 'Noch am Leben? Wie enttäuschend.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} krault {pet} wie einen Hund, nur um dann die Klauen in die Kopfhaut zu schlagen – 'Gutes Tier... bis es blutet.' Pflege {n}/{CARES_PER_DAY}.",
+        "Finger um den Hals, Druck steigend, bis {pet} kotzt vor Angst – 'Pflege bedeutet, ich entscheide, ob du erstickst.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} streichelt die Wange – und schlägt dann zu: 'Zärtlichkeit? Nur der Einstieg ins Grab.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} wird am Nacken gepackt, Gesicht in den Schoß gedrückt – 'Atme meinen Geruch ein, das ist dein neuer Sauerstoff.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "pet", tame)
 
@@ -701,7 +709,15 @@ async def cmd_walk(update, context):
     tame = [
         "{owner} zerrt {pet} an der unsichtbaren Leine durch den Chat – jeder Schritt eine Erinnerung, dass Freiheit nur ein Wort ist, das {pet} vergessen hat. Pflege {n}/{CARES_PER_DAY}.",
         "Draußen an der frischen Luft, wo jeder sehen kann, wie {pet} mit gesenktem Kopf hinter {owner} hertrottet – ein gebrochenes Ding auf zwei Beinen. Pflege {n}/{CARES_PER_DAY}.",
-        "{owner} führt {pet} langsam, lässt die Kette klirren, flüstert: 'Noch ein falscher Schritt und du kriechst den Rest des Weges.' Pflege {n}/{CARES_PER_DAY}."
+        "{owner} führt {pet} langsam, lässt die Kette klirren, flüstert: 'Noch ein falscher Schritt und du kriechst den Rest des Weges.' Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme:
+        "{owner} reißt an der imaginären Leine, {pet} stolpert und fällt hin – 'Steh auf, oder ich trete dich den Weg entlang.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} wird nackt durch die Straßen gezerrt, Blicke aller auf dem Arsch – 'Zeig ihnen, was für ein nutzloses Loch du bist.' Pflege {n}/{CARES_PER_DAY}.",
+        "Jeder Ruck der Leine lässt {pet} würgen – 'Lauf schneller, Schlampe, oder ich schleif dich über Asphalt.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} führt {pet} wie einen Köter, pisst markierend an Laternen – 'Dein Revier? Mein Urin drauf.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} kriecht schon nach fünf Schritten, Knie blutig – 'Guter Spaziergang, bis du nicht mehr laufen kannst.' Pflege {n}/{CARES_PER_DAY}.",
+        "Die Leine straff, {pet} keucht: 'Noch ein Winseln, und ich lass dich von Fremden ficken.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} geht langsam, lässt {pet} hinterherrobben – 'Frische Luft? Nur für mich, du atme Staub.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "walk", tame)
 
@@ -709,7 +725,15 @@ async def cmd_kiss(update, context):
     tame = [
         "{owner} packt {pet} am Kiefer, zwingt die Lippen auseinander und nimmt sich den Kuss – tief, brutal, bis {pet} nach Luft ringt und Blut schmeckt. Pflege {n}/{CARES_PER_DAY}.",
         "Ein Kuss, der mehr Biss als Zärtlichkeit ist – {owner} beißt in die Unterlippe, bis {pet} wimmert und der metallische Geschmack von Tränen und Blut sich mischt. Pflege {n}/{CARES_PER_DAY}.",
-        "{owner} küsst {pet} nur, um zu beweisen, dass selbst Atem ein Geschenk ist – und nimmt ihn sich wieder, wenn er will. Pflege {n}/{CARES_PER_DAY}."
+        "{owner} küsst {pet} nur, um zu beweisen, dass selbst Atem ein Geschenk ist – und nimmt ihn sich wieder, wenn er will. Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme:
+        "{owner} beißt in die Zunge, reißt dran, Blut spritzt – 'Küss mich richtig, oder ich beiß sie ab.' Pflege {n}/{CARES_PER_DAY}.",
+        "Mund aufgezwungen, {owner} spuckt rein und küsst dann zu – 'Schmeck mich in deinem Blut.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} wird erstickt geküsst, bis Bewusstlosigkeit droht – 'Romantik? Nur mit Toten.' Pflege {n}/{CARES_PER_DAY}.",
+        "Zähne knirschen auf Lippen, bis sie platzen – 'Dein Kussgeschmack? Immer Blut.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} saugt an der Kehle, hinterlässt Würgemale – 'Kuss oder Erstickung, du entscheidest nicht.' Pflege {n}/{CARES_PER_DAY}.",
+        "Brutaler Zungenfick, bis {pet} kotzt – 'Schluck's runter, das ist Liebe.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} küsst und schlägt gleichzeitig – 'Jede Zärtlichkeit mit Schmerz.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "kiss", tame)
 
@@ -717,7 +741,15 @@ async def cmd_dine(update, context):
     tame = [
         "{owner} hält den Happen hoch, lässt {pet} darum betteln – erst wenn die Demütigung perfekt ist, darf die Zunge ran. Pflege {n}/{CARES_PER_DAY}.",
         "{pet} kniet, Mund offen, während {owner} langsam kaut und dann den Bissen direkt in den hungrigen Schlund spuckt – Mahlzeit, Liebling. Pflege {n}/{CARES_PER_DAY}.",
-        "Heute gibt’s nur das, was von {owner}s Teller runterfällt – auf den Boden, wo {pet} es wie der Hund aufleckt, den es ist. Pflege {n}/{CARES_PER_DAY}."
+        "Heute gibt’s nur das, was von {owner}s Teller runterfällt – auf den Boden, wo {pet} es wie der Hund aufleckt, den es ist. Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – richtig dreckig:
+        "{owner} kaut den Bissen, spuckt ihn halbzerkaut in {pet}s offenen Mund und drückt zu: 'Schluck meinen Speichel, oder du verhungerst.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} frisst aus {owner}s Hand wie ein Tier, beißt versehentlich zu – Strafe: der nächste Bissen kommt mit Asche gemischt. Pflege {n}/{CARES_PER_DAY}.",
+        "Essen vom Boden, aber erst, nachdem {owner} draufgespuckt hat – 'Mein Speichel macht's nahrhafter, Schlampe.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} füttert {pet} mit Abfällen, lacht: 'Das ist alles, was ein wertloses Loch wie du verdient.' Pflege {n}/{CARES_PER_DAY}.",
+        "Der Happen wird in {owner}s Arsch geschoben, {pet} muss ihn rausholen – mit dem Mund. 'Frisch aus der Quelle.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} bettelt stundenlang, bekommt nur {owner}s Pisse als Getränk – 'Heute proteinreich, Liebling.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} zertritt das Essen auf dem Boden, {pet} leckt es mit Dreck und Blut von den Sohlen – 'Bon appétit, du Made.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "dine", tame)
 
@@ -725,7 +757,15 @@ async def cmd_massage(update, context):
     tame = [
         "{owner}s Hände kneten brutal in verspannte Muskeln, finden jeden Schmerzpunkt und drücken zu – bis {pet} vor Erleichterung und Qual gleichzeitig stöhnt. Pflege {n}/{CARES_PER_DAY}.",
         "Eine Massage, die blaue Flecken hinterlässt – {owner} gräbt Daumen in die Schultern, flüstert: 'Das ist der Preis für meine Berührung.' Pflege {n}/{CARES_PER_DAY}.",
-        "{pet} liegt da, zitternd, während {owner} jeden Knoten löst – und neue schafft, tiefer, schärfer, bleibender. Pflege {n}/{CARES_PER_DAY}."
+        "{pet} liegt da, zitternd, während {owner} jeden Knoten löst – und neue schafft, tiefer, schärfer, bleibender. Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Schmerz pur:
+        "{owner} drückt Daumen in alte Narben, reißt sie auf – 'Massage bedeutet, ich mach dich wieder ganz... kaputt.' Pflege {n}/{CARES_PER_DAY}.",
+        "Knöchel graben sich in den Rücken, bis {pet} schreit – 'Entspann dich, oder ich brech dir was.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} massiert mit Fäusten, hinterlässt Nierenprellungen – 'Innere Organe brauchen auch Pflege.' Pflege {n}/{CARES_PER_DAY}.",
+        "Ellbogen in die Rippen, langsam drehend – {pet} kotzt vor Schmerz, {owner} lacht: 'Besserer Durchblutung.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} wird mit heißem Öl übergossen, dann geknetet – Haut blättert ab. 'Peeling inklusive.' Pflege {n}/{CARES_PER_DAY}.",
+        "Finger bohren in Triggerpunkte, bis {pet} ohnmächtig wird – 'Schlaf schön, ich mach weiter.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} massiert den Hals, würgt zwischendurch – 'Das ist die ultimative Entspannung: fast tot.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "massage", tame)
 
@@ -733,7 +773,15 @@ async def cmd_lapdance(update, context):
     tame = [
         "{pet} windet sich auf {owner}s Schoß, Arsch hoch, Gesicht rot vor Scham – jede Bewegung nur, weil der Befehl es verlangt. Pflege {n}/{CARES_PER_DAY}.",
         "Langsam, quälend, Haut an Haut – {owner} hält die Hüften fest, steuert den Rhythmus, bis {pet} nass vor Verzweiflung und Lust ist. Pflege {n}/{CARES_PER_DAY}.",
-        "Der Tanz endet nicht mit Applaus – sondern mit {owner}s Hand in {pet}s Haar, Kopf runtergedrückt: 'Nochmal. Und diesmal richtig.' Pflege {n}/{CARES_PER_DAY}."
+        "Der Tanz endet nicht mit Applaus – sondern mit {owner}s Hand in {pet}s Haar, Kopf runtergedrückt: 'Nochmal. Und diesmal richtig.' Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – pure Geilheit und Demütigung:
+        "{pet} tanzt nackt, {owner} schlägt bei jedem Fehltritt auf den Arsch – bis er blau und {pet} heult. Pflege {n}/{CARES_PER_DAY}.",
+        "Hüften gepackt, brutal gerieben an {owner}s Schwanz – 'Mach mich hart, oder ich fick dich trocken.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} muss strippen während des Tanzes, jedes Kleidungsstück wird zerrissen – 'Nackt bist du eh am besten.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} beißt in die Titten während {pet} reibt – Blut läuft runter. 'Dekoration für den Tanz.' Pflege {n}/{CARES_PER_DAY}.",
+        "Der Lapdance endet mit {pet}s Gesicht im Schritt – 'Atme ein, das ist dein Applaus.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} tanzt mit Gewichten an den Nippeln, jede Bewegung Schmerz – 'Schwing sie schöner, Hure.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} filmt den Tanz, droht mit Veröffentlichung – 'Dein Publikum wartet schon.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "lapdance", tame)
 
@@ -744,7 +792,15 @@ async def cmd_knien(update, context):
     tame = [
         "{pet} sinkt langsam auf die Knie, der Boden kalt unter der Haut, während {owner}s Blick sagt: 'Hier gehörst du hin – für immer.' 🥀 Pflege {n}/{CARES_PER_DAY}.",
         "Knie hart auf Stein, Hände auf dem Rücken, Kopf gesenkt – {owner} tritt näher und flüstert: 'So sieht Unterwerfung aus, du wertloses Stück.' Pflege {n}/{CARES_PER_DAY}.",
-        "{pet} kniet zitternd, Tränen tropfen auf den Boden, weil {owner} nur zusieht und wartet, bis der Stolz endgültig bricht. 💧 Pflege {n}/{CARES_PER_DAY}."
+        "{pet} kniet zitternd, Tränen tropfen auf den Boden, weil {owner} nur zusieht und wartet, bis der Stolz endgültig bricht. 💧 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Knie kaputt, Seele tot:
+        "{owner} tritt {pet} in die Kniekehlen, bis sie kracht und auf dem Boden aufschlägt – 'Runter, wo Müll hingehört.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} kniet auf Reis oder Glasscherben, Blut sickert in den Boden – 'Jede Träne weniger wert als dein Schmerz.' Pflege {n}/{CARES_PER_DAY}.",
+        "Stundenlang knien, Beine taub, {owner} pisst langsam über den Kopf – 'Taufe für eine neue Sklavin.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} drückt den Stiefelabsatz in {pet}s Oberschenkel, bis Fleisch platzt – 'Das ist dein neuer Thron.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} kniet mit gespreizten Beinen, {owner} schlägt dazwischen – 'Betest du mich an? Dann zeig’s richtig.' Pflege {n}/{CARES_PER_DAY}.",
+        "Kopf auf den Boden gedrückt, bis die Nase blutet – 'So tief, dass du deinen eigenen Dreck riechst.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} lässt {pet} knien, bis es ohnmächtig wird – 'Wach auf, die Hölle wartet nicht.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "knien", tame)
 
@@ -752,7 +808,15 @@ async def cmd_kriechen(update, context):
     tame = [
         "{pet} kriecht auf allen Vieren, Arsch hoch, Gesicht rot vor Scham – jeder Zentimeter eine Erinnerung daran, dass Laufen ein Privileg war. 🔥 Pflege {n}/{CARES_PER_DAY}.",
         "Langsam über den Boden, Nägel kratzen, während {owner} die Leine straff hält: „Schneller, Hure, oder ich zieh dich an den Haaren.“ 🩸 Pflege {n}/{CARES_PER_DAY}.",
-        "{pet} kriecht bis zu {owner}s Füßen, leckt den Staub von den Schuhen – weil alles andere schon lange verboten ist. 👅 Pflege {n}/{CARES_PER_DAY}."
+        "{pet} kriecht bis zu {owner}s Füßen, leckt den Staub von den Schuhen – weil alles andere schon lange verboten ist. 👅 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Kriechen wie ein Wurm:
+        "{pet} kriecht über Salz, offene Knie bluten – 'Jede Spur dein Abschied von Würde.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} tritt bei jedem zu langsamen Meter in den Arsch – 'Vorwärts, Made, oder ich zerquetsch dich.' Pflege {n}/{CARES_PER_DAY}.",
+        "Kriechen mit Gewichten an den Nippeln, die über den Boden schleifen – 'Zieh deine Titten lang, das macht sie hübscher.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} kriecht durch {owner}s Pisse auf dem Boden – 'Schwimm, kleine Ratte.' Pflege {n}/{CARES_PER_DAY}.",
+        "Leine am Halsband, {owner} reitet drauf – 'Mein Pony kriecht heute.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} muss rückwärts kriechen, Arsch zuerst – 'Zeig mir dein Loch, das ist dein neues Gesicht.' Pflege {n}/{CARES_PER_DAY}.",
+        "Kriechen bis zur Erschöpfung, dann weiter – 'Tot kriechen kannst du immer noch.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "kriechen", tame)
 
@@ -760,7 +824,15 @@ async def cmd_klaps(update, context):
     tame = [
         "{owner}s Hand kracht auf {pet}s Arsch, fünfmal, hart, bis die Haut glüht und die Schreie im Hals stecken bleiben. 🩸 Pflege {n}/{CARES_PER_DAY}.",
         "Jeder Klaps eine Lektion: „Das fürs Reden. Das fürs Atmen. Das, weil ich es kann.“ {pet} zählt mit gebrochener Stimme. 😭 Pflege {n}/{CARES_PER_DAY}.",
-        "Der letzte Schlag lässt {pet} zusammenbrechen – {owner} lacht leise: „Nochmal, bis du endlich lernst, still zu sein.“ 💥 Pflege {n}/{CARES_PER_DAY}."
+        "Der letzte Schlag lässt {pet} zusammenbrechen – {owner} lacht leise: „Nochmal, bis du endlich lernst, still zu sein.“ 💥 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Arsch in Fetzen:
+        "{owner} schlägt mit dem Gürtel, bis Haut platzt und Blut spritzt – 'Zähl laut, oder ich fang von vorne an.' Pflege {n}/{CARES_PER_DAY}.",
+        "Klapse auf die Fotze, bis sie anschwillt und {pet} bettelt – 'Das ist die einzige Klitoris-Massage, die du verdienst.' Pflege {n}/{CARES_PER_DAY}.",
+        "Mit der flachen Hand auf die Nieren, bis {pet} kotzt – 'Innere Reinigung, gratis.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} schlägt abwechselnd Arsch und Gesicht – 'Damit beide Seiten gleich rot werden.' Pflege {n}/{CARES_PER_DAY}.",
+        "Heißes Wachs vorher, dann Klapse – Haut reißt ab. 'Peeling für Schlampen.' Pflege {n}/{CARES_PER_DAY}.",
+        "Klapse mit einem Brett, bis Knochen vibrieren – 'Das hallt schön in deinem leeren Kopf.' Pflege {n}/{CARES_PER_DAY}.",
+        "Nach 50 Klapsen muss {pet} danken – 'Und wehe, du lügst.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "klaps", tame)
 
@@ -768,7 +840,15 @@ async def cmd_knabbern(update, context):
     tame = [
         "{owner} beißt in {pet}s Schulter, hart genug für Blut, langsam genug für Panik – der Geschmack von Angst ist süß. 👅 Pflege {n}/{CARES_PER_DAY}.",
         "Zähne graben sich in die Brustwarze, ziehen, drehen – {pet} wimmert, aber Bewegung würde alles nur schlimmer machen. 🔥 Pflege {n}/{CARES_PER_DAY}.",
-        "Ein Biss in die Innenschenkel, nah genug, um zu drohen – {owner} flüstert: „Beim nächsten Mal tiefer.“ 😈 Pflege {n}/{CARES_PER_DAY}."
+        "Ein Biss in die Innenschenkel, nah genug, um zu drohen – {owner} flüstert: „Beim nächsten Mal tiefer.“ 😈 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – richtiges Fressen:
+        "{owner} beißt ein Stück aus {pet}s Arschbacke, spuckt es nicht aus – 'Frühstück, direkt von der Quelle.' Pflege {n}/{CARES_PER_DAY}.",
+        "Zähne in die Kehle, langsam zudrücken, Blut läuft – 'Ich probier mal, wie dein Puls schmeckt.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} kaut an {pet}s Lippe, bis sie platzt, dann tiefer in die Zunge – 'Küss mich mit deinem eigenen Fleisch.' Pflege {n}/{CARES_PER_DAY}.",
+        "Biss in die Klitoris, ziehen, bis {pet} schreit – 'Die kleine Perle wird heute abgerissen.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} beißt sich durch die Haut am Bauch, leckt die Innereien – 'Ich wollte schon immer wissen, wie du von innen schmeckst.' Pflege {n}/{CARES_PER_DAY}.",
+        "Zähne in die Achillessehne, reißen – 'Jetzt kannst du nie wieder weglaufen, Liebling.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} kaut langsam an {pet}s Ohr, flüstert dabei: 'Van Gogh war Amateur.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "knabbern", tame)
 
@@ -776,7 +856,15 @@ async def cmd_leine(update, context):
     tame = [
         "Die Leine klickt ein, straff um {pet}s Hals – ein Ruck, und die Welt wird klein auf {owner}s Schritte. 🖤 Pflege {n}/{CARES_PER_DAY}.",
         "{owner} zieht brutal, {pet} stolpert hinterher, Atem knapp – „Du gehst nur, wenn ich es will, verstanden?“ 💀 Pflege {n}/{CARES_PER_DAY}.",
-        "Die Leine liegt locker in {owner}s Hand – aber {pet} weiß: Ein Wort, und sie schnürt zu, bis alles schwarz wird. 🌑 Pflege {n}/{CARES_PER_DAY}."
+        "Die Leine liegt locker in {owner}s Hand – aber {pet} weiß: Ein Wort, und sie schnürt zu, bis alles schwarz wird. 🌑 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Erstickung pur:
+        "{owner} wickelt die Leine zweimal um den Hals, zieht langsam zu – 'Atme, solange ich es erlaube.' Pflege {n}/{CARES_PER_DAY}.",
+        "Ein Ruck, {pet} fällt auf die Knie, Gesicht blau – 'Schön, wie deine Augen hervortreten.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} bindet die Leine an einen Haken, lässt {pet} auf Zehenspitzen hängen – 'Tanz für mich, bis du abschaltest.' Pflege {n}/{CARES_PER_DAY}.",
+        "Leine straff durch die Fotze gezogen, dann am Hals – 'Jetzt steuerst du dich selbst, Hure.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} zieht {pet} rückwärts, bis der Kehlkopf knackt – 'Musik in meinen Ohren.' Pflege {n}/{CARES_PER_DAY}.",
+        "Die Leine wird mit Stacheldraht verstärkt – jeder Ruck reißt Fleisch – 'Dekoration für deinen Hals.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} lässt los, nur um sofort wieder zuzuziehen – 'Herzstillstand-Training, kostenlos.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "leine", tame)
 
@@ -784,7 +872,15 @@ async def cmd_halsband(update, context):
     tame = [
         "Das Halsband schnappt zu, Metall kalt auf Haut – graviert mit {owner}s Namen, für immer. 🩸 Pflege {n}/{CARES_PER_DAY}.",
         "{owner} zieht es enger, bis {pet} keucht: „Das ist dein neuer Schmuck, Schlampe. Und dein Grab.“ ⚰️ Pflege {n}/{CARES_PER_DAY}.",
-        "Ringe klirren, wenn {pet} den Kopf bewegt – eine ständige Erinnerung, dass Freiheit nur ein Traum war. ⛓️ Pflege {n}/{CARES_PER_DAY}."
+        "Ringe klirren, wenn {pet} den Kopf bewegt – eine ständige Erinnerung, dass Freiheit nur ein Traum war. ⛓️ Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Markierung bis zum Tod:
+        "{owner} schließt das Halsband mit einem Vorhängeschloss – Schlüssel runtergeschluckt. 'Für immer bedeutet für immer.' Pflege {n}/{CARES_PER_DAY}.",
+        "Stacheln innen, jede Bewegung ritzt den Hals – 'Blutperlen als Schmuck.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} zieht es so eng, dass {pet} nur noch flüstern kann – 'Deine Stimme gehört jetzt mir.' Pflege {n}/{CARES_PER_DAY}.",
+        "Halsband mit integriertem Elektroschocker – {owner} drückt den Knopf: 'Guten Morgen, Liebling.' Pflege {n}/{CARES_PER_DAY}.",
+        "Graviert: 'Eigentum – bei Verlust töten' – {owner} lacht: 'Und ich verliere nie.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} hängt Gewichte dran, Hals dehnt sich – 'Mach dich lang, wie eine gute Leiche.' Pflege {n}/{CARES_PER_DAY}.",
+        "Das Halsband wird mit Kleber fixiert – 'Abnehmen? Nur mit deinem Kopf.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "halsband", tame)
 
@@ -792,7 +888,15 @@ async def cmd_lecken(update, context):
     tame = [
         "{pet} leckt {owner}s Stiefel sauber, Zunge schwarz vor Dreck – Demütigung schmeckt bitter und geil zugleich. 🖤 Pflege {n}/{CARES_PER_DAY}.",
         "Langsam über die Finger, dann höher – {owner} drückt den Kopf runter: „Tiefer, oder ich helf nach.“ 😈 Pflege {n}/{CARES_PER_DAY}.",
-        "{pet} leckt die Tränen vom eigenen Gesicht, weil {owner} befiehlt: „Schmeck deine Niederlage.“ 🥀 Pflege {n}/{CARES_PER_DAY}."
+        "{pet} leckt die Tränen vom eigenen Gesicht, weil {owner} befiehlt: „Schmeck deine Niederlage.“ 🥀 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Zunge in Dreck und Blut:
+        "{pet} leckt den Boden sauber, wo {owner} gerade reingepisst hat – 'Meine Pisse ist dein Heilwasser, Schlampe.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} tritt in Scheiße und hält den Stiefel hin – {pet} leckt alles ab, würgt, leckt weiter. 'Proteinreich heute.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} leckt das Blut von {owner}s Messer, das gerade in ihr drin war – 'Schmeck dich selbst, das ist Recycling.' Pflege {n}/{CARES_PER_DAY}.",
+        "Zunge tief in {owner}s Arsch, während er furzt – 'Atme ein, das ist dein neuer Duft.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} leckt die eigenen Wunden sauber, nachdem {owner} sie aufgerissen hat – 'Selbstbedienung, du faule Hure.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} spuckt in {pet}s offenen Mund und befiehlt: 'Schluck und leck dann meine Hand – doppelter Geschmack.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} leckt den Käfigboden, wo es tagelang gelegen hat – 'Dein eigener Urin ist der beste Durstlöscher.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "lecken", tame)
 
@@ -800,7 +904,15 @@ async def cmd_verweigern(update, context):
     tame = [
         "{owner} verweigert Berührung, Wasser, Worte – {pet} windet sich stundenlang, bettelt stumm um Gnade. 😭 Pflege {n}/{CARES_PER_DAY}.",
         "Essen vor {pet}s Nase, aber der Mund bleibt leer – „Hunger ist die beste Dressur.“ 🩸 Pflege {n}/{CARES_PER_DAY}.",
-        "Orgasmus verweigert, wieder und wieder – bis {pet} vor Verzweiflung heult und alles versprechen würde. 💔 Pflege {n}/{CARES_PER_DAY}."
+        "Orgasmus verweigert, wieder und wieder – bis {pet} vor Verzweiflung heult und alles versprechen würde. 💔 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – psychischer Totalbruch:
+        "{owner} lässt {pet} zuschauen, wie er eine andere fickt – Berührung nur für sie, {pet} bleibt leer und nass. Pflege {n}/{CARES_PER_DAY}.",
+        "Wasserflasche vor der Nase, aber zugeschraubt – {pet} heult vor Durst, {owner} trinkt daraus und spuckt daneben. Pflege {n}/{CARES_PER_DAY}.",
+        "Orgasmus bis an den Rand, dann Stopp – tagelang. {pet} bettelt um Erlösung oder Tod, bekommt keins. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} redet stundenlang mit {pet}, nur um dann tagelang komplett zu schweigen – 'Deine Existenz ist jetzt optional.' Pflege {n}/{CARES_PER_DAY}.",
+        "Schlaf verweigert – Licht an, Geräusche, {pet} halluziniert nach drei Tagen. 'Träum wach, Liebling.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} zeigt {pet} Fotos von Freiheit, dann verbrennt sie – 'Erinnerungen sind auch nur Folter.' Pflege {n}/{CARES_PER_DAY}.",
+        "Luft verweigert – Plastiktüte über den Kopf, bis Ohnmacht, dann wieder ab. 'Atmen ist ein Privileg.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "verweigern", tame)
 
@@ -808,7 +920,15 @@ async def cmd_kaefig(update, context):
     tame = [
         "{owner} schließt die Tür, {pet} kauert in der Ecke – Dunkelheit und Stille, nur das eigene Herz schlägt laut. 🌑 Pflege {n}/{CARES_PER_DAY}.",
         "Stunden im Käfig, nackt, zitternd – {owner} schaut nur zu: „Gute Tiere lernen schnell.“ 🐕 Pflege {n}/{CARES_PER_DAY}.",
-        "Die Gitter werfen Schatten auf {pet}s Haut – ein Muster aus Gefangenschaft, das nie wieder weggeht. ⛓️ Pflege {n}/{CARES_PER_DAY}."
+        "Die Gitter werfen Schatten auf {pet}s Haut – ein Muster aus Gefangenschaft, das nie wieder weggeht. ⛓️ Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Enge, Dreck, Wahnsinn:
+        "Käfig so klein, dass {pet} nur fetal liegen kann – eigene Scheiße unter sich, tagelang. 'Gemütlich, oder?' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} stellt den Käfig in die pralle Sonne – {pet} brutzelt langsam, durstig, wahnsinnig. 'Bräunung inklusive.' Pflege {n}/{CARES_PER_DAY}.",
+        "Ratten reingelassen nachts – {pet} schreit stumm, während sie an ihr knabbern. 'Neue Spielkameraden.' Pflege {n}/{CARES_PER_DAY}.",
+        "Käfig im Keller, Wasser tropft ständig – {pet} wird wahnsinnig vom Geräusch, schläft nie. 'Wassertortur light.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} vergisst {pet} wochenlang – kommt zurück, findet ein gebrochenes Ding. 'Zeitreise erfolgreich.' Pflege {n}/{CARES_PER_DAY}.",
+        "Käfig mit Stacheln innen – jede Bewegung blutig. 'Umarmung rundum.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} filmt {pet} im Käfig und zeigt es Fremden – 'Dein neues Zuhause geht viral.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "kaefig", tame)
 
@@ -816,7 +936,15 @@ async def cmd_schande(update, context):
     tame = [
         "{pet} steht nackt in der Ecke, Schande brennt heißer als jeder Schlag – alle dürfen zusehen. 👁️ Pflege {n}/{CARES_PER_DAY}.",
         "{owner} erzählt laut {pet}s Geheimnisse, lacht dabei – bis die Scham in den Knochen sitzt. 💀 Pflege {n}/{CARES_PER_DAY}.",
-        "Ein Schild um den Hals: „Gebrauchtes Eigentum“ – {pet} trägt es stolz, weil Stolz schon lange tot ist. 🪦 Pflege {n}/{CARES_PER_DAY}."
+        "Ein Schild um den Hals: „Gebrauchtes Eigentum“ – {pet} trägt es stolz, weil Stolz schon lange tot ist. 🪦 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – öffentliche Zerstörung:
+        "{owner} filmt {pet} nackt mit dem Schild 'Billige Hure – gratis benutzen' und postet es online – 'Dein Ruhm ist jetzt ewig.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} muss vor Fremden masturbieren und dabei laut ihre perversesten Geheimnisse gestehen – 'Applaus gibt's erst, wenn du kommst.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} liest alte Chatverläufe vor, lacht über jede peinliche Nachricht – {pet} wird rot bis in die Zehen, für immer. Pflege {n}/{CARES_PER_DAY}.",
+        "Ein Tattoo 'Nutzlose Fotze' frisch gestochen, {pet} muss es allen zeigen – 'Deine neue Visitenkarte.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} zwingt {pet} Fotos von früher zu verbrennen – 'Dein altes Ich stirbt heute öffentlich.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} steht stundenlang nackt am Fenster, Nachbarn dürfen Fotos machen – 'Dein Viertel kennt dich jetzt besser.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} erzählt {pet}s Familie per Sprachnachricht die dreckigsten Details – 'Frohe Weihnachten von deiner Schlampe.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "schande", tame)
 
@@ -824,7 +952,15 @@ async def cmd_erregen(update, context):
     tame = [
         "{owner} berührt genau da, wo es wehtut und geil macht – bis {pet} hasst, wie sehr es will. 🩸 Pflege {n}/{CARES_PER_DAY}.",
         "Langsam, quälend, ohne Erlösung – {pet} bettelt um mehr, hasst sich dafür. 😭 Pflege {n}/{CARES_PER_DAY}.",
-        "Finger tief, Worte dreckig – {owner} flüstert: „Du kommst erst, wenn ich sage, dass du darfst. Vielleicht nie.“ ⏳ Pflege {n}/{CARES_PER_DAY}."
+        "Finger tief, Worte dreckig – {owner} flüstert: „Du kommst erst, wenn ich sage, dass du darfst. Vielleicht nie.“ ⏳ Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Hass und Sucht:
+        "{owner} reibt die Klitoris roh, bis sie blutet und {pet} trotzdem bettelt – 'Schmerz ist dein neues Vorspiel.' Pflege {n}/{CARES_PER_DAY}.",
+        "Finger mit Salz drin, tief in die wunde Fotze – {pet} schreit vor Lust und Qual gleichzeitig. 'Desinfektion für Schlampen.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} fickt {pet} mit der Faust, flüstert dabei 'Du bist nur ein Loch' – bis {pet} kommt und sich dafür hasst. Pflege {n}/{CARES_PER_DAY}.",
+        "Nippel mit Klammern, Gewichte dran, während {owner} leckt – 'Jede Bewegung macht dich nasser, du perverse Sau.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} benutzt eine Bürste statt Finger – Borsten ritzen innen, {pet} kommt trotzdem explodiert. 'Putzen von innen.' Pflege {n}/{CARES_PER_DAY}.",
+        "Elektroden an Klit und Nippeln, Stromstöße im Rhythmus – {pet} zuckt, kommt, hasst ihren Körper dafür. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} pisst auf die Fotze und reibt dann weiter – 'Meine Pisse macht dich glitschiger, Liebling.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "erregen", tame)
 
@@ -832,7 +968,15 @@ async def cmd_betteln(update, context):
     tame = [
         "{pet} bettelt auf Knien, Stimme bricht – {owner} hört nur zu und lächelt kalt. 😈 Pflege {n}/{CARES_PER_DAY}.",
         "'Bitte, bitte, bitte' – wieder und wieder, bis die Worte nichts mehr bedeuten und nur noch Scham übrig ist. 🖤 Pflege {n}/{CARES_PER_DAY}.",
-        "{owner} hält die Belohnung hoch, lässt {pet} darum winseln wie ein Tier – und nimmt sie dann weg. 🚫 Pflege {n}/{CARES_PER_DAY}."
+        "{owner} hält die Belohnung hoch, lässt {pet} darum winseln wie ein Tier – und nimmt sie dann weg. 🚫 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Betteln bis zur Zerstörung:
+        "{pet} bettelt stundenlang um einen Orgasmus, {owner} filmt es – 'Dein neues Demütigungsvideo.' Pflege {n}/{CARES_PER_DAY}.",
+        "Muss 'Ich bin eine wertlose Hure' 1000 Mal sagen, bevor vielleicht Gnade kommt – Stimme weg, Würde weg. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} hält ein Glas Wasser hoch, {pet} winselt durstig – dann gießt er es auf den Boden. 'Leck's auf.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} bettelt um Schmerz statt Lust – weil Lust verweigert wird. 'Schlag mich, bitte, ich halt's nicht aus.' Pflege {n}/{CARES_PER_DAY}.",
+        "Betteln mit der Leine im Mund, sabbernd, tierisch – {owner} lacht nur. 'Noch lauter, Köter.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} muss um die Erlaubnis betteln, pissen zu dürfen – hält es stundenlang. 'Gute Blase, schlechte Sklavin.' Pflege {n}/{CARES_PER_DAY}.",
+        "Letztes Betteln: um den Tod – {owner} verweigert sogar das. 'Du stirbst erst, wenn ich's sage.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "betteln", tame)
 
@@ -840,7 +984,15 @@ async def cmd_stumm(update, context):
     tame = [
         "{owner} befiehlt Schweigen – {pet} beißt sich auf die Lippe, bis Blut fließt, nur um nicht zu schreien. 🩸 Pflege {n}/{CARES_PER_DAY}.",
         "Kein Wort, kein Stöhnen – nur der Blick sagt alles, während {owner} tut, was er will. 👁️ Pflege {n}/{CARES_PER_DAY}.",
-        "Mund zugeklebt, Augen verbunden – Stille ist die schlimmste Strafe. 🌑 Pflege {n}/{CARES_PER_DAY}."
+        "Mund zugeklebt, Augen verbunden – Stille ist die schlimmste Strafe. 🌑 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – kein Laut, nur Leid:
+        "{owner} näht {pet} den Mund mit grobem Faden zu – 'Jetzt bist du wirklich still, Liebling.' Pflege {n}/{CARES_PER_DAY}.",
+        "Knebel aus {owner}s getragener Unterhose, tief in den Rachen – {pet} würgt stumm, sabbert, erträgt. 'Atme meinen Geruch.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} hält die Hand fest auf {pet}s Mund, drückt die Nase zu – bis die Panik kommt und wieder geht. 'Schweigen oder sterben.' Pflege {n}/{CARES_PER_DAY}.",
+        "Mund vollgepisst und dann zugeklebt – {pet} schluckt oder erstickt. 'Dein neues Getränk, leise genießen.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} bricht {pet} den Kiefer, damit kein Ton mehr rauskommt – 'Jetzt bist du perfekt leise.' Pflege {n}/{CARES_PER_DAY}.",
+        "Stundenlang schreien dürfen – aber nur innerlich, während {owner} zusieht und lächelt. 'Deine Gedanken sind laut genug.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} muss stumm kommen, kein Stöhnen – bei jedem Laut fängt die Strafe von vorne an. 'Orgasmus in Stille oder gar nicht.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "stumm", tame)
 
@@ -848,7 +1000,15 @@ async def cmd_bestrafen(update, context):
     tame = [
         "{owner} wählt das Werkzeug – heute die Peitsche, morgen die Nadeln – {pet} zählt jeden Treffer mit. 💥 Pflege {n}/{CARES_PER_DAY}.",
         "Strafe ohne Grund, nur weil {owner} Lust hat – {pet} nimmt sie hin, weil Widerstand sinnlos ist. 🖤 Pflege {n}/{CARES_PER_DAY}.",
-        "Danach die Tränen lecken, die Wunden küssen – „Das ist Liebe, Liebling.“ 😈 Pflege {n}/{CARES_PER_DAY}."
+        "Danach die Tränen lecken, die Wunden küssen – „Das ist Liebe, Liebling.“ 😈 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Schmerz mit Andenken:
+        "{owner} brennt Initialen in {pet}s Arsch – 'Damit du immer weißt, wem du gehörst, wenn du sitzt.' Pflege {n}/{CARES_PER_DAY}.",
+        "Nadeln unter die Fingernägel, langsam, eine nach der anderen – {pet} zählt mit zitternder Stimme. 'Maniküre der Hölle.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} schneidet tiefe Linien in den Rücken – 'Deine neue Landkarte, nur für mich lesbar.' Pflege {n}/{CARES_PER_DAY}.",
+        "Knochen brechen, langsam, mit Hammer – 'Das knackt so schön, findest du nicht?' Pflege {n}/{CARES_PER_DAY}.",
+        "Säure auf die Nippel, tropfenweise – {pet} riecht ihr eigenes Fleisch verbrennen. 'Duftkerze aus Fotze.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} lässt Fremde mitmachen – 'Heute ist Gruppenstrafe, du glückliches Stück.' Pflege {n}/{CARES_PER_DAY}.",
+        "Danach muss {pet} die Werkzeuge sauber lecken – 'Blut ist der beste Dank.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "bestrafen", tame)
 
@@ -856,7 +1016,15 @@ async def cmd_loben(update, context):
     tame = [
         "{owner} lobt leise: „Gutes Mädchen“ – und {pet} hasst, wie sehr es danach lechzt. 🔥 Pflege {n}/{CARES_PER_DAY}.",
         "Ein Streicheln nach der Strafe – {pet} zittert vor Dankbarkeit, obwohl es kaputt ist. 💧 Pflege {n}/{CARES_PER_DAY}.",
-        "„Du hast es gut gemacht“ – Worte süßer als Honig, giftiger als alles andere. 🥀 Pflege {n}/{CARES_PER_DAY}."
+        "„Du hast es gut gemacht“ – Worte süßer als Honig, giftiger als alles andere. 🥀 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Lob, das noch mehr kaputt macht:
+        "{owner} flüstert 'Brave Schlampe' und {pet} kommt allein von den Worten – hasst sich sofort dafür. Pflege {n}/{CARES_PER_DAY}.",
+        "Ein Kuss auf die frische Wunde – 'Du bist perfekt, wenn du blutest.' {pet} heult vor Dankbarkeit. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} sagt 'Ich bin stolz auf dich' – einmal im Jahr, und {pet} würde dafür sterben. Pflege {n}/{CARES_PER_DAY}.",
+        "Streicheln über die Narben – 'Die hab ich für dich gemacht, und du trägst sie so schön.' Pflege {n}/{CARES_PER_DAY}.",
+        "'Gutes Mädchen' geflüstert, während {owner} die nächste Strafe vorbereitet – 'Belohnung und Vorfreude zugleich.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} erlaubt {pet} seinen Namen zu sagen – nur dieses eine Mal. {pet} weint vor Glück. Pflege {n}/{CARES_PER_DAY}.",
+        "Ein Lächeln von {owner} – selten, tödlich süß. {pet} würde alles tun, um es nochmal zu sehen. Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "loben", tame)
 
@@ -864,7 +1032,15 @@ async def cmd_dienen(update, context):
     tame = [
         "{pet} dient auf Knien, bringt, holt, erträgt – alles, weil {owner} es befiehlt. ⛓️ Pflege {n}/{CARES_PER_DAY}.",
         "Jede Aufgabe eine Demütigung – {pet} erledigt sie perfekt, weil Fehler teuer sind. 🩸 Pflege {n}/{CARES_PER_DAY}.",
-        "Am Ende des Tages: „Danke, dass ich dienen durfte“ – und {pet} meint es ernst.💔 Pflege {n}/{CARES_PER_DAY}."
+        "Am Ende des Tages: „Danke, dass ich dienen durfte“ – und {pet} meint es ernst.💔 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – totale Entmenschlichung:
+        "{pet} dient als menschlicher Fußabtreter, Fremde wischen den Dreck an ihr ab – 'Willkommen, benutzt mich.' Pflege {n}/{CARES_PER_DAY}.",
+        "Als Aschenbecher: {owner} drückt Zigaretten auf ihrer Zunge aus – {pet} sagt danach artig Danke. Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} trägt den ganzen Tag ein Tablett mit {owner}s Getränk, Hände gefesselt – ein Tropfen verschüttet = Strafe. Pflege {n}/{CARES_PER_DAY}.",
+        "Als Möbelstück: {owner} sitzt stundenlang auf ihrem Rücken – 'Beweg dich nicht, Tisch.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} putzt den Boden mit der Zunge, während {owner} zusieht und kommentiert – 'Gründlicher, du faule Sau.' Pflege {n}/{CARES_PER_DAY}.",
+        "Als Toilettenpapier-Ersatz nach {owner}s Geschäft – 'Leck sauber, das ist dein neuer Job.' Pflege {n}/{CARES_PER_DAY}.",
+        "Am Ende jedes Dienstes muss {pet} betteln, weiter dienen zu dürfen – 'Ohne dich bin ich nichts.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "dienen", tame)
 
@@ -872,7 +1048,15 @@ async def cmd_demuetigen(update, context):
     tame = [
         "{owner} demütigt laut vor allen – {pet} steht da, rot, nass, gebrochen. 👁️ {pet} wird rot. Pflege {n}/{CARES_PER_DAY}.",
         "Worte wie Messerstiche: „Du bist nichts ohne mich.“ {pet} nickt, weil es stimmt. 🖤 Pflege {n}/{CARES_PER_DAY}.",
-        "Die ultimative Demütigung: {pet} bedankt sich dafür. 😭 Pflege {n}/{CARES_PER_DAY}."
+        "Die ultimative Demütigung: {pet} bedankt sich dafür. 😭 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Seele in Fetzen:
+        "{owner} zwingt {pet} laut ihre größten Ängste und Versagen zu wiederholen – vor Fremden, bis sie heult. Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} muss sich selbst als 'wertlose Spermaschlampe' vorstellen – bei jedem neuen Menschen. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} liest {pet}s alte Liebesbriefe vor und lacht – 'Das hast du mal geglaubt? Süß.' Pflege {n}/{CARES_PER_DAY}.",
+        "Öffentlich pissen lassen, während alle zusehen – {pet} bedankt sich danach für die Aufmerksamkeit. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} nennt {pet} nur noch 'Es' oder 'Ding' – bis {pet} vergisst, dass sie je einen Namen hatte. Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} muss Fremden erzählen, wie oft sie schon gekommen ist heute – und lügen darf sie nicht. Pflege {n}/{CARES_PER_DAY}.",
+        "Ultimative Worte: 'Du bist mein größter Fehler – und ich behalte dich trotzdem.' {pet} weint vor Dankbarkeit. Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "demuetigen", tame)
 
@@ -880,7 +1064,15 @@ async def cmd_melken(update, context):
     tame = [
         "{owner} melkt {pet} langsam, gnadenlos – bis nichts mehr kommt und die Scham überfließt. 💧 Pflege {n}/{CARES_PER_DAY}.",
         "Hände fest, Rhythmus brutal – {pet} wimmert, hasst, kommt trotzdem. 🩸 Pflege {n}/{CARES_PER_DAY}.",
-        "Danach leer, zittern, gedemütigt – {owner} wischt ab: „Gute Kuh.“ 🐄 Pflege {n}/{CARES_PER_DAY}."
+        "Danach leer, zittern, gedemütigt – {owner} wischt ab: „Gute Kuh.“ 🐄 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Viehbehandlung deluxe:
+        "{owner} melkt {pet} in einen Eimer, zwingt sie danach alles auszutrinken – 'Recycling, du geile Sau.' Pflege {n}/{CARES_PER_DAY}.",
+        "Mit Melkmaschine, Saugnäpfe brutal – {pet} schreit, kommt mehrmals, hasst ihren Körper. Pflege {n}/{CARES_PER_DAY}.",
+        "Öffentlich gemolken, Fremde dürfen zugucken – 'Zeig ihnen, wie nützlich du bist.' Pflege {n}/{CARES_PER_DAY}.",
+        "Nippel mit Nadeln vorgedehnt, dann gemolken bis Blut mitmischt – 'Proteinshake spezial.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} melkt sie trocken, bis sie bettelt aufzuhören – und melkt dann weiter. Pflege {n}/{CARES_PER_DAY}.",
+        "Danach angeleint wie eine Kuh, Euter geschwollen – 'Morgen wieder, Liebling.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} muss 'Muh' machen bei jedem Orgasmus – {owner} lacht und melkt härter. Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "melken", tame)
 
@@ -888,7 +1080,15 @@ async def cmd_ohrfeige(update, context):
     tame = [
         "Die Ohrfeige kommt schnell, lässt {pet}s Kopf zur Seite fliegen – Wangen glühen, Stolz tot. 🩸 Pflege {n}/{CARES_PER_DAY}.",
         "Links, rechts, wieder links – bis {pet} nicht mehr weiß, wo oben ist. 😵 Pflege {n}/{CARES_PER_DAY}.",
-        "Die letzte lässt Tränen fließen – {owner} lächelt: „Jetzt bist du schön.“ 🥀 Pflege {n}/{CARES_PER_DAY}."
+        "Die letzte lässt Tränen fließen – {owner} lächelt: „Jetzt bist du schön.“ 🥀 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Gesicht in Trümmern:
+        "{owner} schlägt mit der flachen Hand, dann mit der Faust – {pet}s Lippe platzt, Blut läuft übers Kinn. 'Schmink dich mal richtig.' Pflege {n}/{CARES_PER_DAY}.",
+        "Ohrfeigen mit Ring am Finger, tiefe Schnitte in die Wange – 'Mein Autogramm, damit jeder sieht, wem du gehörst.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} ohrfeigt {pet} vor dem Spiegel, zwingt sie hinzuschauen – 'Sieh zu, wie dein hübsches Gesicht kaputtgeht.' Pflege {n}/{CARES_PER_DAY}.",
+        "So hart, dass {pet} zu Boden geht – {owner} tritt nach: 'Steh auf, die zweite Runde kommt.' Pflege {n}/{CARES_PER_DAY}.",
+        "Mit Handschuhen voller Splitt – Haut reißt auf, {pet} schmeckt eigenes Blut. 'Peeling für Schlampen.' Pflege {n}/{CARES_PER_DAY}.",
+        "Letzte Serie, bis das Auge zuschwillt – {owner} flüstert: 'Jetzt bist du wirklich nur noch ein Loch mit Gesicht.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} muss nach jeder Ohrfeige 'Danke' sagen – mit geschwollener Zunge klingt es perfekt erbärmlich. Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "ohrfeige", tame)
 
@@ -896,7 +1096,15 @@ async def cmd_belohnen(update, context):
     tame = [
         "Die Belohnung ist Berührung – kurz, intensiv, nie genug. {pet} bettelt um mehr. 👅 Pflege {n}/{CARES_PER_DAY}.",
         "{owner} erlaubt einen Orgasmus – nach Tagen der Verweigerung. {pet} zerbricht vor Dankbarkeit. 💔 Pflege {n}/{CARES_PER_DAY}.",
-        "Ein leises „Gut gemacht“ – und {pet} würde alles tun, um es nochmal zu hören. 😈 Pflege {n}/{CARES_PER_DAY}."
+        "Ein leises „Gut gemacht“ – und {pet} würde alles tun, um es nochmal zu hören. 😈 Pflege {n}/{CARES_PER_DAY}.",
+        # Neue extreme – Belohnung, die süchtig macht:
+        "{owner} erlaubt {pet} seinen Schwanz zu lecken – nur die Spitze, fünf Sekunden. Danach wieder wochenlang nichts. Pflege {n}/{CARES_PER_DAY}.",
+        "Ein Orgasmus, aber nur während {owner} sie würgt – {pet} kommt und wird gleichzeitig ohnmächtig vor Dankbarkeit. Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} streichelt einmal sanft über die frischen Wunden – 'Belohnung fürs Bluten.' {pet} heult vor Glück. Pflege {n}/{CARES_PER_DAY}.",
+        "Erlaubt, {owner}s Namen zu stöhnen – nur dieses eine Mal. {pet} kommt sofort und hasst sich für die Sucht. Pflege {n}/{CARES_PER_DAY}.",
+        "Ein Kuss – aber auf die geschwollene Wange nach den Ohrfeigen. 'Schmeckt nach Liebe, oder?' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} lässt {pet} eine Stunde lang nicht im Käfig schlafen – 'Luxusbelohnung, du undankbares Stück.' Pflege {n}/{CARES_PER_DAY}.",
+        "Das größte Geschenk: {owner} sagt 'Ich behalte dich noch einen Tag länger.' {pet} zerbricht vor Dankbarkeit und Angst zugleich. Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "belohnen", tame)
 
