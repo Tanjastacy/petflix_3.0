@@ -76,6 +76,45 @@ FLUCH_LINES = [
 BRAND_LABEL = "🩸🔥"
 BRAND_DURATION_S = 24 * 3600
 
+# =========================
+# /hass + /selbst
+# =========================
+HASS_DURATION_S = 2 * 3600
+HASS_REQUIRED = 3
+HASS_PENALTY = 200
+
+SELF_LINES = [
+    "{user} schlägt sich selbst 20 Mal hart ins Gesicht und filmt es: 'Das ist für jede Sekunde, die ich heute vergeudet habe, du nutzloses Stück.'",
+    "{user} kniet 30 Minuten auf Reis oder Glasscherben und wiederholt laut: 'Ich bin nur ein wertloses Loch, das Schmerz verdient.'",
+    "{user} zieht sich mit einer Gürtelschnalle 15 Striemen über den Arsch und sagt dabei: 'Jeder Treffer für meine Faulheit, danke, dass ich scheiße bin.'",
+    "{user} hält eine brennende Kerze unter die eigene Brustwarze, bis die Haut blasen wirft: 'Das brennt für jede Lüge, die ich mir selbst erzählt habe.'",
+    "{user} pisst in ein Glas, trinkt es langsam aus und flüstert: 'Meine eigene Pisse schmeckt besser als mein Leben.'",
+    "{user} steckt sich eine Ingwerwurzel in den Arsch und lässt sie 20 Minuten brennen: 'Feuer im Loch für jede Ausrede heute.'",
+    "{user} ritzt sich 'Versagerin' in den Oberschenkel und leckt das Blut ab: 'Schmeckt nach Wahrheit, du Made.'",
+    "{user} würgt sich selbst mit einem Gürtel bis fast ohnmächtig und keucht: 'Atmen ist ein Privileg, das ich nicht verdiene.'",
+    "{user} schlägt sich mit einem Lineal 50 Mal auf die Klitoris und zählt laut mit: 'Für jede Sekunde, die ich schwach war.'",
+    "{user} isst eine rohe Zwiebel ohne zu blinzeln und schluchzt: 'Tränen sind das Einzige, was ich gut kann.'",
+    "{user} klemmt sich Wäscheklammern an die Nippel und Labien, 45 Minuten lang: 'Schmerz ist die einzige Umarmung, die ich verdiene.'",
+    "{user} schreibt 100 Mal mit Blut aus dem Finger: 'Ich bin ein wertloses Stück Scheiße' und liest es laut vor.",
+    "{user} hält den Kopf unter eiskaltes Wasser, bis Panik kommt: 'Ertränke deine Schwäche, du erbärmliches Ding.'",
+    "{user} beißt sich selbst in die Innenschenkel, bis blaue Flecken entstehen: 'Mein eigener Biss ist der einzige, den ich verdiene.'",
+    "{user} masturbiert bis kurz vor dem Orgasmus und hört dann auf – 10 Mal hintereinander: 'Kommen darfst du erst, wenn du perfekt bist. Nie also.'",
+    "{user} schlägt sich mit einem nassen Handtuch über den Rücken, bis Striemen glühen: 'Peitsche dich selbst, du faule Hure.'",
+    "{user} steckt sich Nadeln unter die Fingernägel und flüstert: 'Jede Nadel für ein Versprechen, das ich gebrochen habe.'",
+    "{user} leckt den Boden sauber, wo sie gerade gespuckt hat: 'Selbst dein Speichel ist zu gut für dich.'",
+    "{user} zieht sich mit einer Zange an den Schamlippen, bis es reißt: 'Dehn dich selbst, du nutzloses Fickloch.'",
+    "{user} hält eine Chilischote an die Klitoris, bis sie brennt wie Hölle: 'Feuer für jede Träne, die du nicht wert bist.'",
+    "{user} schneidet sich eine Haarsträhne ab und verbrennt sie vor dem Spiegel: 'Du bist nicht mal dein Haar wert.'",
+    "{user} drückt Zigaretten auf der Innenschenkelhaut aus (oder heißes Metall): 'Brandmarke für die Versagerin.'",
+    "{user} kniet nackt vor dem Spiegel und ohrfeigt sich abwechselnd links und rechts: 'Sieh hin, wie hässlich Schwäche aussieht.'",
+    "{user} trinkt eine Mischung aus Essig und Salz und würgt: 'Säure für dein wertloses Inneres.'",
+    "{user} bindet sich die Brüste ab, bis sie blau werden: 'Ersticke deine nutzlosen Titten.'",
+    "{user} steckt sich Eiswürfel in die Fotze und lässt sie schmelzen: 'Kälte für dein kaltes, leeres Herz.'",
+    "{user} schreit 10 Minuten lang ins Kissen: 'Ich hasse mich' – bis die Stimme weg ist.",
+    "{user} ritzt sich ein kleines Herz in die Handfläche und presst Salz rein: 'Liebe tut weh – besonders von dir selbst.'",
+    "{user} zwingt sich, 50 Liegestütze zu machen – bei jedem Versagen 10 zusätzliche Ohrfeigen: 'Schwachkörper für schwachen Geist.'",
+    "{user} filmt sich nackt beim Winseln: 'Bitte verachte mich, ich verdiene nichts anderes' – und speichert es für immer."
+]
 
 
 # Konfig Moralische Tax
@@ -195,6 +234,27 @@ async def migrate_db(db):
         await _set_user_version(db, 4)
         current = 4
 
+    if current < 5:
+        await db.executescript("""
+        CREATE TABLE IF NOT EXISTS hass_challenges(
+          chat_id      INTEGER,
+          user_id      INTEGER,
+          username     TEXT,
+          triggered_by INTEGER,
+          started_ts   INTEGER,
+          expires_ts   INTEGER,
+          required     INTEGER DEFAULT 3,
+          done         INTEGER DEFAULT 0,
+          penalty      INTEGER DEFAULT 200,
+          active       INTEGER DEFAULT 1,
+          PRIMARY KEY(chat_id, user_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_hass_expires ON hass_challenges(chat_id, expires_ts);
+        CREATE INDEX IF NOT EXISTS idx_hass_active  ON hass_challenges(chat_id, active);
+        """)
+        await _set_user_version(db, 5)
+        current = 5
+
 async def db_init():
     async with aiosqlite.connect(DB) as db:
         await db.execute("PRAGMA journal_mode=WAL;")
@@ -203,6 +263,68 @@ async def db_init():
         await db.commit()
 
 # Helpers
+
+async def _get_active_hass_for_chat(db, chat_id: int):
+    async with db.execute("""
+        SELECT user_id, username, triggered_by, started_ts, expires_ts, required, done, penalty
+        FROM hass_challenges
+        WHERE chat_id=? AND active=1
+        ORDER BY started_ts DESC
+        LIMIT 1
+    """, (chat_id,)) as cur:
+        return await cur.fetchone()
+
+async def _get_hass_for_user(db, chat_id: int, user_id: int):
+    async with db.execute("""
+        SELECT user_id, username, triggered_by, started_ts, expires_ts, required, done, penalty, active
+        FROM hass_challenges
+        WHERE chat_id=? AND user_id=?
+        LIMIT 1
+    """, (chat_id, user_id)) as cur:
+        return await cur.fetchone()
+
+async def _start_hass(db, chat_id: int, user_id: int, username: str | None, triggered_by: int):
+    now = int(time.time())
+    expires = now + HASS_DURATION_S
+    await db.execute("""
+        INSERT INTO hass_challenges(chat_id, user_id, username, triggered_by, started_ts, expires_ts, required, done, penalty, active)
+        VALUES(?,?,?,?,?,?,?,?,?,1)
+        ON CONFLICT(chat_id, user_id) DO UPDATE SET
+          username=excluded.username,
+          triggered_by=excluded.triggered_by,
+          started_ts=excluded.started_ts,
+          expires_ts=excluded.expires_ts,
+          required=excluded.required,
+          done=0,
+          penalty=excluded.penalty,
+          active=1
+    """, (chat_id, user_id, username or "", triggered_by, now, expires, HASS_REQUIRED, 0, HASS_PENALTY))
+    return expires
+
+async def _finish_hass(db, chat_id: int, user_id: int):
+    await db.execute("UPDATE hass_challenges SET active=0 WHERE chat_id=? AND user_id=?", (chat_id, user_id))
+
+async def _increment_selbst(db, chat_id: int, user_id: int):
+    await db.execute("""
+        UPDATE hass_challenges
+        SET done = COALESCE(done,0) + 1
+        WHERE chat_id=? AND user_id=? AND active=1
+    """, (chat_id, user_id))
+    async with db.execute("""
+        SELECT done, required, expires_ts
+        FROM hass_challenges
+        WHERE chat_id=? AND user_id=? AND active=1
+    """, (chat_id, user_id)) as cur:
+        return await cur.fetchone()
+
+async def _apply_hass_penalty(db, chat_id: int, user_id: int, penalty: int):
+    # Spieler sicherstellen
+    async with db.execute("SELECT username FROM players WHERE chat_id=? AND user_id=?", (chat_id, user_id)) as cur:
+        row = await cur.fetchone()
+    if not row:
+        await ensure_player(db, chat_id, user_id, "")
+    await db.execute("UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?", (penalty, chat_id, user_id))
+
 
 def nice_name(u) -> str:
     # Anzeige-Name ohne HTML-Sicherheit (wird für Markdown benutzt)
@@ -511,6 +633,46 @@ async def daily_gift_job(context: ContextTypes.DEFAULT_TYPE):
     line = random.choice(_SAVAGE_LINES).format(user=user_mention, coins=DAILY_GIFT_COINS)
     await context.bot.send_message(chat_id=chat_id, text=f"🎁 Tägliche Almosen-Time!\n{line}", parse_mode="Markdown")
 
+# ==============================================================================
+# hass watchdog
+# ==============================================================================
+async def hass_watchdog_job(context: ContextTypes.DEFAULT_TYPE):
+    chat_id = ALLOWED_CHAT_ID
+    now = int(time.time())
+
+    async with aiosqlite.connect(DB) as db:
+        async with db.execute("""
+            SELECT user_id, username, expires_ts, required, done, penalty
+            FROM hass_challenges
+            WHERE chat_id=? AND active=1 AND expires_ts <= ?
+        """, (chat_id, now)) as cur:
+            rows = await cur.fetchall()
+
+        if not rows:
+            return
+
+        for user_id, username, expires_ts, required, done, penalty in rows:
+            user_id = int(user_id)
+            required = int(required)
+            done = int(done)
+            penalty = int(penalty)
+
+            if done < required:
+                await _apply_hass_penalty(db, chat_id, user_id, penalty)
+                msg = f"⌛ Hass-Deadline vorbei. {mention_html(user_id, username or None)} hat nur {done}/{required}. −{penalty} Coins."
+            else:
+                msg = f"✅ Hass-Check: {mention_html(user_id, username or None)} war rechtzeitig ({done}/{required})."
+
+            await _finish_hass(db, chat_id, user_id)
+
+            try:
+                await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
+            except Exception:
+                pass
+
+        await db.commit()
+
+
 # =========================
 # Auto-Registrierung + Coins
 # =========================
@@ -710,6 +872,104 @@ async def cmd_prices(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg += f"{uname}: {price} Coins\n"
     await update.effective_message.reply_text(msg)
 
+# ==============Hass & Selbst
+
+async def cmd_hass(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update) or update.effective_chat.id != ALLOWED_CHAT_ID:
+        return
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("🚫 Admin-only. Du nicht. Setz dich wieder hin.")
+
+    chat_id = update.effective_chat.id
+    admin = update.effective_user
+
+    async with aiosqlite.connect(DB) as db:
+        # Nur eine aktive Hass-Runde gleichzeitig
+        active = await _get_active_hass_for_chat(db, chat_id)
+        if active:
+            uid, uname, _, _, expires_ts, required, done, penalty = active
+            left = max(0, int(expires_ts) - int(time.time()))
+            h = left // 3600
+            m = (left % 3600) // 60
+            mention = mention_html(int(uid), uname if uname else None)
+            return await update.effective_message.reply_text(
+                f"⏳ Läuft schon: {mention} hat Hass-Status. ({done}/{required}) Noch {h}h {m}m. Strafe: −{penalty} Coins.",
+                parse_mode=ParseMode.HTML
+            )
+
+        # Kandidaten: aus players, Admin ausgeschlossen
+        uid, uname = await pick_random_player_excluding(chat_id, exclude_ids={admin.id})
+        if not uid:
+            return await update.effective_message.reply_text("Keine Kandidaten. Müssen halt Leute schreiben, bevor du sie quälen kannst.")
+
+        expires = await _start_hass(db, chat_id, int(uid), uname, admin.id)
+        await db.commit()
+
+    until = datetime.datetime.fromtimestamp(expires, tz=ZoneInfo(PETFLIX_TZ)).strftime("%d.%m.%Y %H:%M")
+    target = mention_html(int(uid), uname if uname else None)
+
+    await update.effective_message.reply_text(
+        f"🖤 <b>/hass</b> aktiviert.\n"
+        f"Ziel: {target}\n"
+        f"Regel: 2 Stunden Zeit, <b>{HASS_REQUIRED}× /selbst</b>.\n"
+        f"Deadline: <b>{until}</b>\n"
+        f"Wenn nicht geschafft: <b>−{HASS_PENALTY} Coins</b>.\n"
+        f"Alles transparent, weil Demütigung ohne Publikum ja sinnlos wäre.",
+        parse_mode=ParseMode.HTML
+    )
+
+async def cmd_selbst(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update) or update.effective_chat.id != ALLOWED_CHAT_ID:
+        return
+
+    chat_id = update.effective_chat.id
+    user = update.effective_user
+    uid = user.id
+
+    async with aiosqlite.connect(DB) as db:
+        row = await _get_hass_for_user(db, chat_id, uid)
+        if not row or int(row[8]) != 1:
+            return await update.effective_message.reply_text("Nö. /selbst zählt nur, wenn du gerade Hass-Status hast.")
+
+        _, uname, _, _, expires_ts, required, done, penalty, active = row
+        now = int(time.time())
+
+        # Falls abgelaufen, direkt kassieren (Job macht das auch, aber so ist es sofort transparent)
+        if int(expires_ts) <= now:
+            if int(done) < int(required):
+                await _apply_hass_penalty(db, chat_id, uid, int(penalty))
+                await _finish_hass(db, chat_id, uid)
+                await db.commit()
+                return await update.effective_message.reply_text(
+                    f"⌛ Zeit um. {mention_html(uid, uname if uname else None)} hat’s nicht geschafft. −{penalty} Coins.",
+                    parse_mode=ParseMode.HTML
+                )
+            await _finish_hass(db, chat_id, uid)
+            await db.commit()
+            return await update.effective_message.reply_text("Zu spät, aber du warst eh fertig. Challenge geschlossen.")
+
+        # In Zeit: zählen
+        inc = await _increment_selbst(db, chat_id, uid)
+        await db.commit()
+
+    # inc: (done, required, expires_ts)
+    new_done, req, exp = int(inc[0]), int(inc[1]), int(inc[2])
+    left = max(0, exp - int(time.time()))
+    m = left // 60
+    s = left % 60
+
+    line = random.choice(SELF_LINES).format(user=mention_html(uid, user.username or None))
+    await update.effective_message.reply_text(f"{line}\nFortschritt: <b>{new_done}/{req}</b>. Restzeit: {m}m {s}s.", parse_mode=ParseMode.HTML)
+
+    if new_done >= req:
+        async with aiosqlite.connect(DB) as db:
+            await _finish_hass(db, chat_id, uid)
+            await db.commit()
+        await update.effective_message.reply_text(
+            f"✅ {mention_html(uid, user.username or None)} hat’s geschafft. Hass-Status beendet. Widerlich effizient.",
+            parse_mode=ParseMode.HTML
+        )
+
 # =============== Admin: Coins steuern ===============
 def _is_admin_here(update: Update) -> bool:
     return is_allowed_chat(update) and update.effective_user and update.effective_user.id == ADMIN_ID
@@ -883,7 +1143,11 @@ async def register_commands(application: Application):
         BotCommand("belohnen", "Leckerli geben"),
 
         # Special
-        BotCommand("treasure", "Tägliche Schatzsuche starten")
+        BotCommand("treasure", "Tägliche Schatzsuche starten"),
+
+        #hass und selbst
+        BotCommand("hass", "Admin-only: startet Hass-Status (2h, 3 mal /selbst)"),
+        BotCommand("selbst", "Nur für betroffenen User: zählt 1/3 Strafen"),
 
     ]
     await application.bot.set_my_commands(commands)
@@ -1945,6 +2209,11 @@ def main():
     # app.add_handler(CommandHandler("verfluchen",  cmd_verfluchen,  filters=CHAT_FILTER))
     # app.add_handler(CommandHandler("brandmarken", cmd_brandmarken, filters=CHAT_FILTER))
 
+    # hass und selbst
+    app.add_handler(CommandHandler("hass",   cmd_hass,   filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("selbst", cmd_selbst, filters=CHAT_FILTER))
+
+
 
     # Member-Events
     app.add_handler(ChatMemberHandler(on_chat_member,     ChatMemberHandler.CHAT_MEMBER))
@@ -1968,6 +2237,7 @@ def main():
     # Tägliches Gift um 10:00 planen
     gift_time = dtime(hour=10, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
     app.job_queue.run_daily(daily_gift_job, time=gift_time, name="daily_gift_10am")
+    app.job_queue.run_repeating(hass_watchdog_job, interval=60, first=30, name="hass_watchdog")
 
     log.info("Bot startet, warte auf Updates...")
     app.run_polling()
