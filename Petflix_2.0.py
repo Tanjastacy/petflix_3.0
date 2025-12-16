@@ -56,7 +56,7 @@ DAILY_GIFT_COINS = 15
 # =========================
 
 AUTO_CURSE_ENABLED = True
-AUTO_CURSE_CHANCE_PER_MESSAGE = 1.0  # 2% pro normaler Nachricht
+AUTO_CURSE_CHANCE_PER_MESSAGE = 0.3  # 2% pro normaler Nachricht
 AUTO_CURSE_COOLDOWN_S = 30 * 60       # 30 Minuten globaler Cooldown im Chat
 
 FLUCH_LINES = [
