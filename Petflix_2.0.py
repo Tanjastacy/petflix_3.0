@@ -79,7 +79,7 @@ BRAND_DURATION_S = 24 * 3600
 # =========================
 # /hass + /selbst
 # =========================
-HASS_DURATION_S = 2 * 3600
+HASS_DURATION_S = 0 * 3600
 HASS_REQUIRED = 3
 HASS_PENALTY = 200
 
