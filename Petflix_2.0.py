@@ -51,6 +51,31 @@ LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
 DAILY_GIFT_COINS = 15
 
+# =========================
+# Fluch + Brandmarken
+# =========================
+
+AUTO_CURSE_ENABLED = True
+AUTO_CURSE_CHANCE_PER_MESSAGE = 0.02  # 2% pro normaler Nachricht
+AUTO_CURSE_COOLDOWN_S = 30 * 60       # 30 Minuten globaler Cooldown im Chat
+
+FLUCH_LINES = [
+    "{user} wird heute Nacht von Albträumen gefickt, bis die Seele kratzt. 🖤💀",
+    "{user}s Fotze fault von innen, Maden kriechen raus und fressen den Rest deines wertlosen Lebens. 🩸🪰",
+    "{user} erstickt langsam an eigenem Erbrochenem, während Geister deinen Hals zudrücken und in dein Ohr pissen. 💀🤮",
+    "{user}s Augen platzen in der Nacht, Würmer fressen sich durch die Höhlen bis ins Hirn – endlich mal was drin. 👁️🧠",
+    "{user} wird lebendig begraben, Erde fullt den Mund, und Ratten nagen an deiner Klitoris bis du kommst und stirbst. 🪦🐀",
+    "{user}s Darm reißt auf, Scheiße mischt sich mit Blut, und du leckst es auf, weil du es verdienst, du Made. 💩🩸",
+    "{user} verrottet bei lebendigem Leib, Haut fällt in Fetzen, und niemand hört dein Winseln, weil du eh nichts wert bist. 🖤🍖",
+    "{user}s Kinder – falls du je welche zeugst – werden mit Messern geboren und schneiden dich von innen auf. 🔪🤰",
+    "{user} wird von Dämonen geschändet, Schwänze mit Stacheln reißen dich auf, und du bettelst um mehr, du perverse Hure. 😈🩸",
+    "{user}s Leiche wird gefickt von Nekrophilen, bis nur Knochen übrig sind – und selbst die spucken drauf. ⚰️🍆",
+    "{user} stirbt allein, verfault unbeachtet, und selbst die Fliegen kotzen, wenn sie dich riechen. 🪰💀"
+]
+
+BRAND_LABEL = "🩸🔥"
+BRAND_DURATION_S = 24 * 3600
+
 
 
 # Konfig Moralische Tax
@@ -80,7 +105,7 @@ log = logging.getLogger("Petflix_2.0")
 # DB-Setup 
 # =========================
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -108,6 +133,10 @@ async def migrate_db(db):
           price     INTEGER DEFAULT 50, -- alte Default bleibt; ensure_player setzt 100
           opted_out INTEGER DEFAULT 0,
           PRIMARY KEY(chat_id, user_id)
+        );
+        CREATE TABLE IF NOT EXISTS settings(
+          chat_id INTEGER PRIMARY KEY,
+          moraltax_enabled INTEGER DEFAULT 1
         );
         CREATE TABLE IF NOT EXISTS pets(
           chat_id          INTEGER,
@@ -152,6 +181,20 @@ async def migrate_db(db):
         await _set_user_version(db, 3)
         current = 3
 
+    if current < 4:
+        await db.executescript("""
+        CREATE TABLE IF NOT EXISTS brandmarks(
+          chat_id     INTEGER,
+          user_id     INTEGER,
+          label       TEXT,
+          expires_ts  INTEGER,
+          PRIMARY KEY(chat_id, user_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_brandmarks_expires ON brandmarks(chat_id, expires_ts);
+        """)
+        await _set_user_version(db, 4)
+        current = 4
+
 async def db_init():
     async with aiosqlite.connect(DB) as db:
         await db.execute("PRAGMA journal_mode=WAL;")
@@ -178,7 +221,7 @@ async def get_moraltax_settings(db, chat_id: int):
         row = await cur.fetchone()
     if not row:
         await db.execute(
-            "INSERT INTO settings(chat_id, moraltax_enabled, moraltax_amount) VALUES(?,?,?,?) "
+            "INSERT INTO settings(chat_id, moraltax_enabled, moraltax_amount) VALUES(?,?,?) "
             "ON CONFLICT(chat_id) DO UPDATE SET moraltax_enabled=COALESCE(moraltax_enabled,excluded.moraltax_enabled), "
             "moraltax_amount=COALESCE(moraltax_amount,excluded.moraltax_amount)",
             (chat_id, 0, 1, MORAL_TAX_DEFAULT)
@@ -297,6 +340,50 @@ async def get_pet_lock_until(db, chat_id: int, pet_id: int) -> int:
     ) as cur:
         row = await cur.fetchone()
     return int(row[0]) if row else 0
+
+async def pick_random_player_excluding(chat_id: int, exclude_ids: set[int] | None = None):
+    exclude_ids = exclude_ids or set()
+    async with aiosqlite.connect(DB) as db:
+        async with db.execute("SELECT user_id, username FROM players WHERE chat_id=?", (chat_id,)) as cur:
+            rows = await cur.fetchall()
+    rows = [r for r in rows if r and int(r[0]) not in exclude_ids]
+    if not rows:
+        return None, None
+    return random.choice(rows)
+
+def mention_html(user_id: int, username: str | None) -> str:
+    return f"@{escape(username, quote=False)}" if username else f"<a href='tg://user?id={user_id}'>ID:{user_id}</a>"
+
+async def set_brandmark(chat_id: int, user_id: int, label: str, duration_s: int):
+    expires = int(time.time()) + duration_s
+    async with aiosqlite.connect(DB) as db:
+        await db.execute("""
+            INSERT INTO brandmarks(chat_id, user_id, label, expires_ts)
+            VALUES(?,?,?,?)
+            ON CONFLICT(chat_id, user_id) DO UPDATE SET
+              label=excluded.label,
+              expires_ts=excluded.expires_ts
+        """, (chat_id, user_id, label, expires))
+        await db.commit()
+    return expires
+
+async def get_active_brandmark(chat_id: int, user_id: int) -> str | None:
+    now = int(time.time())
+    async with aiosqlite.connect(DB) as db:
+        async with db.execute("""
+            SELECT label, expires_ts FROM brandmarks
+            WHERE chat_id=? AND user_id=?
+        """, (chat_id, user_id)) as cur:
+            row = await cur.fetchone()
+        if not row:
+            return None
+        label, expires_ts = row[0], int(row[1] or 0)
+        if expires_ts <= now:
+            await db.execute("DELETE FROM brandmarks WHERE chat_id=? AND user_id=?", (chat_id, user_id))
+            await db.commit()
+            return None
+        return str(label)
+
 
 # =========================
 # Pflegeaktionen (gemeinsamer Handler)
@@ -451,6 +538,56 @@ async def mark_chat_and_maybe_announce(context: ContextTypes.DEFAULT_TYPE, chat_
             await db.execute("UPDATE known_chats SET last_boot_announce=? WHERE chat_id=?", (BOOT_TS, chat_id))
         await db.commit()
 
+# =========================
+# Auto-Curse
+# =========================
+async def maybe_auto_curse(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not AUTO_CURSE_ENABLED:
+        return
+    if not is_group(update) or update.effective_chat.id != ALLOWED_CHAT_ID:
+        return
+
+    msg = update.effective_message
+    if not msg or not getattr(msg, "text", None) or msg.text.startswith("/"):
+        return
+
+    chat_id = update.effective_chat.id
+
+    async with aiosqlite.connect(DB) as db:
+        left = await get_cd_left(db, chat_id, 0, "autocurse")
+        if left > 0:
+            return
+
+        if random.random() > AUTO_CURSE_CHANCE_PER_MESSAGE:
+            return
+
+        uid, uname = await pick_random_player_excluding(chat_id, exclude_ids={update.effective_user.id})
+        if not uid:
+            return
+
+        action = random.choice(["verfluchen", "brandmarken"])
+
+        if action == "brandmarken":
+            await set_brandmark(chat_id, uid, BRAND_LABEL, BRAND_DURATION_S)
+            user = mention_html(uid, uname)
+            label = await get_active_brandmark(chat_id, uid)
+            if label:
+                user = f"{user} <i>({escape(label, quote=False)})</i>"
+            await context.bot.send_message(chat_id=chat_id, text=f"🔥 Brandmarke gesetzt: {user}", parse_mode=ParseMode.HTML)
+        else:
+            user = mention_html(uid, uname)
+            label = await get_active_brandmark(chat_id, uid)
+            if label:
+                user = f"{user} <i>({escape(label, quote=False)})</i>"
+            line = random.choice(FLUCH_LINES).format(user=user)
+            await context.bot.send_message(chat_id=chat_id, text=line, parse_mode=ParseMode.HTML)
+
+        await set_cd(db, chat_id, 0, "autocurse", AUTO_CURSE_COOLDOWN_S)
+        await db.commit()
+
+# =========================
+# Auto-Registrierung + Coins
+# =========================
 async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update) or update.effective_chat.id != ALLOWED_CHAT_ID:
         return
@@ -465,6 +602,7 @@ async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     await mark_chat_and_maybe_announce(context, chat.id)
+    await maybe_auto_curse(update, context)
 
     async with aiosqlite.connect(DB) as db:
         await ensure_player(db, chat.id, user.id, user.username or user.full_name or "")
@@ -489,6 +627,70 @@ async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE
         if MESSAGE_THROTTLE_S > 0:
             await set_cd(db, chat.id, user.id, "msgcoin", MESSAGE_THROTTLE_S)
         await db.commit()
+
+# =========================
+# verfluchen und brandmarken
+# =========================
+
+async def _resolve_target_user_for_fun(db, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = update.effective_message
+    if msg.reply_to_message and msg.reply_to_message.from_user:
+        u = msg.reply_to_message.from_user
+        return u.id, (u.username or None)
+
+    if context.args:
+        first = context.args[0].lstrip("@")
+        if first.isdigit():
+            return int(first), None
+        chat_id = update.effective_chat.id
+        async with db.execute("SELECT user_id FROM players WHERE chat_id=? AND username=?", (chat_id, first)) as cur:
+            row = await cur.fetchone()
+        if row:
+            return int(row[0]), first
+
+    return None, None
+
+async def cmd_verfluchen(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    chat_id = update.effective_chat.id
+
+    async with aiosqlite.connect(DB) as db:
+        tid, tname = await _resolve_target_user_for_fun(db, update, context)
+        if not tid:
+            uid, uname = await pick_random_player_excluding(chat_id, exclude_ids={update.effective_user.id})
+            if not uid:
+                return await update.effective_message.reply_text("Keine Opfer verfügbar. Postet mehr, dann kann ich euch schlimmer behandeln.")
+            tid, tname = uid, uname
+
+    user = mention_html(tid, tname)
+    label = await get_active_brandmark(chat_id, tid)
+    if label:
+        user = f"{user} <i>({escape(label, quote=False)})</i>"
+    line = random.choice(FLUCH_LINES).format(user=user)
+    await update.effective_message.reply_text(line, parse_mode=ParseMode.HTML)
+
+async def cmd_brandmarken(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    chat_id = update.effective_chat.id
+
+    async with aiosqlite.connect(DB) as db:
+        tid, tname = await _resolve_target_user_for_fun(db, update, context)
+        if not tid:
+            uid, uname = await pick_random_player_excluding(chat_id, exclude_ids={update.effective_user.id})
+            if not uid:
+                return await update.effective_message.reply_text("Keine Kandidaten zum Brandmarken gefunden.")
+            tid, tname = uid, uname
+
+    expires = await set_brandmark(chat_id, tid, BRAND_LABEL, BRAND_DURATION_S)
+    user = mention_html(tid, tname)
+    until = datetime.datetime.fromtimestamp(expires, tz=ZoneInfo(PETFLIX_TZ)).strftime("%d.%m.%Y %H:%M")
+    await update.effective_message.reply_text(
+        f"{user} trägt jetzt unsichtbar <b>{escape(BRAND_LABEL, quote=False)}</b> auf der Haut, bis <b>{until}</b>. 🔥",
+        parse_mode=ParseMode.HTML
+    )
+
 
 # =========================
 # Preise, Balance, Top
@@ -682,6 +884,7 @@ async def register_commands(application: Application):
 
         # Special
         BotCommand("treasure", "Tägliche Schatzsuche starten")
+
     ]
     await application.bot.set_my_commands(commands)
 
@@ -1737,6 +1940,10 @@ def main():
 
     # Admin: manuell purgen
     app.add_handler(CommandHandler("purgeuser", cmd_purgeuser,   filters=CHAT_FILTER))
+    
+    #Auto Bot commands (falls mal ein User das machen darf)
+    # app.add_handler(CommandHandler("verfluchen",  cmd_verfluchen,  filters=CHAT_FILTER))
+    # app.add_handler(CommandHandler("brandmarken", cmd_brandmarken, filters=CHAT_FILTER))
 
 
     # Member-Events
