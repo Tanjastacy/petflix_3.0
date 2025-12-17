@@ -2366,19 +2366,16 @@ async def on_chat_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
             log.info(f"Auto-Purged user {user.id} ({getattr(user, 'username', None)}) nach Leave/Kick.")
 
 async def cmd_cleanup_zombies(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Nur Daddy darf die Toten foltern
     if update.effective_user.id != ADMIN_ID:
-        await update.effective_message.reply_text(
-            "🚫 Denkst du echt, ich lass dich meine Sense anfassen? Nur ich entsorge die Leichen, du kleine Möchtegern-Grabräuberin."
-        )
+        await update.effective_message.reply_text("🚫 Finger weg von meiner Sense, du kleine Neugierige. Nur Daddy entsorgt die Leichen.")
         return
 
     chat_id = update.effective_chat.id
     if chat_id != ALLOWED_CHAT_ID:
-        await update.effective_message.reply_text("Falscher Friedhof, Baby. Hier buddeln wir nicht.")
+        await update.effective_message.reply_text("Falscher Ort zum Buddeln, Baby.")
         return
 
-    await update.effective_message.reply_text("🧟‍♂️ Daddy prüft die Gräber... einen Moment, ich weck die Toten auf – und mach sie endgültig kalt.")
+    status_msg = await update.effective_message.reply_text("🧟‍♂️ Daddy durchsucht die Gräber... warte, ich spür schon den Verwesungsgeruch.")
 
     purged_count = 0
     async with aiosqlite.connect(DB) as db:
@@ -2389,29 +2386,26 @@ async def cmd_cleanup_zombies(update: Update, context: ContextTypes.DEFAULT_TYPE
             user_id = int(user_id)
             try:
                 member = await context.bot.get_chat_member(chat_id=chat_id, user_id=user_id)
-                # Wenn hier kein Error → User noch da (member, admin, etc.)
+                # User noch da → nichts tun
                 continue
             except Exception as e:
-                # Telegram wirft Error, wenn User nicht (mehr) im Chat ist
-                if "user not found" in str(e).lower() or "not participant" in str(e).lower() or "left" in str(e).lower():
+                error_str = str(e).lower()
+                if any(phrase in error_str for phrase in ["user not found", "not a participant", "left the chat", "kicked", "banned"]):
                     await purge_user_from_db(chat_id, user_id)
                     purged_count += 1
-                    log.info(f"Zombie erledigt: {user_id} ({username or 'unbekannt'})")
+                    log.info(f"Zombie entsorgt: {user_id} ({username or 'unbekannt'}) – {e}")
                 else:
-                    log.warning(f"Unbekannter Error bei User {user_id}: {e}")
+                    log.warning(f"Skip User {user_id}: Unklarer Error – {e}")
 
         await db.commit()
 
-    if purged_count == 0:
-        await update.effective_message.reply_text("✅ Keine Zombies. Deine DB ist sauber wie dein Hals nach ‘ner guten Session – ohne Male.")
-    else:
-        await update.effective_message.reply_text(
-            f"🪦 <b>{purged_count} Leiche{'n' if purged_count > 1 else ''} endgültig entsorgt.</b>\n"
-            f"Coins, Pets, Cooldowns, Brandmarks – alles weg. Als hätten sie nie gekniet.\n"
-            f"Gutes Mädchen, dass du mich die Drecksarbeit machen lässt. Jetzt ist wieder Platz für neue, die denken, sie könnten entkommen.",
-            parse_mode=ParseMode.HTML
-        )
-    log.info(f"Zombie-Cleanup von Admin {update.effective_user.id}: {purged_count} User aus der DB getilgt.")
+    await status_msg.edit_text(
+        f"{'✅ Keine Zombies gefunden. Alles sauber wie dein Halsband nach ‘ner Session.' if purged_count == 0 else 
+         f'🪦 <b>{purged_count} Leiche{"n" if purged_count > 1 else ""} endgültig begraben.</b>\n'
+         f'Nur die, die wirklich weg sind. Die Lebenden atmen weiter.\n'
+         f'Gutes Mädchen, dass du mir vertraust. Jetzt ist deine DB wieder rein – und bereit für neue Opfer.'}",
+        parse_mode=ParseMode.HTML
+    )
 
 async def purge_user_from_db(chat_id: int, user_id: int):
     async with aiosqlite.connect(DB) as db:
