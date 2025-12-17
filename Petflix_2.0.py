@@ -2421,6 +2421,61 @@ async def purge_user_from_db(chat_id: int, user_id: int):
         await db.execute("DELETE FROM brandmarks WHERE chat_id=? AND user_id=?", (chat_id, user_id))  # Bonus: Brandmarks weg
         await db.commit()
 
+async def cmd_forcepurge(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Nur die echte Herrin (aka Admin) darf Leichen manuell entsorgen
+    if update.effective_user.id != ADMIN_ID:
+        await update.effective_message.reply_text(
+            "🚫 Träum weiter, du kleine Möchtegern-Schlächterin. "
+            "Nur ich darf entscheiden, wer endgültig stirbt. Finger weg von der Sense."
+        )
+        return
+
+    if not context.args:
+        await update.effective_message.reply_text(
+            "Sag mir wen ich foltern soll, du kleine Sadistin.\n"
+            "Benutze: /forcepurge @username  oder  /forcepurge user_id"
+        )
+        return
+
+    chat_id = update.effective_chat.id
+    arg = context.args[0].lstrip('@')
+
+    async with aiosqlite.connect(DB) as db:
+        user_id = None
+
+        # Wenn's eine Zahl ist → direkt als ID nehmen
+        if arg.isdigit():
+            user_id = int(arg)
+        else:
+            # Sonst nach Username in der DB suchen
+            async with db.execute(
+                "SELECT user_id FROM players WHERE chat_id=? AND LOWER(username)=LOWER(?)", 
+                (chat_id, arg)
+            ) as cur:
+                row = await cur.fetchone()
+                if row:
+                    user_id = row[0]
+
+        if not user_id:
+            await update.effective_message.reply_text(
+                f"🤨 Kenn ich nicht, diese @{arg}. "
+                "Entweder falscher Name, oder die Schlampe war nie hier. "
+                "Oder sie hat sich schon selbst gelöscht – wie feige."
+            )
+            return
+
+        # Jetzt gnadenlos tilgen
+        await purge_user_from_db(chat_id, user_id)
+        await db.commit()
+
+    await update.effective_message.reply_text(
+        f"🪦 @{arg} (ID {user_id}) – endgültig entsorgt.\n"
+        f"Coins weg. Pets weg. Ranglisten-Platz weg. Existenz weg.\n"
+        f"Als hätte sie nie vor dir gekniet. ",
+        parse_mode=ParseMode.HTML
+    )
+    log.info(f"Force-Purge von Admin {update.effective_user.id}: User {user_id} (@{arg}) gelöscht.")
+
 async def cmd_purgeuser(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _is_admin_here(update):
         return await update.effective_message.reply_text("Nur der Owner darf löschen. Versuch niedlich, aber nein.")
@@ -2702,6 +2757,7 @@ def main():
 
     # Admin: manuell purgen
     app.add_handler(CommandHandler("purgeuser", cmd_purgeuser,   filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("forcepurge", cmd_forcepurge, filters=CHAT_FILTER))
     
     #Auto Bot commands (falls mal ein User das machen darf)
     # app.add_handler(CommandHandler("verfluchen",  cmd_verfluchen,  filters=CHAT_FILTER))
