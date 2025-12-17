@@ -2366,28 +2366,19 @@ async def on_chat_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
             log.info(f"Auto-Purged user {user.id} ({getattr(user, 'username', None)}) nach Leave/Kick.")
 
 async def cmd_cleanup_zombies(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Nur der echte Boss darf die Toten begraben
+    # Nur Daddy darf die Toten foltern
     if update.effective_user.id != ADMIN_ID:
         await update.effective_message.reply_text(
-            "🚫 Du denkst echt, ich lass dich an meiner Sense lecken? Nur Daddy räumt hier auf!"
+            "🚫 Denkst du echt, ich lass dich meine Sense anfassen? Nur ich entsorge die Leichen, du kleine Möchtegern-Grabräuberin."
         )
         return
 
     chat_id = update.effective_chat.id
     if chat_id != ALLOWED_CHAT_ID:
-        await update.effective_message.reply_text("Falscher Chat, Baby. Hier graben wir nicht.")
+        await update.effective_message.reply_text("Falscher Friedhof, Baby. Hier buddeln wir nicht.")
         return
 
-    await update.effective_message.reply_text("🧟‍♂️ Daddy holt die Sense... einen Moment, ich mach die Zombies fertig.")
-
-    try:
-        members = []
-        async for member in context.bot.get_chat_members(chat_id=chat_id):
-            members.append(member.user.id)
-        member_set = set(members)
-    except Exception as e:
-        await update.effective_message.reply_text(f"⚠️ Telegram spielt nicht mit: {e}")
-        return
+    await update.effective_message.reply_text("🧟‍♂️ Daddy prüft die Gräber... einen Moment, ich weck die Toten auf – und mach sie endgültig kalt.")
 
     purged_count = 0
     async with aiosqlite.connect(DB) as db:
@@ -2396,22 +2387,31 @@ async def cmd_cleanup_zombies(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         for user_id, username in rows:
             user_id = int(user_id)
-            if user_id not in member_set:
-                await purge_user_from_db(chat_id, user_id)
-                purged_count += 1
+            try:
+                member = await context.bot.get_chat_member(chat_id=chat_id, user_id=user_id)
+                # Wenn hier kein Error → User noch da (member, admin, etc.)
+                continue
+            except Exception as e:
+                # Telegram wirft Error, wenn User nicht (mehr) im Chat ist
+                if "user not found" in str(e).lower() or "not participant" in str(e).lower() or "left" in str(e).lower():
+                    await purge_user_from_db(chat_id, user_id)
+                    purged_count += 1
+                    log.info(f"Zombie erledigt: {user_id} ({username or 'unbekannt'})")
+                else:
+                    log.warning(f"Unbekannter Error bei User {user_id}: {e}")
 
         await db.commit()
 
     if purged_count == 0:
-        await update.effective_message.reply_text("✅ Keine Zombies. Alles sauber wie dein Gewissen nach ‘ner richtig guten Session.")
+        await update.effective_message.reply_text("✅ Keine Zombies. Deine DB ist sauber wie dein Hals nach ‘ner guten Session – ohne Male.")
     else:
         await update.effective_message.reply_text(
-            f"🪦 <b>{purged_count} Leiche{'n' if purged_count > 1 else ''} entsorgt.</b>\n"
-            f"Coins, Pets, Cooldowns, Brandmarks – alles weg. Als hätten sie nie existiert.\n"
-            f"Jetzt ist wieder Platz für frische, naive Opfer.",
+            f"🪦 <b>{purged_count} Leiche{'n' if purged_count > 1 else ''} endgültig entsorgt.</b>\n"
+            f"Coins, Pets, Cooldowns, Brandmarks – alles weg. Als hätten sie nie gekniet.\n"
+            f"Gutes Mädchen, dass du mich die Drecksarbeit machen lässt. Jetzt ist wieder Platz für neue, die denken, sie könnten entkommen.",
             parse_mode=ParseMode.HTML
         )
-    log.info(f"Zombie-Cleanup von Admin {update.effective_user.id}: {purged_count} User gnadenlos gelöscht.")
+    log.info(f"Zombie-Cleanup von Admin {update.effective_user.id}: {purged_count} User aus der DB getilgt.")
 
 async def purge_user_from_db(chat_id: int, user_id: int):
     async with aiosqlite.connect(DB) as db:
