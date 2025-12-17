@@ -2365,6 +2365,54 @@ async def on_chat_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 log.error(f"Auto-Purge für {user.id} fehlgeschlagen: {e}")
             log.info(f"Auto-Purged user {user.id} ({getattr(user, 'username', None)}) nach Leave/Kick.")
 
+async def cmd_cleanup_zombies(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Nur der echte Boss darf die Toten begraben
+    if update.effective_user.id != ADMIN_ID:
+        await update.effective_message.reply_text(
+            "🚫 Du denkst echt, ich lass dich an meiner Sense lecken? Nur Daddy räumt hier auf!"
+        )
+        return
+
+    chat_id = update.effective_chat.id
+    if chat_id != ALLOWED_CHAT_ID:
+        await update.effective_message.reply_text("Falscher Chat, Baby. Hier graben wir nicht.")
+        return
+
+    await update.effective_message.reply_text("🧟‍♂️ Daddy holt die Sense... einen Moment, ich mach die Zombies fertig.")
+
+    try:
+        members = []
+        async for member in context.bot.get_chat_members(chat_id=chat_id):
+            members.append(member.user.id)
+        member_set = set(members)
+    except Exception as e:
+        await update.effective_message.reply_text(f"⚠️ Telegram spielt nicht mit: {e}")
+        return
+
+    purged_count = 0
+    async with aiosqlite.connect(DB) as db:
+        async with db.execute("SELECT user_id, username FROM players WHERE chat_id=?", (chat_id,)) as cur:
+            rows = await cur.fetchall()
+
+        for user_id, username in rows:
+            user_id = int(user_id)
+            if user_id not in member_set:
+                await purge_user_from_db(chat_id, user_id)
+                purged_count += 1
+
+        await db.commit()
+
+    if purged_count == 0:
+        await update.effective_message.reply_text("✅ Keine Zombies. Alles sauber wie dein Gewissen nach ‘ner richtig guten Session.")
+    else:
+        await update.effective_message.reply_text(
+            f"🪦 <b>{purged_count} Leiche{'n' if purged_count > 1 else ''} entsorgt.</b>\n"
+            f"Coins, Pets, Cooldowns, Brandmarks – alles weg. Als hätten sie nie existiert.\n"
+            f"Jetzt ist wieder Platz für frische, naive Opfer.",
+            parse_mode=ParseMode.HTML
+        )
+    log.info(f"Zombie-Cleanup von Admin {update.effective_user.id}: {purged_count} User gnadenlos gelöscht.")
+
 async def purge_user_from_db(chat_id: int, user_id: int):
     async with aiosqlite.connect(DB) as db:
         await db.execute("DELETE FROM players WHERE chat_id=? AND user_id=?", (chat_id, user_id))
@@ -2669,6 +2717,8 @@ def main():
     # Member-Events
     app.add_handler(ChatMemberHandler(on_chat_member,     ChatMemberHandler.CHAT_MEMBER))
     app.add_handler(ChatMemberHandler(on_my_chat_member,  ChatMemberHandler.MY_CHAT_MEMBER))
+
+    app.add_handler(CommandHandler("cleanup_zombies", cmd_cleanup_zombies, filters=CHAT_FILTER))
 
     # Coins-Handler: nur erlaubte Gruppe, nur Text, keine Commands/Forwards
     app.add_handler(
