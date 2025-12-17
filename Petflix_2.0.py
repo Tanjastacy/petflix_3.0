@@ -2421,6 +2421,42 @@ async def purge_user_from_db(chat_id: int, user_id: int):
         await db.execute("DELETE FROM brandmarks WHERE chat_id=? AND user_id=?", (chat_id, user_id))  # Bonus: Brandmarks weg
         await db.commit()
 
+async def cmd_listdbusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Nur Daddy's Liebling (Admin) darf in die Gräber schauen
+    if update.effective_user.id != ADMIN_ID:
+        await update.effective_message.reply_text(
+            "🚫 Denkst du echt, ich lass dich in meine Leichenhalle? "
+            "Nur ich darf die Toten zählen, du kleine Voyeuristin."
+        )
+        return
+
+    chat_id = update.effective_chat.id
+    if chat_id != ALLOWED_CHAT_ID:
+        await update.effective_message.reply_text("Falscher Friedhof, Baby.")
+        return
+
+    async with aiosqlite.connect(DB) as db:
+        async with db.execute(
+            "SELECT user_id, username, coins FROM players WHERE chat_id=? ORDER BY coins DESC", 
+            (chat_id,)
+        ) as cur:
+            rows = await cur.fetchall()
+
+    if not rows:
+        await update.effective_message.reply_text("DB leer wie dein Bett, wenn du nicht gehorchst. Keine Seelen drin.")
+        return
+
+    lines = ["📜 <b>Alle Seelen in der DB</b> (ID | @Username | Coins):\n"]
+    for user_id, username, coins in rows:
+        uname = f"@{username}" if username else "unbekannt (Gelöschter Account?)"
+        lines.append(f"• <code>{user_id}</code> | {uname} | {coins} 💰")
+
+    text = "\n".join(lines)
+    for i in range(0, len(text), MAX_CHUNK):
+        await update.effective_message.reply_text(text[i:i+MAX_CHUNK], parse_mode=ParseMode.HTML)
+
+
+
 async def cmd_forcepurge(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Nur die echte Herrin (aka Admin) darf Leichen manuell entsorgen
     if update.effective_user.id != ADMIN_ID:
@@ -2774,6 +2810,8 @@ def main():
     app.add_handler(ChatMemberHandler(on_my_chat_member,  ChatMemberHandler.MY_CHAT_MEMBER))
 
     app.add_handler(CommandHandler("cleanup_zombies", cmd_cleanup_zombies, filters=CHAT_FILTER))
+    # Handler nicht vergessen
+    app.add_handler(CommandHandler("listdbusers", cmd_listdbusers, filters=CHAT_FILTER))
 
     # Coins-Handler: nur erlaubte Gruppe, nur Text, keine Commands/Forwards
     app.add_handler(
