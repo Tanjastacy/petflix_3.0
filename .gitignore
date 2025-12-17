@@ -34,3 +34,7 @@ data/
 
 # Logs
 *.log
+
+# txt
+*.txt
+/*.txt
