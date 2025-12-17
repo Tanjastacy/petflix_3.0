@@ -2342,35 +2342,36 @@ async def cmd_top(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Auto-Purge bei Austritt
 async def on_chat_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cmu = update.chat_member
-    if not cmu:
+    if not cmu or not cmu.chat or cmu.chat.id != ALLOWED_CHAT_ID:
         return
-    chat_id = cmu.chat.id
-    if chat_id != ALLOWED_CHAT_ID:
-        return
-    old_status = getattr(cmu.old_chat_member, "status", None)
-    new_status = getattr(cmu.new_chat_member, "status", None)
-    user = cmu.new_chat_member.user
-    leftish = {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}
-    still_in = {ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR}
-    if (old_status in still_in or old_status is None) and (new_status in leftish):
-        try:
-            await purge_user_from_db(chat_id, user.id)
-        except Exception as e:
-            log.error(f"Purge für {user.id} scheiterte: {e}")
-        else:
-            bye = f"👋 {nice_name_html(user)} ist weg. Daten weg, Coins weg – Konsequenzen lernen ist auch ein Feature."
 
+    old_member = cmu.old_chat_member
+    new_member = cmu.new_chat_member
+    user = new_member.user
+
+    # Alte und neue Status
+    old_status = old_member.status if old_member else None
+    new_status = new_member.status
+
+    # Nur purgen, wenn der User wirklich den Chat VERLÄSST (left oder kicked)
+    if new_status in {ChatMemberStatus.LEFT, ChatMemberStatus.KICKED}:
+        # Prüfen, ob er vorher drin war (nicht schon weg)
+        if old_status in {ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.CREATOR}:
             try:
-                await context.bot.send_message(chat_id=chat_id, text=bye)
+                await purge_user_from_db(cmu.chat.id, user.id)
+                bye_msg = f"👋 {nice_name_html(user)} hat den Chat verlassen. Alles gelöscht – Coins, Pets, Existenz. Tschüss, du kleine Flüchtige. Konsequenzen sind geil."
+                await context.bot.send_message(chat_id=cmu.chat.id, text=bye_msg, parse_mode=ParseMode.HTML)
             except Exception as e:
-                log.error(f"Bye-Message für {user.id} scheiterte: {e}")
-        log.info(f"Purged user {user.id} ({getattr(user, 'username', None)}) from chat {chat_id} due to leave/kick.")
+                log.error(f"Auto-Purge für {user.id} fehlgeschlagen: {e}")
+            log.info(f"Auto-Purged user {user.id} ({getattr(user, 'username', None)}) nach Leave/Kick.")
 
 async def purge_user_from_db(chat_id: int, user_id: int):
     async with aiosqlite.connect(DB) as db:
-        await db.execute("DELETE FROM players  WHERE chat_id=? AND user_id=?", (chat_id, user_id))
-        await db.execute("DELETE FROM pets     WHERE chat_id=? AND (pet_id=? OR owner_id=?)", (chat_id, user_id, user_id))
+        await db.execute("DELETE FROM players WHERE chat_id=? AND user_id=?", (chat_id, user_id))
+        await db.execute("DELETE FROM pets WHERE chat_id=? AND (pet_id=? OR owner_id=?)", (chat_id, user_id, user_id))
         await db.execute("DELETE FROM cooldowns WHERE chat_id=? AND user_id=?", (chat_id, user_id))
+        await db.execute("DELETE FROM hass_challenges WHERE chat_id=? AND user_id=?", (chat_id, user_id))  # Bonus: falls du die hast
+        await db.execute("DELETE FROM brandmarks WHERE chat_id=? AND user_id=?", (chat_id, user_id))  # Bonus: Brandmarks weg
         await db.commit()
 
 async def cmd_purgeuser(update: Update, context: ContextTypes.DEFAULT_TYPE):
