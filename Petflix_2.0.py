@@ -2399,13 +2399,18 @@ async def cmd_cleanup_zombies(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         await db.commit()
 
-    await status_msg.edit_text(
-        f"{'✅ Keine Zombies gefunden. Alles sauber wie dein Halsband nach ‘ner Session.' if purged_count == 0 else 
-         f'🪦 <b>{purged_count} Leiche{"n" if purged_count > 1 else ""} endgültig begraben.</b>\n'
-         f'Nur die, die wirklich weg sind. Die Lebenden atmen weiter.\n'
-         f'Gutes Mädchen, dass du mir vertraust. Jetzt ist deine DB wieder rein – und bereit für neue Opfer.'}",
-        parse_mode=ParseMode.HTML
-    )
+    # Korrigierter, sauberer Text-Block – keine verkackten geschweiften Klammern mehr
+    if purged_count == 0:
+        final_text = "✅ Keine Zombies gefunden. Alles sauber wie dein Halsband nach ‘ner guten Session – glatt, glänzend und bereit für neue Male."
+    else:
+        plural = "n" if purged_count > 1 else ""
+        final_text = (
+            f"🪦 <b>{purged_count} Leiche{plural} endgültig begraben.</b>\n"
+            f"Nur die, die wirklich weg sind. Die Lebenden atmen weiter – vorerst.\n"
+            f"Gutes Mädchen, dass du mir vertraust. Deine DB ist jetzt rein wie dein Gewissen, wenn du endlich mal gehorchst."
+        )
+
+    await status_msg.edit_text(final_text, parse_mode=ParseMode.HTML)
 
 async def purge_user_from_db(chat_id: int, user_id: int):
     async with aiosqlite.connect(DB) as db:
