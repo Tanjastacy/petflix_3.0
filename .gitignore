@@ -13,9 +13,7 @@ venv/
 *.env
 
 # Databases
-*.db
 *.sqlite*
-*.db-*
 *.sqlite3
 
 
