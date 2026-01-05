@@ -22,14 +22,14 @@ from telegram.ext import (
 )
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
-ALLOWED_CHAT_ID_RAW = os.getenv("ALLOWED_CHAT_ID", "-1002550303601")
+ALLOWED_CHAT_ID_RAW = os.getenv("ALLOWED_CHAT_ID", "-1003697514358")
 try:
     ALLOWED_CHAT_ID = int(ALLOWED_CHAT_ID_RAW)
     CHAT_FILTER = filters.Chat(ALLOWED_CHAT_ID)
 except ValueError:
     CHAT_FILTER = filters.Chat(ALLOWED_CHAT_ID_RAW)
 
-DB = os.environ.get("DB_PATH", "petflix_2.0.db")
+DB = os.environ.get("DB_PATH", "petflix_2.1.db")
 BACKUP_DIR = os.getenv("BACKUP_DIR", "data")
 MAX_CHUNK = 3500  # unter 4096 bleiben, wegen HTML-Overhead sicher
 
