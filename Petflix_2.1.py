@@ -399,7 +399,7 @@ async def get_moraltax_settings(db, chat_id: int):
             "INSERT INTO settings(chat_id, moraltax_enabled, moraltax_amount) VALUES(?,?,?) "
             "ON CONFLICT(chat_id) DO UPDATE SET moraltax_enabled=COALESCE(moraltax_enabled,excluded.moraltax_enabled), "
             "moraltax_amount=COALESCE(moraltax_amount,excluded.moraltax_amount)",
-            (chat_id, 0, 1, MORAL_TAX_DEFAULT)
+            (chat_id, 1, MORAL_TAX_DEFAULT)
         )
         await db.commit()
         return True, MORAL_TAX_DEFAULT
