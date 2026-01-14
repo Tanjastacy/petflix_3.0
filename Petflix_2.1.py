@@ -1653,6 +1653,44 @@ async def cmd_domdebug(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         pass
 
+async def cmd_careminus(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    if not _is_admin_here(update):
+        return
+
+    async with aiosqlite.connect(DB) as db:
+        tid, uname = await _resolve_target(db, update, context)
+        if not tid:
+            return await update.effective_message.reply_text(
+                "Ziel nicht gefunden. Nutze Reply, @username oder user_id."
+            )
+        chat_id = update.effective_chat.id
+        async with db.execute(
+            "SELECT care_done_today, day_ymd FROM pets WHERE chat_id=? AND pet_id=?",
+            (chat_id, tid)
+        ) as cur:
+            row = await cur.fetchone()
+        if not row:
+            return await update.effective_message.reply_text("Kein Pflege-Eintrag für den User.")
+
+        done, day = int(row[0] or 0), row[1]
+        today = today_ymd()
+        if day != today:
+            return await update.effective_message.reply_text("Heute wurde noch nicht gepflegt.")
+
+        new_done = max(0, done - 5)
+        await db.execute(
+            "UPDATE pets SET care_done_today=? WHERE chat_id=? AND pet_id=?",
+            (new_done, chat_id, tid)
+        )
+        await db.commit()
+
+    tag = f"@{uname}" if uname else f"ID:{tid}"
+    await update.effective_message.reply_text(
+        f"Pflege reduziert: {escape(tag, quote=False)} {done} -> {new_done}."
+    )
+
 async def cmd_addcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
@@ -3343,6 +3381,7 @@ def main():
     app.add_handler(CommandHandler("setgender", cmd_setgender, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("adminping", cmd_adminping, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("domdebug", cmd_domdebug, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("careminus", cmd_careminus, filters=CHAT_FILTER))
 
     # Admin: manuell purgen
     app.add_handler(CommandHandler("purgeuser", cmd_purgeuser,   filters=CHAT_FILTER))
