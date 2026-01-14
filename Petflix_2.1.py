@@ -14,10 +14,10 @@ from datetime import time as dtime
 from zoneinfo import ZoneInfo  # Python 3.9+
 from html import escape
 
-from telegram import Update, BotCommand
+from telegram import Update, BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatType, ChatMemberStatus, ParseMode
 from telegram.ext import (
-    Application, CommandHandler, MessageHandler, ChatMemberHandler,
+    Application, CommandHandler, MessageHandler, ChatMemberHandler, CallbackQueryHandler,
     ContextTypes, filters, Defaults
 )
 
@@ -198,7 +198,7 @@ log = logging.getLogger("Petflix_2.0")
 # DB-Setup 
 # =========================
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 6
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -224,6 +224,7 @@ async def migrate_db(db):
           username  TEXT,
           coins     INTEGER DEFAULT 0,
           price     INTEGER DEFAULT 50, -- alte Default bleibt; ensure_player setzt 100
+          gender    TEXT DEFAULT NULL,
           opted_out INTEGER DEFAULT 0,
           PRIMARY KEY(chat_id, user_id)
         );
@@ -308,6 +309,12 @@ async def migrate_db(db):
         """)
         await _set_user_version(db, 5)
         current = 5
+
+    if current < 6:
+        if not await _table_has_column(db, "players", "gender"):
+            await db.execute("ALTER TABLE players ADD COLUMN gender TEXT DEFAULT NULL")
+        await _set_user_version(db, 6)
+        current = 6
 
 async def db_init():
     async with aiosqlite.connect(DB) as db:
@@ -1166,6 +1173,132 @@ def _parse_amount_from_args(context: ContextTypes.DEFAULT_TYPE) -> int | None:
             return None
     return None
 
+async def _fetch_gender_candidates(db, chat_id: int, include_assigned: bool):
+    if include_assigned:
+        sql = "SELECT user_id, username FROM players WHERE chat_id=? ORDER BY user_id"
+        params = (chat_id,)
+    else:
+        sql = "SELECT user_id, username FROM players WHERE chat_id=? AND (gender IS NULL OR gender='') ORDER BY user_id"
+        params = (chat_id,)
+    async with db.execute(sql, params) as cur:
+        return await cur.fetchall()
+
+def _gender_prompt_text(user_id: int, username: str | None, index: int, total: int) -> str:
+    user_tag = mention_html(user_id, username or None)
+    return f"<b>Gender-Zuweisung</b>\nUser {index}/{total}: {user_tag}\nWahl:"
+
+def _gender_prompt_markup(chat_id: int, user_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("Mann", callback_data=f"gender|{chat_id}|{user_id}|m"),
+            InlineKeyboardButton("Frau", callback_data=f"gender|{chat_id}|{user_id}|f"),
+        ],
+        [InlineKeyboardButton("Skip", callback_data=f"gender|{chat_id}|{user_id}|skip")],
+    ])
+
+async def _send_gender_prompt(context: ContextTypes.DEFAULT_TYPE, admin_id: int, edit_message=None):
+    queue = context.user_data.get("gender_queue") or []
+    total = context.user_data.get("gender_total", len(queue))
+    chat_id = context.user_data.get("gender_chat_id")
+
+    if chat_id is None:
+        text = "Session abgelaufen. Bitte /assign_gender erneut starten."
+        if edit_message:
+            await edit_message.edit_text(text)
+        else:
+            await context.bot.send_message(chat_id=admin_id, text=text)
+        return
+
+    if not queue:
+        text = "Fertig. Keine weiteren User mehr."
+        if edit_message:
+            await edit_message.edit_text(text)
+        else:
+            await context.bot.send_message(chat_id=admin_id, text=text)
+        return
+
+    uid, uname = queue[0]
+    idx = total - len(queue) + 1
+    text = _gender_prompt_text(uid, uname, idx, total)
+    markup = _gender_prompt_markup(chat_id, uid)
+    if edit_message:
+        await edit_message.edit_text(text, reply_markup=markup, parse_mode=ParseMode.HTML)
+    else:
+        await context.bot.send_message(chat_id=admin_id, text=text, reply_markup=markup, parse_mode=ParseMode.HTML)
+
+async def cmd_assign_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("Nur der Owner darf das.")
+
+    include_assigned = False
+    if context.args and context.args[0].lower() in {"all", "alle"}:
+        include_assigned = True
+
+    chat_id = update.effective_chat.id
+    async with aiosqlite.connect(DB) as db:
+        rows = await _fetch_gender_candidates(db, chat_id, include_assigned)
+
+    if not rows:
+        return await update.effective_message.reply_text("Keine User zum Zuweisen gefunden.")
+
+    context.user_data["gender_queue"] = [(int(uid), uname or None) for uid, uname in rows]
+    context.user_data["gender_total"] = len(rows)
+    context.user_data["gender_chat_id"] = chat_id
+
+    try:
+        await _send_gender_prompt(context, update.effective_user.id)
+        await update.effective_message.reply_text("Ich schicke dir die User jetzt privat.")
+    except Exception:
+        await update.effective_message.reply_text(
+            "Ich kann dir keine PM schicken. Bitte starte den Bot privat mit /start."
+        )
+
+async def on_gender_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not query or not query.data or not query.data.startswith("gender|"):
+        return
+
+    parts = query.data.split("|")
+    if len(parts) != 4:
+        return await query.answer()
+
+    _, chat_id_raw, user_id_raw, value = parts
+    try:
+        chat_id = int(chat_id_raw)
+        user_id = int(user_id_raw)
+    except ValueError:
+        return await query.answer()
+
+    context.user_data["gender_chat_id"] = chat_id
+
+    if update.effective_user.id != ADMIN_ID:
+        return await query.answer("Nur Admin.", show_alert=True)
+
+    if value not in {"m", "f", "skip"}:
+        return await query.answer()
+
+    if value != "skip":
+        async with aiosqlite.connect(DB) as db:
+            await ensure_player(db, chat_id, user_id, "")
+            await db.execute(
+                "UPDATE players SET gender=? WHERE chat_id=? AND user_id=?",
+                (value, chat_id, user_id)
+            )
+            await db.commit()
+
+    queue = context.user_data.get("gender_queue") or []
+    if queue:
+        if queue[0][0] == user_id:
+            queue.pop(0)
+        else:
+            queue = [item for item in queue if item[0] != user_id]
+        context.user_data["gender_queue"] = queue
+
+    await query.answer("Gespeichert." if value != "skip" else "Uebersprungen.")
+    await _send_gender_prompt(context, update.effective_user.id, edit_message=query.message)
+
 async def cmd_addcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
@@ -1303,6 +1436,7 @@ async def register_commands(application: Application):
 
         # Special
         BotCommand("treasure", "Tägliche Schatzsuche starten"),
+        BotCommand("assign_gender", "Admin: User per PM als Mann/Frau zuweisen"),
 
         #hass und selbst
         BotCommand("hass", "Admin-only: startet Hass-Status (2h, 3 mal /selbst)"),
@@ -2825,6 +2959,7 @@ def main():
     app.add_handler(CommandHandler("takecoins",  cmd_takecoins,  filters=CHAT_FILTER))
     app.add_handler(CommandHandler("setcoins",   cmd_setcoins,   filters=CHAT_FILTER))
     app.add_handler(CommandHandler("resetcoins", cmd_resetcoins, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("assign_gender", cmd_assign_gender, filters=CHAT_FILTER))
 
     # Admin: manuell purgen
     app.add_handler(CommandHandler("purgeuser", cmd_purgeuser,   filters=CHAT_FILTER))
@@ -2838,6 +2973,8 @@ def main():
     app.add_handler(CommandHandler("hass",   cmd_hass,   filters=CHAT_FILTER))
     app.add_handler(CommandHandler("selbst", cmd_selbst, filters=CHAT_FILTER))
 
+    # Callback für Gender-Zuweisung
+    app.add_handler(CallbackQueryHandler(on_gender_callback, pattern=r"^gender\|"))
 
 
     # Member-Events
