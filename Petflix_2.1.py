@@ -720,11 +720,13 @@ async def do_care(update, context, action_key, tame_lines):
     care_map = context.application.bot_data.setdefault("care_map", {})
     if len(care_map) > 1000:
         care_map.clear()
-    care_map[(chat_id, reply_msg.message_id)] = {
+    meta = {
         "pet_id": pet.id,
         "owner_id": owner.id,
         "action": action_key
     }
+    care_map[(chat_id, reply_msg.message_id)] = meta
+    care_map[(chat_id, msg.message_id)] = meta
 
 async def _dom_care(update: Update, context: ContextTypes.DEFAULT_TYPE, action_key: str):
     if not is_group(update):
