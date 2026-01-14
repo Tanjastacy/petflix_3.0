@@ -1,0 +1,132 @@
+{
+  "dom_pet": [
+    "{pet} kontert ruhig und dreht den Spieß um. +2 Coins.",
+    "{pet} setzt die Grenzen neu und bleibt souverän. +2 Coins.",
+    "{pet} bleibt dominant und lässt {owner} kurz warten. +2 Coins."
+  ],
+  "dom_walk": [
+    "{pet} bleibt stehen und bestimmt das Tempo. +2 Coins.",
+    "{pet} zieht die Linie neu und geht vorne. +2 Coins.",
+    "{pet} lenkt den Weg und macht die Regeln klar. +2 Coins."
+  ],
+  "dom_kiss": [
+    "{pet} erwidert selbstbewusst und übernimmt die Kontrolle. +2 Coins.",
+    "{pet} entscheidet über Nähe und Timing. +2 Coins.",
+    "{pet} bestimmt den Rahmen und bleibt obenauf. +2 Coins."
+  ],
+  "dom_dine": [
+    "{pet} entscheidet, was heute serviert wird. +2 Coins.",
+    "{pet} setzt den Ton und lässt {owner} warten. +2 Coins.",
+    "{pet} bestimmt den Ablauf und bleibt klar. +2 Coins."
+  ],
+  "dom_massage": [
+    "{pet} führt die Hände und gibt die Richtung vor. +2 Coins.",
+    "{pet} bestimmt Druck und Rhythmus. +2 Coins.",
+    "{pet} setzt die Grenzen und bleibt entspannt. +2 Coins."
+  ],
+  "dom_lapdance": [
+    "{pet} übernimmt die Führung und hält das Tempo. +2 Coins.",
+    "{pet} bestimmt die Nähe und den Abstand. +2 Coins.",
+    "{pet} setzt die Regeln und bleibt souverän. +2 Coins."
+  ],
+  "dom_knien": [
+    "{pet} fordert Respekt und bleibt aufrecht. +2 Coins.",
+    "{pet} dreht das Spiel und bleibt dominant. +2 Coins.",
+    "{pet} setzt ein klares Zeichen und übernimmt. +2 Coins."
+  ],
+  "dom_kriechen": [
+    "{pet} stoppt und gibt die Richtung vor. +2 Coins.",
+    "{pet} setzt klare Grenzen und bleibt obenauf. +2 Coins.",
+    "{pet} bestimmt Tempo und Haltung. +2 Coins."
+  ],
+  "dom_klaps": [
+    "{pet} kontert ruhig und übernimmt die Führung. +2 Coins.",
+    "{pet} gibt den Takt vor und bleibt souverän. +2 Coins.",
+    "{pet} setzt klare Regeln und bleibt dominant. +2 Coins."
+  ],
+  "dom_knabbern": [
+    "{pet} entscheidet, wann und wie es weitergeht. +2 Coins.",
+    "{pet} lenkt das Spiel und bleibt bestimmt. +2 Coins.",
+    "{pet} setzt die Grenzen und bleibt klar. +2 Coins."
+  ],
+  "dom_leine": [
+    "{pet} nimmt die Kontrolle und führt {owner}. +2 Coins.",
+    "{pet} bestimmt die Richtung und bleibt obenauf. +2 Coins.",
+    "{pet} setzt den Kurs und bleibt ruhig. +2 Coins."
+  ],
+  "dom_halsband": [
+    "{pet} entscheidet, wer hier führt. +2 Coins.",
+    "{pet} nimmt das Kommando und bleibt souverän. +2 Coins.",
+    "{pet} setzt klare Regeln und bleibt dominant. +2 Coins."
+  ],
+  "dom_lecken": [
+    "{pet} bestimmt den Rahmen und bleibt ruhig. +2 Coins.",
+    "{pet} legt das Tempo fest und führt. +2 Coins.",
+    "{pet} setzt die Grenzen und bleibt obenauf. +2 Coins."
+  ],
+  "dom_verweigern": [
+    "{pet} entscheidet über Belohnung und Timing. +2 Coins.",
+    "{pet} bleibt klar und lässt {owner} warten. +2 Coins.",
+    "{pet} setzt die Linie und bleibt souverän. +2 Coins."
+  ],
+  "dom_kaefig": [
+    "{pet} bestimmt, wer drin bleibt. +2 Coins.",
+    "{pet} setzt die Regeln und bleibt dominant. +2 Coins.",
+    "{pet} behält die Kontrolle und bleibt ruhig. +2 Coins."
+  ],
+  "dom_schande": [
+    "{pet} übernimmt die Regie und bleibt klar. +2 Coins.",
+    "{pet} kontert gelassen und führt. +2 Coins.",
+    "{pet} setzt die Grenze und bleibt obenauf. +2 Coins."
+  ],
+  "dom_erregen": [
+    "{pet} entscheidet, wie weit es geht. +2 Coins.",
+    "{pet} hält die Kontrolle und bestimmt das Tempo. +2 Coins.",
+    "{pet} setzt die Regeln und bleibt souverän. +2 Coins."
+  ],
+  "dom_betteln": [
+    "{pet} lässt {owner} kurz warten und bleibt obenauf. +2 Coins.",
+    "{pet} dreht das Spiel und führt. +2 Coins.",
+    "{pet} setzt klare Regeln und bleibt dominant. +2 Coins."
+  ],
+  "dom_stumm": [
+    "{pet} spricht klar und bestimmt die Ruhe. +2 Coins.",
+    "{pet} setzt die Linie und bleibt obenauf. +2 Coins.",
+    "{pet} bleibt ruhig und führt. +2 Coins."
+  ],
+  "dom_bestrafen": [
+    "{pet} legt den Rahmen fest und bleibt souverän. +2 Coins.",
+    "{pet} bestimmt, was angemessen ist. +2 Coins.",
+    "{pet} setzt die Regeln und bleibt dominant. +2 Coins."
+  ],
+  "dom_loben": [
+    "{pet} nimmt das Lob an und bleibt klar. +2 Coins.",
+    "{pet} setzt die Richtung und bleibt ruhig. +2 Coins.",
+    "{pet} entscheidet, was zählt. +2 Coins."
+  ],
+  "dom_dienen": [
+    "{pet} bestimmt, wie gedient wird. +2 Coins.",
+    "{pet} setzt die Regeln und bleibt obenauf. +2 Coins.",
+    "{pet} behält die Kontrolle und führt. +2 Coins."
+  ],
+  "dom_demuetigen": [
+    "{pet} dreht den Spieß um und bleibt souverän. +2 Coins.",
+    "{pet} setzt Grenzen und behält die Kontrolle. +2 Coins.",
+    "{pet} bestimmt den Ton und bleibt obenauf. +2 Coins."
+  ],
+  "dom_melken": [
+    "{pet} entscheidet das Tempo und bleibt ruhig. +2 Coins.",
+    "{pet} setzt die Linie und führt. +2 Coins.",
+    "{pet} bestimmt den Ablauf und bleibt souverän. +2 Coins."
+  ],
+  "dom_ohrfeige": [
+    "{pet} bleibt ruhig und setzt klare Regeln. +2 Coins.",
+    "{pet} übernimmt die Kontrolle und führt. +2 Coins.",
+    "{pet} setzt die Grenze und bleibt obenauf. +2 Coins."
+  ],
+  "dom_belohnen": [
+    "{pet} entscheidet, was verdient ist. +2 Coins.",
+    "{pet} setzt den Rahmen und bleibt souverän. +2 Coins.",
+    "{pet} bestimmt den Moment und bleibt obenauf. +2 Coins."
+  ]
+}
