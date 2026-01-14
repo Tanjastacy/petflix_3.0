@@ -50,6 +50,7 @@ RUNAWAY_HOURS = 48
 LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
 DAILY_GIFT_COINS = 15
+DAILY_CURSE_PENALTY = 20
 MORAL_TAX_DEFAULT = 5
 REWARD_AMOUNT = 30 
 # =========================
@@ -731,6 +732,40 @@ async def daily_gift_job(context: ContextTypes.DEFAULT_TYPE):
     user_mention = _mention_from_uid_username(uid, uname)
     line = random.choice(_SAVAGE_LINES).format(user=user_mention, coins=DAILY_GIFT_COINS)
     await context.bot.send_message(chat_id=chat_id, text=f"🎁 Tägliche Almosen-Time!\n{line}", parse_mode="Markdown")
+
+# =========================
+# Daily Curse
+# =========================
+async def daily_curse_job(context: ContextTypes.DEFAULT_TYPE):
+    chat_id = ALLOWED_CHAT_ID
+    today = today_ymd()
+    cd_key = f"dailycurse:{today}"
+
+    async with aiosqlite.connect(DB) as db:
+        left = await get_cd_left(db, chat_id, 0, cd_key)
+        if left > 0:
+            return
+
+        uid, uname = await _pick_random_player(chat_id)
+        if not uid:
+            await set_cd(db, chat_id, 0, cd_key, _secs_until_tomorrow())
+            await db.commit()
+            return
+
+        await db.execute(
+            "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
+            (DAILY_CURSE_PENALTY, chat_id, uid)
+        )
+        await set_cd(db, chat_id, 0, cd_key, _secs_until_tomorrow())
+        await db.commit()
+
+    user_mention = mention_html(uid, uname)
+    line = random.choice(FLUCH_LINES).format(user=user_mention)
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=f"☠️ Täglicher Fluch!\n{line}\n<b>Strafe:</b> -{DAILY_CURSE_PENALTY} Coins",
+        parse_mode=ParseMode.HTML
+    )
 
 # ==============================================================================
 # hass watchdog
@@ -2831,6 +2866,8 @@ def main():
     # Tägliches Gift um 10:00 planen
     gift_time = dtime(hour=10, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
     app.job_queue.run_daily(daily_gift_job, time=gift_time, name="daily_gift_10am")
+    curse_time = dtime(hour=20, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
+    app.job_queue.run_daily(daily_curse_job, time=curse_time, name="daily_curse_8pm")
     app.job_queue.run_repeating(hass_watchdog_job, interval=60, first=30, name="hass_watchdog")
 
     log.info("Bot startet, warte auf Updates...")
