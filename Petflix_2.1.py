@@ -723,7 +723,10 @@ async def do_care(update, context, action_key, tame_lines):
     meta = {
         "pet_id": pet.id,
         "owner_id": owner.id,
-        "action": action_key
+        "action": action_key,
+        "ts": int(time.time()),
+        "bot_msg_id": reply_msg.message_id,
+        "owner_msg_id": msg.message_id
     }
     care_map[(chat_id, reply_msg.message_id)] = meta
     care_map[(chat_id, msg.message_id)] = meta
@@ -1624,13 +1627,28 @@ async def cmd_domdebug(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if not row or row[0] != "m":
                     reasons.append("Gender ist nicht 'm'.")
 
+        # Debug-Infos
+        recent = []
+        for (cid, mid), data in list(care_map.items())[-10:]:
+            if cid == chat_id:
+                recent.append(
+                    f"id={mid} action={data.get('action')} bot_id={data.get('bot_msg_id')} owner_id={data.get('owner_msg_id')}"
+                )
+
     if not reasons:
         reasons.append("Keine Fehler gefunden. /dom_... sollte hier funktionieren.")
 
     try:
         await context.bot.send_message(
             chat_id=update.effective_user.id,
-            text="Dom-Debug:\n" + "\n".join(f"- {r}" for r in reasons)
+            text=(
+                "Dom-Debug:\n"
+                + "\n".join(f"- {r}" for r in reasons)
+                + "\n"
+                + f"\nReply msg_id={msg.reply_to_message.message_id if msg.reply_to_message else 'n/a'}"
+                + f"\nReply from_bot={getattr(getattr(msg.reply_to_message, 'from_user', None), 'is_bot', None) if msg.reply_to_message else 'n/a'}"
+                + ("\nLetzte care_map Eintraege:\n" + "\n".join(recent) if recent else "\nKeine care_map Eintraege.")
+            )
         )
     except Exception:
         pass
