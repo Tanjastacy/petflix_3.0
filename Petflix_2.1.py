@@ -747,13 +747,14 @@ async def _dom_care(update: Update, context: ContextTypes.DEFAULT_TYPE, action_k
         return
 
     async with aiosqlite.connect(DB) as db:
-        async with db.execute(
-            "SELECT gender FROM players WHERE chat_id=? AND user_id=?",
-            (chat_id, update.effective_user.id)
-        ) as cur:
-            row = await cur.fetchone()
-        if not row or row[0] != "m":
-            return
+        if update.effective_user.id != ADMIN_ID:
+            async with db.execute(
+                "SELECT gender FROM players WHERE chat_id=? AND user_id=?",
+                (chat_id, update.effective_user.id)
+            ) as cur:
+                row = await cur.fetchone()
+            if not row or row[0] != "m":
+                return
         await ensure_player(db, chat_id, update.effective_user.id, update.effective_user.username or update.effective_user.full_name or "")
         await db.execute(
             "UPDATE players SET coins=coins+? WHERE chat_id=? AND user_id=?",
