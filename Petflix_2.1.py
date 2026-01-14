@@ -1350,9 +1350,17 @@ async def cmd_genderlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return "Frau"
         return "unbekannt"
 
+    def display_name(user_id: int, username: str | None) -> str:
+        if not username:
+            return f"ID:{user_id}"
+        name = escape(username, quote=False)
+        if " " in username:
+            return name
+        return f"@{name}"
+
     lines = ["<b>Gender-Liste</b>\n"]
     for user_id, username, gender in rows:
-        tag = mention_html(int(user_id), username or None)
+        tag = display_name(int(user_id), username or None)
         lines.append(f"{tag} – {label(gender)}")
 
     text = "\n".join(lines)
