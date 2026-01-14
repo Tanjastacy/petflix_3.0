@@ -1322,6 +1322,88 @@ async def on_gender_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.answer("Gespeichert." if value != "skip" else "Uebersprungen.")
     await _send_gender_prompt(context, update.effective_user.id, edit_message=query.message)
 
+async def cmd_genderlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    if not _is_admin_here(update):
+        return
+
+    chat_id = update.effective_chat.id
+    async with aiosqlite.connect(DB) as db:
+        async with db.execute(
+            "SELECT user_id, username, gender FROM players WHERE chat_id=? ORDER BY username COLLATE NOCASE",
+            (chat_id,)
+        ) as cur:
+            rows = await cur.fetchall()
+
+    if not rows:
+        try:
+            await context.bot.send_message(chat_id=update.effective_user.id, text="Keine User in der DB.")
+        except Exception:
+            pass
+        return
+
+    def label(g: str | None) -> str:
+        if g == "m":
+            return "Mann"
+        if g == "f":
+            return "Frau"
+        return "unbekannt"
+
+    lines = ["<b>Gender-Liste</b>\n"]
+    for user_id, username, gender in rows:
+        tag = mention_html(int(user_id), username or None)
+        lines.append(f"{tag} – {label(gender)}")
+
+    text = "\n".join(lines)
+    try:
+        for chunk in split_chunks(text, MAX_CHUNK):
+            await context.bot.send_message(chat_id=update.effective_user.id, text=chunk, parse_mode=ParseMode.HTML)
+    except Exception:
+        pass
+
+async def cmd_setgender(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    if not _is_admin_here(update):
+        return
+
+    if not context.args:
+        return
+
+    raw_value = context.args[0].lower()
+    if raw_value in {"m", "mann"}:
+        value = "m"
+    elif raw_value in {"f", "frau"}:
+        value = "f"
+    elif raw_value in {"clear", "reset", "none", "leer"}:
+        value = ""
+    else:
+        return
+
+    async with aiosqlite.connect(DB) as db:
+        tid, uname = await _resolve_target(db, update, context)
+        if not tid:
+            return
+        chat_id = update.effective_chat.id
+        await _ensure_player_entry(db, chat_id, tid, uname)
+        await db.execute(
+            "UPDATE players SET gender=? WHERE chat_id=? AND user_id=?",
+            (value, chat_id, tid)
+        )
+        await db.commit()
+
+    label = "unbekannt" if value == "" else ("Mann" if value == "m" else "Frau")
+    tag = mention_html(tid, uname or None)
+    try:
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text=f"{tag} -> {label}",
+            parse_mode=ParseMode.HTML
+        )
+    except Exception:
+        pass
+
 async def cmd_addcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
@@ -2982,6 +3064,8 @@ def main():
     app.add_handler(CommandHandler("setcoins",   cmd_setcoins,   filters=CHAT_FILTER))
     app.add_handler(CommandHandler("resetcoins", cmd_resetcoins, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("assign_gender", cmd_assign_gender, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("genderlist", cmd_genderlist, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("setgender", cmd_setgender, filters=CHAT_FILTER))
 
     # Admin: manuell purgen
     app.add_handler(CommandHandler("purgeuser", cmd_purgeuser,   filters=CHAT_FILTER))
