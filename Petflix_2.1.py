@@ -1412,6 +1412,19 @@ async def cmd_setgender(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         pass
 
+async def cmd_adminping(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    if not _is_admin_here(update):
+        return
+    try:
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text="Admin-Ping: Ich kann dir PMs schicken und habe den Command empfangen."
+        )
+    except Exception:
+        pass
+
 async def cmd_addcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
@@ -3074,6 +3087,7 @@ def main():
     app.add_handler(CommandHandler("assign_gender", cmd_assign_gender, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("genderlist", cmd_genderlist, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("setgender", cmd_setgender, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("adminping", cmd_adminping, filters=CHAT_FILTER))
 
     # Admin: manuell purgen
     app.add_handler(CommandHandler("purgeuser", cmd_purgeuser,   filters=CHAT_FILTER))
