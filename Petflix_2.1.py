@@ -1183,6 +1183,18 @@ async def _fetch_gender_candidates(db, chat_id: int, include_assigned: bool):
     async with db.execute(sql, params) as cur:
         return await cur.fetchall()
 
+async def _gender_counts(db, chat_id: int):
+    async with db.execute("SELECT COUNT(*) FROM players WHERE chat_id=?", (chat_id,)) as cur:
+        total_row = await cur.fetchone()
+    async with db.execute(
+        "SELECT COUNT(*) FROM players WHERE chat_id=? AND (gender IS NULL OR gender='')",
+        (chat_id,)
+    ) as cur:
+        open_row = await cur.fetchone()
+    total = int(total_row[0]) if total_row else 0
+    open_count = int(open_row[0]) if open_row else 0
+    return total, open_count
+
 def _gender_prompt_text(user_id: int, username: str | None, index: int, total: int) -> str:
     user_tag = mention_html(user_id, username or None)
     return f"<b>Gender-Zuweisung</b>\nUser {index}/{total}: {user_tag}\nWahl:"
@@ -1230,7 +1242,7 @@ async def cmd_assign_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update):
         return
     if not _is_admin_here(update):
-        return await update.effective_message.reply_text("Nur der Owner darf das.")
+        return
 
     include_assigned = False
     if context.args and context.args[0].lower() in {"all", "alle"}:
@@ -1238,22 +1250,33 @@ async def cmd_assign_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     chat_id = update.effective_chat.id
     async with aiosqlite.connect(DB) as db:
+        total, open_count = await _gender_counts(db, chat_id)
         rows = await _fetch_gender_candidates(db, chat_id, include_assigned)
 
     if not rows:
-        return await update.effective_message.reply_text("Keine User zum Zuweisen gefunden.")
+        msg = (
+            "Alle User sind bereits als Mann/Frau zugewiesen."
+            if total > 0 and open_count == 0
+            else "Keine User zum Zuweisen gefunden."
+        )
+        try:
+            await context.bot.send_message(chat_id=update.effective_user.id, text=msg)
+        except Exception:
+            pass
+        return
 
     context.user_data["gender_queue"] = [(int(uid), uname or None) for uid, uname in rows]
     context.user_data["gender_total"] = len(rows)
     context.user_data["gender_chat_id"] = chat_id
 
     try:
-        await _send_gender_prompt(context, update.effective_user.id)
-        await update.effective_message.reply_text("Ich schicke dir die User jetzt privat.")
-    except Exception:
-        await update.effective_message.reply_text(
-            "Ich kann dir keine PM schicken. Bitte starte den Bot privat mit /start."
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text=f"Gender-Zuweisung gestartet. Offen: {open_count} von {total}."
         )
+        await _send_gender_prompt(context, update.effective_user.id)
+    except Exception:
+        pass
 
 async def on_gender_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -1436,7 +1459,6 @@ async def register_commands(application: Application):
 
         # Special
         BotCommand("treasure", "Tägliche Schatzsuche starten"),
-        BotCommand("assign_gender", "Admin: User per PM als Mann/Frau zuweisen"),
 
         #hass und selbst
         BotCommand("hass", "Admin-only: startet Hass-Status (2h, 3 mal /selbst)"),
