@@ -201,7 +201,7 @@ log = logging.getLogger("Petflix_2.0")
 # DB-Setup 
 # =========================
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -319,6 +319,22 @@ async def migrate_db(db):
         await _set_user_version(db, 6)
         current = 6
 
+    if current < 7:
+        await db.executescript("""
+        CREATE TABLE IF NOT EXISTS care_events(
+          chat_id    INTEGER,
+          message_id INTEGER,
+          pet_id     INTEGER,
+          owner_id   INTEGER,
+          action     TEXT,
+          ts         INTEGER,
+          PRIMARY KEY(chat_id, message_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_care_events_ts ON care_events(chat_id, ts);
+        """)
+        await _set_user_version(db, 7)
+        current = 7
+
 async def db_init():
     async with aiosqlite.connect(DB) as db:
         await db.execute("PRAGMA journal_mode=WAL;")
@@ -427,6 +443,28 @@ def _get_care_responses(context: ContextTypes.DEFAULT_TYPE):
         data = _load_care_responses()
         context.application.bot_data["care_responses"] = data
     return data
+
+async def _get_care_meta(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_id: int):
+    care_map = context.application.bot_data.get("care_map", {})
+    meta = care_map.get((chat_id, message_id))
+    if meta:
+        return meta
+    async with aiosqlite.connect(DB) as db:
+        async with db.execute(
+            "SELECT pet_id, owner_id, action, ts, message_id FROM care_events WHERE chat_id=? AND message_id=?",
+            (chat_id, message_id)
+        ) as cur:
+            row = await cur.fetchone()
+    if not row:
+        return None
+    return {
+        "pet_id": int(row[0]),
+        "owner_id": int(row[1]),
+        "action": row[2],
+        "ts": int(row[3] or 0),
+        "bot_msg_id": int(row[4]),
+        "owner_msg_id": int(row[4]),
+    }
 
 def split_chunks(text, size=MAX_CHUNK):
     for i in range(0, len(text), size):
@@ -731,6 +769,17 @@ async def do_care(update, context, action_key, tame_lines):
     care_map[(chat_id, reply_msg.message_id)] = meta
     care_map[(chat_id, msg.message_id)] = meta
 
+    async with aiosqlite.connect(DB) as db:
+        await db.execute(
+            "INSERT OR REPLACE INTO care_events(chat_id, message_id, pet_id, owner_id, action, ts) VALUES(?,?,?,?,?,?)",
+            (chat_id, reply_msg.message_id, pet.id, owner.id, action_key, meta["ts"])
+        )
+        await db.execute(
+            "INSERT OR REPLACE INTO care_events(chat_id, message_id, pet_id, owner_id, action, ts) VALUES(?,?,?,?,?,?)",
+            (chat_id, msg.message_id, pet.id, owner.id, action_key, meta["ts"])
+        )
+        await db.commit()
+
 async def _dom_care(update: Update, context: ContextTypes.DEFAULT_TYPE, action_key: str):
     if not is_group(update):
         return
@@ -739,8 +788,7 @@ async def _dom_care(update: Update, context: ContextTypes.DEFAULT_TYPE, action_k
         return
     chat_id = update.effective_chat.id
     reply_msg = msg.reply_to_message
-    care_map = context.application.bot_data.get("care_map", {})
-    meta = care_map.get((chat_id, reply_msg.message_id))
+    meta = await _get_care_meta(context, chat_id, reply_msg.message_id)
     if not meta or meta.get("action") != action_key:
         return
     if update.effective_user.id != int(meta.get("pet_id", 0)):
@@ -868,8 +916,7 @@ async def cmd_dom(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     chat_id = update.effective_chat.id
     reply_msg = msg.reply_to_message
-    care_map = context.application.bot_data.get("care_map", {})
-    meta = care_map.get((chat_id, reply_msg.message_id))
+    meta = await _get_care_meta(context, chat_id, reply_msg.message_id)
     if not meta:
         return
     action_key = meta.get("action")
@@ -1630,8 +1677,7 @@ async def cmd_domdebug(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         chat_id = update.effective_chat.id
         reply_msg = msg.reply_to_message
-        care_map = context.application.bot_data.get("care_map", {})
-        meta = care_map.get((chat_id, reply_msg.message_id))
+        meta = await _get_care_meta(context, chat_id, reply_msg.message_id)
         if not meta:
             reasons.append("Reply ist nicht auf eine Pflege/BDSM-Bot-Antwort.")
         else:
@@ -1655,11 +1701,14 @@ async def cmd_domdebug(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Debug-Infos
         recent = []
-        for (cid, mid), data in list(care_map.items())[-10:]:
-            if cid == chat_id:
-                recent.append(
-                    f"id={mid} action={data.get('action')} bot_id={data.get('bot_msg_id')} owner_id={data.get('owner_msg_id')}"
-                )
+        async with aiosqlite.connect(DB) as db:
+            async with db.execute(
+                "SELECT message_id, action, pet_id, owner_id, ts FROM care_events WHERE chat_id=? ORDER BY ts DESC LIMIT 10",
+                (chat_id,)
+            ) as cur:
+                rows = await cur.fetchall()
+        for message_id, action, pet_id, owner_id, ts in rows:
+            recent.append(f"id={message_id} action={action} pet_id={pet_id} owner_id={owner_id} ts={ts}")
 
     if not reasons:
         reasons.append("Keine Fehler gefunden. /dom_... sollte hier funktionieren.")
@@ -1673,7 +1722,7 @@ async def cmd_domdebug(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 + "\n"
                 + f"\nReply msg_id={msg.reply_to_message.message_id if msg.reply_to_message else 'n/a'}"
                 + f"\nReply from_bot={getattr(getattr(msg.reply_to_message, 'from_user', None), 'is_bot', None) if msg.reply_to_message else 'n/a'}"
-                + ("\nLetzte care_map Eintraege:\n" + "\n".join(recent) if recent else "\nKeine care_map Eintraege.")
+                + ("\nLetzte care_events Eintraege:\n" + "\n".join(recent) if recent else "\nKeine care_events Eintraege.")
             )
         )
     except Exception:
