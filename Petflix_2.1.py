@@ -776,6 +776,11 @@ async def _dom_care(update: Update, context: ContextTypes.DEFAULT_TYPE, action_k
             await reply_msg.reply_text(text, parse_mode=ParseMode.HTML)
         except Exception:
             pass
+    else:
+        try:
+            await reply_msg.reply_text("+2 Coins", parse_mode=ParseMode.HTML)
+        except Exception:
+            pass
 
 async def cmd_dom_pet(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _dom_care(update, context, "pet")
@@ -854,6 +859,23 @@ async def cmd_dom_ohrfeige(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_dom_belohnen(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _dom_care(update, context, "belohnen")
+
+async def cmd_dom(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    msg = update.effective_message
+    if not msg.reply_to_message:
+        return
+    chat_id = update.effective_chat.id
+    reply_msg = msg.reply_to_message
+    care_map = context.application.bot_data.get("care_map", {})
+    meta = care_map.get((chat_id, reply_msg.message_id))
+    if not meta:
+        return
+    action_key = meta.get("action")
+    if not action_key:
+        return
+    await _dom_care(update, context, action_key)
 
 
 # =========================
@@ -1614,8 +1636,11 @@ async def cmd_domdebug(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reasons.append("Reply ist nicht auf eine Pflege/BDSM-Bot-Antwort.")
         else:
             expected = f"dom_{meta.get('action')}"
-            if msg.text and msg.text.split()[0].lstrip("/") != expected:
-                reasons.append(f"Falscher Befehl. Erwartet /{expected}.")
+            if msg.text:
+                cmd = msg.text.split()[0].lstrip("/")
+                cmd = cmd.split("@")[0]
+                if cmd not in {"domdebug", expected}:
+                    reasons.append(f"Falscher Befehl. Erwartet /{expected}.")
             if update.effective_user.id != int(meta.get("pet_id", 0)):
                 reasons.append("Du bist nicht das Pet aus der Pflege.")
 
@@ -3349,6 +3374,7 @@ def main():
     app.add_handler(CommandHandler("dom_melken",    cmd_dom_melken,    filters=CHAT_FILTER))
     app.add_handler(CommandHandler("dom_ohrfeige",  cmd_dom_ohrfeige,  filters=CHAT_FILTER))
     app.add_handler(CommandHandler("dom_belohnen",  cmd_dom_belohnen,  filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("dom",          cmd_dom,           filters=CHAT_FILTER))
 
     # Skurril/BDSM
     app.add_handler(CommandHandler("knien",      cmd_knien,      filters=CHAT_FILTER))
