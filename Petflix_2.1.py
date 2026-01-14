@@ -1589,6 +1589,50 @@ async def cmd_adminping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         pass
 
+async def cmd_domdebug(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    if not _is_admin_here(update):
+        return
+    msg = update.effective_message
+    reasons = []
+
+    if not msg.reply_to_message:
+        reasons.append("Kein Reply auf die Bot-Nachricht.")
+    else:
+        chat_id = update.effective_chat.id
+        reply_msg = msg.reply_to_message
+        care_map = context.application.bot_data.get("care_map", {})
+        meta = care_map.get((chat_id, reply_msg.message_id))
+        if not meta:
+            reasons.append("Reply ist nicht auf eine Pflege/BDSM-Bot-Antwort.")
+        else:
+            expected = f"dom_{meta.get('action')}"
+            if msg.text and msg.text.split()[0].lstrip("/") != expected:
+                reasons.append(f"Falscher Befehl. Erwartet /{expected}.")
+            if update.effective_user.id != int(meta.get("pet_id", 0)):
+                reasons.append("Du bist nicht das Pet aus der Pflege.")
+
+            async with aiosqlite.connect(DB) as db:
+                async with db.execute(
+                    "SELECT gender FROM players WHERE chat_id=? AND user_id=?",
+                    (chat_id, update.effective_user.id)
+                ) as cur:
+                    row = await cur.fetchone()
+                if not row or row[0] != "m":
+                    reasons.append("Gender ist nicht 'm'.")
+
+    if not reasons:
+        reasons.append("Keine Fehler gefunden. /dom_... sollte hier funktionieren.")
+
+    try:
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text="Dom-Debug:\n" + "\n".join(f"- {r}" for r in reasons)
+        )
+    except Exception:
+        pass
+
 async def cmd_addcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         await update.message.reply_text("🚫 Nur der Bot-Admin darf das.")
@@ -3278,6 +3322,7 @@ def main():
     app.add_handler(CommandHandler("genderlist", cmd_genderlist, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("setgender", cmd_setgender, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("adminping", cmd_adminping, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("domdebug", cmd_domdebug, filters=CHAT_FILTER))
 
     # Admin: manuell purgen
     app.add_handler(CommandHandler("purgeuser", cmd_purgeuser,   filters=CHAT_FILTER))
