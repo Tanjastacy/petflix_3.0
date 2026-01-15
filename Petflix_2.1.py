@@ -35,6 +35,11 @@ BACKUP_DIR = os.getenv("BACKUP_DIR", "data")
 MAX_CHUNK = 3500  # unter 4096 bleiben, wegen HTML-Overhead sicher
 DOM_RESPONSES_PATH = os.getenv("DOM_RESPONSES_PATH", "texts/dom_responses.json")
 CARE_RESPONSES_PATH = os.getenv("CARE_RESPONSES_PATH", "texts/care_responses.json")
+DOM_FEMALE_DENY_LINES = [
+    "Nein. Schau zu und lern.",
+    "Schoener Versuch, aber nein.",
+    "Netter Versuch. Heute nicht."
+]
 
 # =========================
 # Konfiguration
@@ -414,14 +419,6 @@ def nice_name_html(u) -> str:
     # Für alle Antworten, die mit HTML geparst werden (Default!)
     return escape(nice_name(u), quote=False)
 
-def _load_dom_responses():
-    try:
-        with open(DOM_RESPONSES_PATH, "r", encoding="utf-8") as fh:
-            data = json.load(fh)
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
-
 def _load_care_responses():
     try:
         with open(CARE_RESPONSES_PATH, "r", encoding="utf-8") as fh:
@@ -430,18 +427,26 @@ def _load_care_responses():
     except Exception:
         return {}
 
-def _get_dom_responses(context: ContextTypes.DEFAULT_TYPE):
-    data = context.application.bot_data.get("dom_responses")
-    if data is None:
-        data = _load_dom_responses()
-        context.application.bot_data["dom_responses"] = data
-    return data
+def _load_dom_responses():
+    try:
+        with open(DOM_RESPONSES_PATH, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
 
 def _get_care_responses(context: ContextTypes.DEFAULT_TYPE):
     data = context.application.bot_data.get("care_responses")
     if data is None:
         data = _load_care_responses()
         context.application.bot_data["care_responses"] = data
+    return data
+
+def _get_dom_responses(context: ContextTypes.DEFAULT_TYPE):
+    data = context.application.bot_data.get("dom_responses")
+    if data is None:
+        data = _load_dom_responses()
+        context.application.bot_data["dom_responses"] = data
     return data
 
 async def _get_care_meta(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_id: int):
@@ -780,150 +785,62 @@ async def do_care(update, context, action_key, tame_lines):
         )
         await db.commit()
 
-async def _dom_care(update: Update, context: ContextTypes.DEFAULT_TYPE, action_key: str):
-    if not is_group(update):
-        return
-    msg = update.effective_message
-    if not msg.reply_to_message:
-        return
-    chat_id = update.effective_chat.id
-    reply_msg = msg.reply_to_message
-    meta = await _get_care_meta(context, chat_id, reply_msg.message_id)
-    if not meta or meta.get("action") != action_key:
-        return
-    if update.effective_user.id != int(meta.get("pet_id", 0)):
-        return
-
-    async with aiosqlite.connect(DB) as db:
-        if update.effective_user.id != ADMIN_ID:
-            async with db.execute(
-                "SELECT gender FROM players WHERE chat_id=? AND user_id=?",
-                (chat_id, update.effective_user.id)
-            ) as cur:
-                row = await cur.fetchone()
-            if not row or row[0] != "m":
-                return
-        await ensure_player(db, chat_id, update.effective_user.id, update.effective_user.username or update.effective_user.full_name or "")
-        await db.execute(
-            "UPDATE players SET coins=coins+? WHERE chat_id=? AND user_id=?",
-            (2, chat_id, update.effective_user.id)
-        )
-        async with db.execute(
-            "SELECT username FROM players WHERE chat_id=? AND user_id=?",
-            (chat_id, int(meta.get("owner_id", 0)))
-        ) as cur:
-            owner_row = await cur.fetchone()
-        await db.commit()
-
-    responses = _get_dom_responses(context).get(f"dom_{action_key}", [])
-    if responses:
-        owner_tag = mention_html(int(meta.get("owner_id", 0)), owner_row[0] if owner_row else None)
-        pet_tag = mention_html(update.effective_user.id, update.effective_user.username or None)
-        text = random.choice(responses).format(owner=owner_tag, pet=pet_tag)
-        try:
-            await reply_msg.reply_text(text, parse_mode=ParseMode.HTML)
-        except Exception:
-            pass
-    else:
-        try:
-            await reply_msg.reply_text("+2 Coins", parse_mode=ParseMode.HTML)
-        except Exception:
-            pass
-
-async def cmd_dom_pet(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "pet")
-
-async def cmd_dom_walk(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "walk")
-
-async def cmd_dom_kiss(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "kiss")
-
-async def cmd_dom_dine(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "dine")
-
-async def cmd_dom_massage(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "massage")
-
-async def cmd_dom_lapdance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "lapdance")
-
-async def cmd_dom_knien(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "knien")
-
-async def cmd_dom_kriechen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "kriechen")
-
-async def cmd_dom_klaps(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "klaps")
-
-async def cmd_dom_knabbern(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "knabbern")
-
-async def cmd_dom_leine(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "leine")
-
-async def cmd_dom_halsband(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "halsband")
-
-async def cmd_dom_lecken(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "lecken")
-
-async def cmd_dom_verweigern(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "verweigern")
-
-async def cmd_dom_kaefig(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "kaefig")
-
-async def cmd_dom_schande(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "schande")
-
-async def cmd_dom_erregen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "erregen")
-
-async def cmd_dom_betteln(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "betteln")
-
-async def cmd_dom_stumm(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "stumm")
-
-async def cmd_dom_bestrafen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "bestrafen")
-
-async def cmd_dom_loben(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "loben")
-
-async def cmd_dom_dienen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "dienen")
-
-async def cmd_dom_demuetigen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "demuetigen")
-
-async def cmd_dom_melken(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "melken")
-
-async def cmd_dom_ohrfeige(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "ohrfeige")
-
-async def cmd_dom_belohnen(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await _dom_care(update, context, "belohnen")
-
 async def cmd_dom(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update):
         return
     msg = update.effective_message
-    if not msg.reply_to_message:
+    if not msg.reply_to_message or not msg.reply_to_message.from_user:
         return
-    chat_id = update.effective_chat.id
-    reply_msg = msg.reply_to_message
-    meta = await _get_care_meta(context, chat_id, reply_msg.message_id)
-    if not meta:
-        return
-    action_key = meta.get("action")
-    if not action_key:
-        return
-    await _dom_care(update, context, action_key)
 
+    chat_id = update.effective_chat.id
+    sender = update.effective_user
+    target = msg.reply_to_message.from_user
+
+    async with aiosqlite.connect(DB) as db:
+        await _ensure_player_entry(db, chat_id, sender.id, sender.username or sender.full_name or "")
+        await _ensure_player_entry(db, chat_id, target.id, target.username or target.full_name or "")
+
+        async with db.execute(
+            "SELECT gender FROM players WHERE chat_id=? AND user_id=?",
+            (chat_id, target.id)
+        ) as cur:
+            row = await cur.fetchone()
+        if not row or row[0] != "f":
+            return await msg.reply_text("Nur bei Frauen.")
+
+        async with db.execute(
+            "SELECT gender FROM players WHERE chat_id=? AND user_id=?",
+            (chat_id, sender.id)
+        ) as cur:
+            sender_row = await cur.fetchone()
+        sender_gender = sender_row[0] if sender_row else ""
+        if sender_gender == "f":
+            line = random.choice(DOM_FEMALE_DENY_LINES)
+            return await msg.reply_text(line)
+
+        bonus = 2 if sender_gender == "m" else 0
+        if bonus > 0:
+            await db.execute(
+                "UPDATE players SET coins=coins+? WHERE chat_id=? AND user_id=?",
+                (bonus, chat_id, sender.id)
+            )
+        await db.commit()
+
+    responses = _get_dom_responses(context).get("dom", [])
+    owner_tag = mention_html(sender.id, sender.username or None)
+    pet_tag = mention_html(target.id, target.username or None)
+    if responses:
+        text = random.choice(responses).format(owner=owner_tag, pet=pet_tag, coins=bonus)
+        try:
+            await msg.reply_text(text, parse_mode=ParseMode.HTML)
+        except Exception:
+            pass
+    else:
+        text = f"+{bonus} Coins" if bonus > 0 else "Ok."
+        try:
+            await msg.reply_text(text)
+        except Exception:
+            pass
 
 # =========================
 # Daily Gift
@@ -1664,70 +1581,6 @@ async def cmd_adminping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         pass
 
-async def cmd_domdebug(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_group(update):
-        return
-    if not _is_admin_here(update):
-        return
-    msg = update.effective_message
-    reasons = []
-
-    if not msg.reply_to_message:
-        reasons.append("Kein Reply auf die Bot-Nachricht.")
-    else:
-        chat_id = update.effective_chat.id
-        reply_msg = msg.reply_to_message
-        meta = await _get_care_meta(context, chat_id, reply_msg.message_id)
-        if not meta:
-            reasons.append("Reply ist nicht auf eine Pflege/BDSM-Bot-Antwort.")
-        else:
-            expected = f"dom_{meta.get('action')}"
-            if msg.text:
-                cmd = msg.text.split()[0].lstrip("/")
-                cmd = cmd.split("@")[0]
-                if cmd not in {"domdebug", expected}:
-                    reasons.append(f"Falscher Befehl. Erwartet /{expected}.")
-            if update.effective_user.id != int(meta.get("pet_id", 0)):
-                reasons.append("Du bist nicht das Pet aus der Pflege.")
-
-            async with aiosqlite.connect(DB) as db:
-                async with db.execute(
-                    "SELECT gender FROM players WHERE chat_id=? AND user_id=?",
-                    (chat_id, update.effective_user.id)
-                ) as cur:
-                    row = await cur.fetchone()
-                if not row or row[0] != "m":
-                    reasons.append("Gender ist nicht 'm'.")
-
-        # Debug-Infos
-        recent = []
-        async with aiosqlite.connect(DB) as db:
-            async with db.execute(
-                "SELECT message_id, action, pet_id, owner_id, ts FROM care_events WHERE chat_id=? ORDER BY ts DESC LIMIT 10",
-                (chat_id,)
-            ) as cur:
-                rows = await cur.fetchall()
-        for message_id, action, pet_id, owner_id, ts in rows:
-            recent.append(f"id={message_id} action={action} pet_id={pet_id} owner_id={owner_id} ts={ts}")
-
-    if not reasons:
-        reasons.append("Keine Fehler gefunden. /dom_... sollte hier funktionieren.")
-
-    try:
-        await context.bot.send_message(
-            chat_id=update.effective_user.id,
-            text=(
-                "Dom-Debug:\n"
-                + "\n".join(f"- {r}" for r in reasons)
-                + "\n"
-                + f"\nReply msg_id={msg.reply_to_message.message_id if msg.reply_to_message else 'n/a'}"
-                + f"\nReply from_bot={getattr(getattr(msg.reply_to_message, 'from_user', None), 'is_bot', None) if msg.reply_to_message else 'n/a'}"
-                + ("\nLetzte care_events Eintraege:\n" + "\n".join(recent) if recent else "\nKeine care_events Eintraege.")
-            )
-        )
-    except Exception:
-        pass
-
 async def cmd_careminus(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update):
         return
@@ -1878,6 +1731,7 @@ async def register_commands(application: Application):
         BotCommand("dine", "Dinner servieren"),
         BotCommand("massage", "Massage geben"),
         BotCommand("lapdance", "Lapdance"),
+        BotCommand("dom", "Antwort auf Frauen mit Dom-Satz"),
 
         # Skurril / BDSM
         BotCommand("knien", "Auf die Knie"),
@@ -3397,33 +3251,7 @@ def main():
     app.add_handler(CommandHandler("dine",     cmd_dine,     filters=CHAT_FILTER))
     app.add_handler(CommandHandler("massage",  cmd_massage,  filters=CHAT_FILTER))
     app.add_handler(CommandHandler("lapdance", cmd_lapdance, filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_pet",      cmd_dom_pet,      filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_walk",     cmd_dom_walk,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_kiss",     cmd_dom_kiss,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_dine",     cmd_dom_dine,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_massage",  cmd_dom_massage,  filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_lapdance", cmd_dom_lapdance, filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_knien",     cmd_dom_knien,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_kriechen",  cmd_dom_kriechen,  filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_klaps",     cmd_dom_klaps,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_knabbern",  cmd_dom_knabbern,  filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_leine",     cmd_dom_leine,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_halsband",  cmd_dom_halsband,  filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_lecken",    cmd_dom_lecken,    filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_verweigern", cmd_dom_verweigern, filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_kaefig",    cmd_dom_kaefig,    filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_schande",   cmd_dom_schande,   filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_erregen",   cmd_dom_erregen,   filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_betteln",   cmd_dom_betteln,   filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_stumm",     cmd_dom_stumm,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_bestrafen", cmd_dom_bestrafen, filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_loben",     cmd_dom_loben,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_dienen",    cmd_dom_dienen,    filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_demuetigen", cmd_dom_demuetigen, filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_melken",    cmd_dom_melken,    filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_ohrfeige",  cmd_dom_ohrfeige,  filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom_belohnen",  cmd_dom_belohnen,  filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dom",          cmd_dom,           filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("dom",      cmd_dom,      filters=CHAT_FILTER))
 
     # Skurril/BDSM
     app.add_handler(CommandHandler("knien",      cmd_knien,      filters=CHAT_FILTER))
@@ -3456,7 +3284,6 @@ def main():
     app.add_handler(CommandHandler("genderlist", cmd_genderlist, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("setgender", cmd_setgender, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("adminping", cmd_adminping, filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("domdebug", cmd_domdebug, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("careminus", cmd_careminus, filters=CHAT_FILTER))
 
     # Admin: manuell purgen
