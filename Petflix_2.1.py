@@ -3332,7 +3332,7 @@ def main():
     app.job_queue.run_daily(daily_curse_job, time=curse_time, name="daily_curse_8pm")
     app.job_queue.run_repeating(hass_watchdog_job, interval=60, first=30, name="hass_watchdog")
 
-    log.info("Bot startet, warte auf Updates...")
+    log.info("Petflix 2.1 gestartet.")
     app.run_polling()
 
 if __name__ == "__main__":
