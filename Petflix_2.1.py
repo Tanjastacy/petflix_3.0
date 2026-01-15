@@ -830,11 +830,18 @@ async def cmd_dom(update: Update, context: ContextTypes.DEFAULT_TYPE):
     owner_tag = mention_html(sender.id, sender.username or None)
     pet_tag = mention_html(target.id, target.username or None)
     if responses:
-        text = random.choice(responses).format(owner=owner_tag, pet=pet_tag, coins=bonus)
+        line = random.choice(responses)
+        try:
+            text = line.format(owner=owner_tag, pet=pet_tag, target=pet_tag, coins=bonus)
+        except Exception:
+            text = line
         try:
             await msg.reply_text(text, parse_mode=ParseMode.HTML)
         except Exception:
-            pass
+            try:
+                await msg.reply_text(text)
+            except Exception:
+                pass
     else:
         text = f"+{bonus} Coins" if bonus > 0 else "Ok."
         try:
