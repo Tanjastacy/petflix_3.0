@@ -60,7 +60,7 @@ PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
 DAILY_GIFT_COINS = 15
 DAILY_CURSE_PENALTY = 20
 MORAL_TAX_DEFAULT = 5
-REWARD_AMOUNT = 30 
+REWARD_AMOUNT = 1 
 # =========================
 # Fluch + Brandmarken
 # =========================
