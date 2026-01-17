@@ -130,10 +130,10 @@ HASS_PENALTY = 200
 LOVE_CHALLENGE_HOURS = 2
 LOVE_REWARD = 600
 LOVE_PENALTY = 300
-LOVE_MIN_WORDS = 30
-LOVE_MIN_NICKNAMES = 5
-LOVE_MIN_EMOJIS = 6
-LOVE_MIN_SAD_SENTENCES = 3
+LOVE_MIN_WORDS = 50
+LOVE_MIN_NICKNAMES = 0
+LOVE_MIN_EMOJIS = 0
+LOVE_MIN_SAD_SENTENCES = 0
 LOVE_REMIND_1_S = 60 * 60
 LOVE_REMIND_2_S = 105 * 60
 LOVE_NICKNAMES = [
@@ -1493,15 +1493,8 @@ def _count_love_sad_sentences(text: str) -> int:
 def _love_text_ok(text: str) -> bool:
     if not text:
         return False
-    if _count_love_words(text) < LOVE_MIN_WORDS:
-        return False
-    if _count_love_nicknames(text) < LOVE_MIN_NICKNAMES:
-        return False
-    if _count_love_emojis(text) < LOVE_MIN_EMOJIS:
-        return False
-    if _count_love_sad_sentences(text) < LOVE_MIN_SAD_SENTENCES:
-        return False
-    return True
+    total = _count_love_words(text) + _count_love_emojis(text)
+    return total >= LOVE_MIN_WORDS
 
 async def _start_love(db, chat_id: int, user_id: int, username: str | None, triggered_by: int):
     now = int(time.time())
@@ -1559,16 +1552,19 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     chat_id = update.effective_chat.id
     admin = update.effective_user
-    now = int(time.time())
-    cutoff = now - 24 * 3600
-
+    msg = update.effective_message
+    if not msg.reply_to_message or not msg.reply_to_message.from_user:
+        return await msg.reply_text(
+            "Bitte antworte auf eine Person und sende dann /liebes."
+        )
+    target_user = msg.reply_to_message.from_user
+    uid = target_user.id
+    uname = target_user.username or None
     async with aiosqlite.connect(DB) as db:
         active_ids = await _get_active_love_user_ids(db, chat_id)
-        active_ids.add(admin.id)
-        uid, uname = await _pick_recent_active_user(db, chat_id, cutoff, active_ids)
-        if not uid:
-            return await update.effective_message.reply_text(
-                "Keine aktiven Nutzer in den letzten 24h gefunden."
+        if uid in active_ids:
+            return await msg.reply_text(
+                "Fuer diese Person laeuft bereits eine Liebes-Bombe."
             )
 
         expires = await _start_love(db, chat_id, int(uid), uname, admin.id)
@@ -1582,10 +1578,7 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Ziel: {target}\n"
             f"Zeit: <b>{LOVE_CHALLENGE_HOURS}h</b> (Deadline: <b>{until}</b>)\n\n"
             "Schreib einen suessen, uebertriebenen Liebesbrief in den Chat:\n"
-            f"- Mindestens {LOVE_MIN_WORDS} Woerter\n"
-            f"- Mindestens {LOVE_MIN_NICKNAMES} verschiedene Kosenamen\n"
-            f"- Mindestens {LOVE_MIN_EMOJIS} von {''.join(LOVE_EMOJIS)}\n"
-            f"- Mindestens {LOVE_MIN_SAD_SENTENCES} Saetze mit Heulen/Winseln/Zerfliessen\n\n"
+            f"- Mindestens {LOVE_MIN_WORDS} Woerter/Emojis (zaehlt beides)\n\n"
             "Der Bot erinnert dich zwischendurch.\n"
             f"Schaffst du's: <b>+{LOVE_REWARD} Coins</b> + ein Monat lang 'mein Liebesgestaendniss'.\n"
             f"Versagst du: <b>-{LOVE_PENALTY} Coins</b>."
