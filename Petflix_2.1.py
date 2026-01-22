@@ -130,10 +130,14 @@ HASS_PENALTY = 200
 LOVE_CHALLENGE_HOURS = 2
 LOVE_REWARD = 600
 LOVE_PENALTY = 300
-LOVE_MIN_WORDS = 50
+LOVE_MIN_WORDS = 60
 LOVE_MIN_NICKNAMES = 0
-LOVE_MIN_EMOJIS = 0
+LOVE_MIN_EMOJIS = 5
 LOVE_MIN_SAD_SENTENCES = 0
+LOVE_MIN_SENTENCES = 2
+LOVE_SENTENCE_MIN_WORDS = 4
+LOVE_MIN_VERBS = 1
+LOVE_COUNT_ANY_EMOJI = True
 LOVE_REMIND_1_S = 60 * 60
 LOVE_REMIND_2_S = 105 * 60
 LOVE_NICKNAMES = [
@@ -148,6 +152,28 @@ LOVE_SAD_PATTERNS = [
     r"\bheul", r"\bwein", r"\bwinsel", r"\bschluchz", r"\bzerflie",
     r"kann nicht atmen", r"ohne dich", r"nicht atmen"
 ]
+LOVE_VERB_RE = re.compile(
+    r"\b(bin|bist|ist|sind|seid|war|waren|habe|hast|hat|haben|hatte|hatten|"
+    r"werde|wirst|wird|werden|kann|kannst|können|koennen|mag|"
+    r"liebe|liebst|liebt|lieben|"
+    r"fühle|fuehle|fühlst|fuehlst|fühlt|fuehlt|"
+    r"brauch(e|st|t|en)|"
+    r"will|willst|wollen|"
+    r"möchte|moechte|möchtest|moechtest|mögen|moegen|"
+    r"vermisse|vermisst|vermissen|"
+    r"sehe|siehst|sieht|sehen|"
+    r"träume|träumst|träumt|traeume|traeumst|traeumt|"
+    r"sag(e|st|t|en)|"
+    r"denk(e|st|t|en)|"
+    r"glaub(e|st|t|en)|"
+    r"hoff(e|st|t|en)|"
+    r"wünsch(e|st|t|en)|wuensch(e|st|t|en)|"
+    r"brauchte|brauchtest|brauchten|"
+    r"wollte|wolltest|wollten|"
+    r"mochte|mochtest|mochten|"
+    r"liebte|liebtest|liebten)\b",
+    re.IGNORECASE
+)
 
 SELF_LINES = [
     "{user} kniet 10 Minuten vorm Spiegel. Flüstert bei jedem Atemzug: 'Strafe für jede peinliche Entscheidung, du gehorsame Null.'",
@@ -1477,6 +1503,9 @@ def _count_love_nicknames(text: str) -> int:
     return len(found)
 
 def _count_love_emojis(text: str) -> int:
+    if LOVE_COUNT_ANY_EMOJI:
+        emoji_re = re.compile(r"[\U0001F300-\U0001FAFF\U00002600-\U000027BF]")
+        return len(emoji_re.findall(text))
     return sum(text.count(e) for e in LOVE_EMOJIS)
 
 def _count_love_sad_sentences(text: str) -> int:
@@ -1490,11 +1519,53 @@ def _count_love_sad_sentences(text: str) -> int:
             count += 1
     return count
 
+def _has_love_verb(words: list[str]) -> bool:
+    if not words:
+        return False
+    return bool(LOVE_VERB_RE.search(" ".join(words)))
+
+def _count_love_verbs(text: str) -> int:
+    return len(LOVE_VERB_RE.findall(text or ""))
+
+def _count_love_sentences(text: str) -> int:
+    parts = re.split(r"[.!?]+|\n+", text)
+    count = 0
+    for part in parts:
+        if not part.strip():
+            continue
+        words = re.findall(r"\b\w+\b", part)
+        if len(words) < LOVE_SENTENCE_MIN_WORDS:
+            continue
+        count += 1
+    if count > 0:
+        return count
+
+    # Fallback: sentence-like chunks when punctuation is missing.
+    words = re.findall(r"\b\w+\b", text)
+    chunk = []
+    for word in words:
+        chunk.append(word)
+        if len(chunk) >= LOVE_SENTENCE_MIN_WORDS:
+            count += 1
+            chunk = []
+    return count
+
 def _love_text_ok(text: str) -> bool:
     if not text:
         return False
-    total = _count_love_words(text) + _count_love_emojis(text)
-    return total >= LOVE_MIN_WORDS
+    word_count = _count_love_words(text)
+    emoji_count = _count_love_emojis(text)
+    sentence_count = _count_love_sentences(text)
+    verb_count = _count_love_verbs(text)
+    if word_count < LOVE_MIN_WORDS:
+        return False
+    if emoji_count < LOVE_MIN_EMOJIS:
+        return False
+    if LOVE_MIN_SENTENCES > 0 and sentence_count < LOVE_MIN_SENTENCES:
+        return False
+    if LOVE_MIN_VERBS > 0 and verb_count < LOVE_MIN_VERBS:
+        return False
+    return True
 
 async def _start_love(db, chat_id: int, user_id: int, username: str | None, triggered_by: int):
     now = int(time.time())
@@ -1578,7 +1649,9 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Ziel: {target}\n"
             f"Zeit: <b>{LOVE_CHALLENGE_HOURS}h</b> (Deadline: <b>{until}</b>)\n\n"
             "Schreib einen suessen, uebertriebenen Liebesbrief in den Chat:\n"
-            f"- Mindestens {LOVE_MIN_WORDS} Woerter/Emojis (zaehlt beides)\n\n"
+            f"- Mindestens {LOVE_MIN_WORDS} Woerter\n"
+            f"- Mindestens {LOVE_MIN_EMOJIS} Emojis (beliebig)\n"
+            f"- Mindestens {LOVE_MIN_SENTENCES} Satz/Saetze (Satzzeichen optional)\n\n"
             "Der Bot erinnert dich zwischendurch.\n"
             f"Schaffst du's: <b>+{LOVE_REWARD} Coins</b> + ein Monat lang 'mein Liebesgestaendniss'.\n"
             f"Versagst du: <b>-{LOVE_PENALTY} Coins</b>."
