@@ -2011,6 +2011,7 @@ async def register_commands(application: Application):
         BotCommand("start", "Hilfe & Regeln"),
         BotCommand("ping", "Ping-Test (Antwort: pong)"),
         BotCommand("balance", "Zeigt deinen Coin-Kontostand"),
+        BotCommand("gift", "Schenke Coins an einen User"),
         BotCommand("buy", "Kaufe einen anderen User"),
         BotCommand("release", "Gib dein Haustier frei"),
         BotCommand("owner", "Zeigt den Besitzer eines Users"),
@@ -3255,7 +3256,8 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/treasure [methode] – Finde Coins, aber der echte Schatz bin ich 😉\n\n"
         "⚙️ <b>Standard-Kram – langweilig, aber nützlich</b>\n"
         "/start – Nochmal von vorn, du Vergessliche\n"
-        "/balance – Wie viele Coins du hast (nicht genug)\n"
+        "/balance - Wie viele Coins du hast (nicht genug)\n"
+        "/gift - Coins verschenken (als Reply oder @user)\n"
         "/buy – Kauf dir was – mit meinem Geld\n"
         "/owner – Wer dich besitzt (Spoiler: Ich)\n"
         "/ownerlist – Die Konkurrenz (als ob's welche gäbe)\n"
@@ -3283,6 +3285,56 @@ async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
             row = await cur.fetchone()
     coins = row[0] if row else 0
     await update.effective_message.reply_text(f"Dein Kontostand: {coins} Coins.")
+
+async def cmd_gift(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update): return
+    msg = update.effective_message
+    amount = _parse_amount_from_args(context)
+    if amount is None or amount <= 0:
+        return await msg.reply_text(
+            "Nutzung: als Reply `/gift 50` oder `/gift @user 50`.",
+            parse_mode="Markdown"
+        )
+    async with aiosqlite.connect(DB) as db:
+        chat_id = update.effective_chat.id
+        sender = update.effective_user
+
+        if msg.reply_to_message and msg.reply_to_message.from_user:
+            target = msg.reply_to_message.from_user
+            tid = target.id
+            tname = target.username or None
+        else:
+            if not context.args or len(context.args) < 2:
+                return await msg.reply_text(
+                    "Nutzung: als Reply `/gift 50` oder `/gift @user 50`.",
+                    parse_mode="Markdown"
+                )
+            tid, tname = await _resolve_target(db, update, context)
+
+        if not tid:
+            return await msg.reply_text("Ziel nicht gefunden. Antworte auf den User oder nutze @username bzw. user_id.")
+        if tid == sender.id:
+            return await msg.reply_text("Dich selbst beschenken? Nett versucht.")
+
+        await _ensure_player_entry(db, chat_id, sender.id, sender.username or sender.full_name or "")
+        await _ensure_player_entry(db, chat_id, tid, tname)
+        sender_coins = await _get_coins(db, chat_id, sender.id)
+        if sender_coins < amount:
+            return await msg.reply_text(f"Zu wenig Coins. Dein Guthaben: {sender_coins}.")
+
+        await db.execute(
+            "UPDATE players SET coins=coins-? WHERE chat_id=? AND user_id=?",
+            (amount, chat_id, sender.id)
+        )
+        await db.execute(
+            "UPDATE players SET coins=coins+? WHERE chat_id=? AND user_id=?",
+            (amount, chat_id, tid)
+        )
+        await db.commit()
+
+    sender_tag = mention_html(sender.id, sender.username or None)
+    target_tag = mention_html(tid, tname if tname else None)
+    await msg.reply_text(f"🎁 {sender_tag} schenkt {target_tag} {amount} Coins.", parse_mode=ParseMode.HTML)
 
 async def cmd_daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update): return
@@ -3821,6 +3873,7 @@ def main():
     app.add_handler(CommandHandler("help",     cmd_start))  # Alias
     app.add_handler(CommandHandler("ping",     cmd_ping,     filters=CHAT_FILTER))
     app.add_handler(CommandHandler("balance",  cmd_balance,  filters=CHAT_FILTER))
+    app.add_handler(CommandHandler(["gift", "schenken"], cmd_gift, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("daily",    cmd_daily,    filters=CHAT_FILTER))
     app.add_handler(CommandHandler("id",       cmd_id,       filters=CHAT_FILTER))
 
