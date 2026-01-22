@@ -2011,7 +2011,8 @@ async def register_commands(application: Application):
         BotCommand("start", "Hilfe & Regeln"),
         BotCommand("ping", "Ping-Test (Antwort: pong)"),
         BotCommand("balance", "Zeigt deinen Coin-Kontostand"),
-        BotCommand("gift", "Schenke Coins an einen User"),
+        BotCommand("treat", "Schenke Coins an einen User"),
+        BotCommand("leckerli", "Schenke Coins an einen User"),
         BotCommand("buy", "Kaufe einen anderen User"),
         BotCommand("release", "Gib dein Haustier frei"),
         BotCommand("owner", "Zeigt den Besitzer eines Users"),
@@ -3257,7 +3258,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "⚙️ <b>Standard-Kram – langweilig, aber nützlich</b>\n"
         "/start – Nochmal von vorn, du Vergessliche\n"
         "/balance - Wie viele Coins du hast (nicht genug)\n"
-        "/gift - Coins verschenken (als Reply oder @user)\n"
+        "/treat - Coins verschenken (Alias: /leckerli)\n"
         "/buy – Kauf dir was – mit meinem Geld\n"
         "/owner – Wer dich besitzt (Spoiler: Ich)\n"
         "/ownerlist – Die Konkurrenz (als ob's welche gäbe)\n"
@@ -3292,7 +3293,7 @@ async def cmd_gift(update: Update, context: ContextTypes.DEFAULT_TYPE):
     amount = _parse_amount_from_args(context)
     if amount is None or amount <= 0:
         return await msg.reply_text(
-            "Nutzung: als Reply `/gift 50` oder `/gift @user 50`.",
+            "Nutzung: als Reply `/treat 50` oder `/treat @user 50`.",
             parse_mode="Markdown"
         )
     async with aiosqlite.connect(DB) as db:
@@ -3306,7 +3307,7 @@ async def cmd_gift(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             if not context.args or len(context.args) < 2:
                 return await msg.reply_text(
-                    "Nutzung: als Reply `/gift 50` oder `/gift @user 50`.",
+                    "Nutzung: als Reply `/treat 50` oder `/treat @user 50`.",
                     parse_mode="Markdown"
                 )
             tid, tname = await _resolve_target(db, update, context)
@@ -3873,7 +3874,7 @@ def main():
     app.add_handler(CommandHandler("help",     cmd_start))  # Alias
     app.add_handler(CommandHandler("ping",     cmd_ping,     filters=CHAT_FILTER))
     app.add_handler(CommandHandler("balance",  cmd_balance,  filters=CHAT_FILTER))
-    app.add_handler(CommandHandler(["gift", "schenken"], cmd_gift, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler(["treat", "leckerli"], cmd_gift, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("daily",    cmd_daily,    filters=CHAT_FILTER))
     app.add_handler(CommandHandler("id",       cmd_id,       filters=CHAT_FILTER))
 
