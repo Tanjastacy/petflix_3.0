@@ -62,6 +62,12 @@ DAILY_CURSE_PENALTY = 20
 MORAL_TAX_DEFAULT = 5
 REWARD_AMOUNT = 1 
 # =========================
+# /steal
+# =========================
+STEAL_SUCCESS_CHANCE = 0.2
+STEAL_COOLDOWN_S = 60 * 60
+STEAL_FAIL_PENALTY = 50
+# =========================
 # Fluch
 # =========================
 
@@ -1991,6 +1997,89 @@ async def cmd_resetcoins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🧨 Kontostand von {escape(tag, quote=False)} auf 0 gesetzt."
     )
 
+async def cmd_steal(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    if not context.args:
+        return await update.effective_message.reply_text(
+            "Nutzung: als Reply `/steal 50` oder `/steal @user 50`.",
+            parse_mode="Markdown"
+        )
+
+    amount = _parse_amount_from_args(context)
+    if amount is None or amount <= 0:
+        return await update.effective_message.reply_text(
+            "Bitte gib eine gültige Coin-Zahl an. Beispiel: `/steal @user 50`.",
+            parse_mode="Markdown"
+        )
+
+    async with aiosqlite.connect(DB) as db:
+        tid, uname = await _resolve_target(db, update, context)
+        if not tid:
+            return await update.effective_message.reply_text(
+                "Ziel nicht gefunden. Antworte auf den User oder nutze @username bzw. user_id."
+            )
+        thief = update.effective_user
+        if tid == thief.id:
+            return await update.effective_message.reply_text("Nice try. Dich selbst beklauen geht nicht.")
+
+        chat_id = update.effective_chat.id
+        await _ensure_player_entry(db, chat_id, tid, uname)
+        await _ensure_player_entry(db, chat_id, thief.id, thief.username or thief.full_name or "")
+
+        left = await get_cd_left(db, chat_id, thief.id, "steal")
+        if left > 0:
+            mins = max(1, left // 60)
+            return await update.effective_message.reply_text(
+                f"⏳ Cooldown aktiv. Warte noch ca. {mins} Min.",
+                parse_mode=ParseMode.HTML
+            )
+
+        if random.random() > STEAL_SUCCESS_CHANCE:
+            target_tag = mention_html(tid, uname or None)
+            thief_old = await _get_coins(db, chat_id, thief.id)
+            new_thief = max(0, thief_old - STEAL_FAIL_PENALTY)
+            await db.execute(
+                "UPDATE players SET coins=? WHERE chat_id=? AND user_id=?",
+                (new_thief, chat_id, thief.id)
+            )
+            await set_cd(db, chat_id, thief.id, "steal", STEAL_COOLDOWN_S)
+            await db.commit()
+            return await update.effective_message.reply_text(
+                f"War wohl nix, bitch. {mention_html(thief.id, thief.username or None)} hat versucht {target_tag} zu beklauen – erwischt. (-{STEAL_FAIL_PENALTY})",
+                parse_mode=ParseMode.HTML
+            )
+
+        victim_coins = await _get_coins(db, chat_id, tid)
+        stolen = min(amount, victim_coins)
+        if stolen <= 0:
+            target_tag = mention_html(tid, uname or None)
+            await set_cd(db, chat_id, thief.id, "steal", STEAL_COOLDOWN_S)
+            await db.commit()
+            return await update.effective_message.reply_text(
+                f"{target_tag} ist sowieso pleite. Nix zu holen.",
+                parse_mode=ParseMode.HTML
+            )
+
+        thief_old = await _get_coins(db, chat_id, thief.id)
+        await db.execute(
+            "UPDATE players SET coins=? WHERE chat_id=? AND user_id=?",
+            (victim_coins - stolen, chat_id, tid)
+        )
+        await db.execute(
+            "UPDATE players SET coins=? WHERE chat_id=? AND user_id=?",
+            (thief_old + stolen, chat_id, thief.id)
+        )
+        await set_cd(db, chat_id, thief.id, "steal", STEAL_COOLDOWN_S)
+        await db.commit()
+
+    target_tag = mention_html(tid, uname or None)
+    thief_tag = mention_html(thief.id, thief.username or None)
+    await update.effective_message.reply_text(
+        f"💸 {thief_tag} klaut {stolen} Coins von {target_tag}.",
+        parse_mode=ParseMode.HTML
+    )
+
 # =========================
 # Commands
 # =========================
@@ -2001,6 +2090,7 @@ async def register_commands(application: Application):
         BotCommand("balance", "Zeigt deinen Coin-Kontostand"),
         BotCommand("treat", "Schenke Coins an einen User"),
         BotCommand("leckerli", "Schenke Coins an einen User"),
+        BotCommand("steal", "Versuche Coins zu klauen (20% Chance)"),
         BotCommand("buy", "Kaufe einen anderen User"),
         BotCommand("release", "Gib dein Haustier frei"),
         BotCommand("owner", "Zeigt den Besitzer eines Users"),
@@ -3916,6 +4006,7 @@ def main():
     app.add_handler(CommandHandler("takecoins",  cmd_takecoins,  filters=CHAT_FILTER))
     app.add_handler(CommandHandler("setcoins",   cmd_setcoins,   filters=CHAT_FILTER))
     app.add_handler(CommandHandler("resetcoins", cmd_resetcoins, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("steal",      cmd_steal,      filters=CHAT_FILTER))
     app.add_handler(CommandHandler("assign_gender", cmd_assign_gender, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("genderlist", cmd_genderlist, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("setgender", cmd_setgender, filters=CHAT_FILTER))
