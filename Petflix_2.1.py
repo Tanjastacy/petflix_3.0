@@ -1301,18 +1301,14 @@ async def cmd_prices(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_hass(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update) or update.effective_chat.id != ALLOWED_CHAT_ID:
         return
-    if not _is_admin_here(update):
-        return await update.effective_message.reply_text(
-            "🚫 Admin-only. Nett gefragt ist trotzdem nein."
-        )
 
     chat_id = update.effective_chat.id
-    admin = update.effective_user
+    caller = update.effective_user
 
     async with aiosqlite.connect(DB) as db:
         # bereits aktive Hass-Ziele sammeln
         active_ids = await _get_active_hass_user_ids(db, chat_id)
-        active_ids.add(admin.id)  # Admin nie Ziel
+        active_ids.add(caller.id)  # Aufrufer nie Ziel
 
         # neuen Kandidaten wählen
         uid, uname = await pick_random_player_excluding(
@@ -1330,7 +1326,7 @@ async def cmd_hass(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id,
             int(uid),
             uname,
-            admin.id
+            caller.id
         )
         await db.commit()
 
@@ -1339,14 +1335,16 @@ async def cmd_hass(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ).strftime("%d.%m.%Y %H:%M")
 
         target = mention_html(int(uid), uname if uname else None)
+        caller_tag = mention_html(caller.id, caller.username or None)
 
         await update.effective_message.reply_text(
-            f"🖤 <b>/hass</b> aktiviert.\n"
+            f"🖤 <b>/hass</b> scharfgestellt.\n"
+            f"Ausgelöst von: {caller_tag}\n"
             f"Ziel: {target}\n"
-            f"Regel: 2 Stunden Zeit, <b>{HASS_REQUIRED}× /selbst</b>\n"
+            f"Challenge: <b>{HASS_REQUIRED}× /selbst</b> in 2 Stunden\n"
             f"Deadline: <b>{until}</b>\n"
-            f"Versagen kostet: <b>−{HASS_PENALTY} Coins</b>\n"
-            f"Mehrere Hass-Ziele können gleichzeitig existieren.",
+            f"Strafe bei Versagen: <b>−{HASS_PENALTY} Coins</b>\n"
+            f"Mehrere Hass-Ziele laufen parallel.",
             parse_mode=ParseMode.HTML
         )
 
@@ -1537,13 +1535,9 @@ async def _pick_recent_active_user(db, chat_id: int, cutoff_ts: int, exclude_ids
 async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update) or update.effective_chat.id != ALLOWED_CHAT_ID:
         return
-    if not _is_admin_here(update):
-        return await update.effective_message.reply_text(
-            "🚫 Admin-only. Heute nicht."
-        )
 
     chat_id = update.effective_chat.id
-    admin = update.effective_user
+    caller = update.effective_user
     msg = update.effective_message
     if not msg.reply_to_message or not msg.reply_to_message.from_user:
         return await msg.reply_text(
@@ -1559,14 +1553,16 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "Fuer diese Person laeuft bereits eine Liebes-Bombe."
             )
 
-        expires = await _start_love(db, chat_id, int(uid), uname, admin.id)
+        expires = await _start_love(db, chat_id, int(uid), uname, caller.id)
         await db.commit()
 
     until = datetime.datetime.fromtimestamp(expires, tz=ZoneInfo(PETFLIX_TZ)).strftime("%d.%m.%Y %H:%M")
     target = mention_html(int(uid), uname if uname else None)
+    caller_tag = mention_html(caller.id, caller.username or None)
     await update.effective_message.reply_text(
         (
             "💣 <b>Liebes-Bombe detoniert.</b>\n"
+            f"Ausgelöst von: {caller_tag}\n"
             f"Ziel: {target}\n"
             f"Zeit: <b>{LOVE_CHALLENGE_HOURS}h</b> (Deadline: <b>{until}</b>)\n\n"
             "Schreib einen suessen, uebertriebenen Liebesbrief in den Chat:\n"
@@ -2133,9 +2129,9 @@ async def register_commands(application: Application):
         BotCommand("treasure", "Tägliche Schatzsuche starten"),
 
         #hass und selbst
-        BotCommand("hass", "Admin-only: startet Hass-Status (2h, 3 mal /selbst)"),
+        BotCommand("hass", "Startet Hass-Status (2h, 3 mal /selbst)"),
         BotCommand("selbst", "Nur für betroffenen User: zählt 1/3 Strafen"),
-        BotCommand("liebes", "Admin-only: Liebesgestaendniss-Challenge"),
+        BotCommand("liebes", "Liebesgestaendniss-Challenge"),
 
     ]
     await application.bot.set_my_commands(commands)
