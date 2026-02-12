@@ -102,7 +102,7 @@ SUPERWORDS = [
     "rambo",
     "shrek",
     "coco",
-    "up",
+    "casablanca",
     "dune",
     "oppenheimer",
     "barbie",
