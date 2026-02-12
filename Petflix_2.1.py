@@ -54,7 +54,7 @@ ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 MESSAGE_THROTTLE_S = 1
 CARE_COOLDOWN_S = 5  # Sekunden zwischen Pflegeaktionen
 CARES_PER_DAY = 25
-RUNAWAY_HOURS = 48
+RUNAWAY_HOURS = 24
 LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
 DAILY_GIFT_COINS = 15
@@ -62,10 +62,20 @@ DAILY_CURSE_PENALTY = 20
 MORAL_TAX_DEFAULT = 5
 REWARD_AMOUNT = 1 
 # =========================
+# Ausreißer
+# =========================
+RUNAWAY_LINES = [
+    "{pet} reißt ab. Eine Leine weniger.",
+    "{pet} ist weg. Keine Spuren, kein Mitleid.",
+    "{pet} beißt sich frei. Schluss.",
+    "{pet} verschwindet. Einfach so.",
+    "{pet} zerreißt die Leine und ist Staub."
+]
+# =========================
 # /steal
 # =========================
-STEAL_SUCCESS_CHANCE = 0.2
-STEAL_COOLDOWN_S = 60 * 60
+STEAL_SUCCESS_CHANCE = 0.48
+STEAL_COOLDOWN_S = 30 * 60
 STEAL_FAIL_PENALTY = 50
 # =========================
 # Fluch
@@ -724,6 +734,10 @@ async def pick_random_player_excluding(chat_id: int, exclude_ids: set[int] | Non
 def mention_html(user_id: int, username: str | None) -> str:
     return f"@{escape(username, quote=False)}" if username else f"<a href='tg://user?id={user_id}'>ID:{user_id}</a>"
 
+def runaway_text(pet_tag: str) -> str:
+    line = random.choice(RUNAWAY_LINES)
+    return line.format(pet=pet_tag)
+
 # =========================
 # Pflegeaktionen (gemeinsamer Handler)
 # =========================
@@ -770,10 +784,10 @@ async def do_care(update, context, action_key, tame_lines):
         # runaway check
         care = await get_care(db, chat_id, pet.id)
         now = int(time.time())
-        if care and care["last"] and now - care["last"] >= RUNAWAY_HOURS*3600:
+        if care and care["last"] and now - care["last"] >= RUNAWAY_HOURS * 3600:
             await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet.id))
             await db.commit()
-            await msg.reply_text(f"{nice_name_html(pet)} hat die Leine durchgebissen. {RUNAWAY_HOURS} Stunden ohne Pflege – und tschüss.")
+            await msg.reply_text(runaway_text(nice_name_html(pet)))
             return
 
         # cooldown
@@ -1556,6 +1570,44 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         expires = await _start_love(db, chat_id, int(uid), uname, caller.id)
         await db.commit()
 
+# =========================
+# runaway watchdog
+# =========================
+async def runaway_watchdog_job(context: ContextTypes.DEFAULT_TYPE):
+    chat_id = ALLOWED_CHAT_ID
+    now = int(time.time())
+    cutoff = now - RUNAWAY_HOURS * 3600
+
+    async with aiosqlite.connect(DB) as db:
+        # Alte Pets ohne care-timestamp bekommen eine faire Startzeit
+        await db.execute(
+            "UPDATE pets SET last_care_ts=? WHERE chat_id=? AND last_care_ts IS NULL",
+            (now, chat_id)
+        )
+
+        async with db.execute("""
+            SELECT p.pet_id, pl.username
+            FROM pets p
+            LEFT JOIN players pl ON pl.chat_id=p.chat_id AND pl.user_id=p.pet_id
+            WHERE p.chat_id=? AND p.last_care_ts <= ?
+        """, (chat_id, cutoff)) as cur:
+            rows = await cur.fetchall()
+
+        if not rows:
+            await db.commit()
+            return
+
+        for pet_id, pet_username in rows:
+            await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id))
+            pet_tag = mention_html(int(pet_id), pet_username or None)
+            msg = runaway_text(pet_tag)
+            try:
+                await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
+            except Exception:
+                pass
+
+        await db.commit()
+
     until = datetime.datetime.fromtimestamp(expires, tz=ZoneInfo(PETFLIX_TZ)).strftime("%d.%m.%Y %H:%M")
     target = mention_html(int(uid), uname if uname else None)
     caller_tag = mention_html(caller.id, caller.username or None)
@@ -2086,7 +2138,7 @@ async def register_commands(application: Application):
         BotCommand("balance", "Zeigt deinen Coin-Kontostand"),
         BotCommand("treat", "Schenke Coins an einen User"),
         BotCommand("leckerli", "Schenke Coins an einen User"),
-        BotCommand("steal", "Versuche Coins zu klauen (20% Chance)"),
+        BotCommand("steal", "Versuche Coins zu klauen (48% Chance)"),
         BotCommand("buy", "Kaufe einen anderen User"),
         BotCommand("release", "Gib dein Haustier frei"),
         BotCommand("owner", "Zeigt den Besitzer eines Users"),
@@ -3506,16 +3558,20 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             (price, chat_id, buyer_id)
         )
 
-        # Owner setzen + neuen 48h-Kaufschutz starten
+        # Owner setzen + neuen Kaufschutz starten
         now = int(time.time())
+        today = today_ymd()
         lock_until_new = now + LOCK_SECONDS  # LOCK_SECONDS = 48*3600 (global)
         await db.execute("""
-            INSERT INTO pets(chat_id, pet_id, owner_id, purchase_lock_until)
-            VALUES(?,?,?,?)
+            INSERT INTO pets(chat_id, pet_id, owner_id, purchase_lock_until, last_care_ts, care_done_today, day_ymd)
+            VALUES(?,?,?,?,?,?,?)
             ON CONFLICT(chat_id, pet_id) DO UPDATE SET
                 owner_id=excluded.owner_id,
-                purchase_lock_until=excluded.purchase_lock_until
-        """, (chat_id, target_id, buyer_id, lock_until_new))
+                purchase_lock_until=excluded.purchase_lock_until,
+                last_care_ts=excluded.last_care_ts,
+                care_done_today=excluded.care_done_today,
+                day_ymd=excluded.day_ymd
+        """, (chat_id, target_id, buyer_id, lock_until_new, now, 0, today))
 
         # Preis erhöhen
         new_price = price + USER_PRICE_STEP
@@ -4055,6 +4111,7 @@ def main():
     app.job_queue.run_daily(daily_curse_job, time=curse_time, name="daily_curse_8pm")
     app.job_queue.run_repeating(hass_watchdog_job, interval=60, first=30, name="hass_watchdog")
     app.job_queue.run_repeating(love_watchdog_job, interval=60, first=30, name="love_watchdog")
+    app.job_queue.run_repeating(runaway_watchdog_job, interval=60, first=30, name="runaway_watchdog")
 
     print("Petflix 2.1 gestartet.")
     app.run_polling()
