@@ -1643,6 +1643,26 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         expires = await _start_love(db, chat_id, int(uid), uname, caller.id)
         await db.commit()
 
+    until = datetime.datetime.fromtimestamp(expires, tz=ZoneInfo(PETFLIX_TZ)).strftime("%d.%m.%Y %H:%M")
+    target = mention_html(int(uid), uname if uname else None)
+    caller_tag = mention_html(caller.id, caller.username or None)
+    await update.effective_message.reply_text(
+        (
+            "ðŸ’£ <b>Liebes-Bombe detoniert.</b>\n"
+            f"AusgelÃ¶st von: {caller_tag}\n"
+            f"Ziel: {target}\n"
+            f"Zeit: <b>{LOVE_CHALLENGE_HOURS}h</b> (Deadline: <b>{until}</b>)\n\n"
+            "Schreib einen suessen, uebertriebenen Liebesbrief in den Chat:\n"
+            f"- Mindestens {LOVE_MIN_WORDS} Woerter\n"
+            f"- Mindestens {LOVE_MIN_EMOJIS} Emojis (beliebig)\n"
+            f"- Mindestens {LOVE_MIN_SENTENCES} Satz/Saetze (Satzzeichen optional)\n\n"
+            "Der Bot erinnert dich zwischendurch.\n"
+            f"Schaffst du's: <b>+{LOVE_REWARD} Coins</b> + ein Monat lang 'mein Liebesgestaendniss'.\n"
+            f"Versagst du: <b>-{LOVE_PENALTY} Coins</b>."
+        ),
+        parse_mode=ParseMode.HTML
+    )
+
 # =========================
 # runaway watchdog
 # =========================
@@ -1685,26 +1705,6 @@ async def runaway_watchdog_job(context: ContextTypes.DEFAULT_TYPE):
                 pass
 
         await db.commit()
-
-    until = datetime.datetime.fromtimestamp(expires, tz=ZoneInfo(PETFLIX_TZ)).strftime("%d.%m.%Y %H:%M")
-    target = mention_html(int(uid), uname if uname else None)
-    caller_tag = mention_html(caller.id, caller.username or None)
-    await update.effective_message.reply_text(
-        (
-            "💣 <b>Liebes-Bombe detoniert.</b>\n"
-            f"Ausgelöst von: {caller_tag}\n"
-            f"Ziel: {target}\n"
-            f"Zeit: <b>{LOVE_CHALLENGE_HOURS}h</b> (Deadline: <b>{until}</b>)\n\n"
-            "Schreib einen suessen, uebertriebenen Liebesbrief in den Chat:\n"
-            f"- Mindestens {LOVE_MIN_WORDS} Woerter\n"
-            f"- Mindestens {LOVE_MIN_EMOJIS} Emojis (beliebig)\n"
-            f"- Mindestens {LOVE_MIN_SENTENCES} Satz/Saetze (Satzzeichen optional)\n\n"
-            "Der Bot erinnert dich zwischendurch.\n"
-            f"Schaffst du's: <b>+{LOVE_REWARD} Coins</b> + ein Monat lang 'mein Liebesgestaendniss'.\n"
-            f"Versagst du: <b>-{LOVE_PENALTY} Coins</b>."
-        ),
-        parse_mode=ParseMode.HTML
-    )
 
 # =============== Admin: Coins steuern ===============
 def _is_admin_here(update: Update) -> bool:
