@@ -72,6 +72,48 @@ RUNAWAY_LINES = [
     "{pet} zerreißt die Leine und ist Staub."
 ]
 RUNAWAY_PENALTY = 400
+
+# =========================
+# Superworte
+# =========================
+SUPERWORD_REWARD = 5000
+SUPERWORD_COOLDOWN_S = 7 * 24 * 3600
+SUPERWORDS = [
+    "superkalifragilistischexpialigetisch",
+    "nachtlichtnebelkuss",
+    "donnerkrallenpuls",
+    "schattenzuckerstich",
+    "kristallhoellenfunk",
+    "titanic",
+    "avatar",
+    "inception",
+    "matrix",
+    "rocky",
+    "alien",
+    "gladiator",
+    "godzilla",
+    "terminator",
+    "batman",
+    "superman",
+    "spiderman",
+    "bond",
+    "frozen",
+    "jaws",
+    "rambo",
+    "shrek",
+    "coco",
+    "up",
+    "dune",
+    "oppenheimer",
+    "barbie",
+    "django",
+    "speed",
+    "scarface",
+    "psycho",
+    "gremlins",
+    "amelie",
+    "memento"
+]
 # =========================
 # /steal
 # =========================
@@ -1210,6 +1252,32 @@ async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE
             "UPDATE players SET last_seen=? WHERE chat_id=? AND user_id=?",
             (now, chat.id, user.id)
         )
+
+        # Superworte (einmal pro Woche je Wort & User)
+        msg_text = msg.text or ""
+        msg_lower = msg_text.lower()
+        for word in SUPERWORDS:
+            pattern = rf"\b{re.escape(word.lower())}\b"
+            if not re.search(pattern, msg_lower):
+                continue
+            cd_key = f"superword:{word}"
+            left = await get_cd_left(db, chat.id, user.id, cd_key)
+            if left > 0:
+                break
+            await db.execute(
+                "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
+                (SUPERWORD_REWARD, chat.id, user.id)
+            )
+            await set_cd(db, chat.id, user.id, cd_key, SUPERWORD_COOLDOWN_S)
+            await db.commit()
+            try:
+                await msg.reply_text(
+                    f"✨ Superwort gefunden: <b>{escape(word)}</b> +{SUPERWORD_REWARD} Coins",
+                    parse_mode=ParseMode.HTML
+                )
+            except Exception:
+                pass
+            break
 
         love = await _get_active_love_for_user(db, chat.id, user.id)
         if love and _love_text_ok(msg.text):
