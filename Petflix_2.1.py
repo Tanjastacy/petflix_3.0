@@ -71,6 +71,7 @@ RUNAWAY_LINES = [
     "{pet} verschwindet. Einfach so.",
     "{pet} zerreißt die Leine und ist Staub."
 ]
+RUNAWAY_PENALTY = 400
 # =========================
 # /steal
 # =========================
@@ -786,6 +787,10 @@ async def do_care(update, context, action_key, tame_lines):
         now = int(time.time())
         if care and care["last"] and now - care["last"] >= RUNAWAY_HOURS * 3600:
             await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet.id))
+            await db.execute(
+                "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
+                (RUNAWAY_PENALTY, chat_id, owner.id)
+            )
             await db.commit()
             await msg.reply_text(runaway_text(nice_name_html(pet)))
             return
@@ -1586,7 +1591,7 @@ async def runaway_watchdog_job(context: ContextTypes.DEFAULT_TYPE):
         )
 
         async with db.execute("""
-            SELECT p.pet_id, pl.username
+            SELECT p.pet_id, p.owner_id, pl.username
             FROM pets p
             LEFT JOIN players pl ON pl.chat_id=p.chat_id AND pl.user_id=p.pet_id
             WHERE p.chat_id=? AND p.last_care_ts <= ?
@@ -1597,8 +1602,13 @@ async def runaway_watchdog_job(context: ContextTypes.DEFAULT_TYPE):
             await db.commit()
             return
 
-        for pet_id, pet_username in rows:
+        for pet_id, owner_id, pet_username in rows:
             await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id))
+            if owner_id:
+                await db.execute(
+                    "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
+                    (RUNAWAY_PENALTY, chat_id, int(owner_id))
+                )
             pet_tag = mention_html(int(pet_id), pet_username or None)
             msg = runaway_text(pet_tag)
             try:
