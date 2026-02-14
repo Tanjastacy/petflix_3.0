@@ -77,42 +77,47 @@ RUNAWAY_PENALTY = 400
 # Superworte
 # =========================
 SUPERWORD_REWARD = 5000
-SUPERWORD_COOLDOWN_S = 7 * 24 * 3600
 SUPERWORDS = [
-    "superkalifragilistischexpialigetisch",
-    "nachtlichtnebelkuss",
-    "donnerkrallenpuls",
-    "schattenzuckerstich",
-    "kristallhoellenfunk",
-    "titanic",
-    "avatar",
-    "inception",
-    "matrix",
-    "rocky",
-    "alien",
-    "gladiator",
-    "godzilla",
-    "terminator",
-    "batman",
-    "superman",
-    "spiderman",
-    "bond",
-    "frozen",
-    "jaws",
-    "rambo",
-    "shrek",
-    "coco",
-    "casablanca",
-    "dune",
-    "oppenheimer",
-    "barbie",
-    "django",
-    "speed",
-    "scarface",
-    "psycho",
+    "kriegdersterne",
+    "standbyme",
+    "teenwolf",
+    "zurueckindiezukunft",
+    "ghostbusters",
+    "topgun",
+    "stirblangsam",
+    "bladerunner",
+    "breakfastclub",
+    "karatekid",
+    "dasdingauseineranderenwelt",
+    "predator",
+    "robocop",
+    "beetlejuice",
     "gremlins",
-    "amelie",
-    "memento"
+    "labyrinth",
+    "flashdance",
+    "dirtydancing",
+    "rainman",
+    "diegoonies",
+    "etderauserirdische",
+    "jaegerdesverlorenenschatzes",
+    "dasimperiumschlaegtzurueck",
+    "dierueckkehrderjedi",
+    "ferrismachtblau",
+    "zweistaehlernenerv",
+    "big",
+    "akira",
+    "falschesspielmitrogerrabbit",
+    "derprinzauszamunda",
+    "nummer5lebt",
+    "dieunendlichegeschichte",
+    "ariellediemeerjungfrau",
+    "dieunglaublichereiseineinemverruecktenflugzeug",
+    "bluesbrothers",
+    "poltergeist",
+    "fullmetaljacket",
+    "nightmaremoerderischetraeume",
+    "dieunbestechlichen",
+    "wallstreet"
 ]
 # =========================
 # /steal
@@ -323,7 +328,7 @@ log = logging.getLogger("Petflix_2.0")
 # DB-Setup 
 # =========================
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -463,6 +468,19 @@ async def migrate_db(db):
         """)
         await _set_user_version(db, 8)
         current = 8
+
+    if current < 9:
+        await db.executescript("""
+        CREATE TABLE IF NOT EXISTS superwords_found(
+          chat_id  INTEGER,
+          word     TEXT,
+          found_by INTEGER,
+          found_ts INTEGER,
+          PRIMARY KEY(chat_id, word)
+        );
+        """)
+        await _set_user_version(db, 9)
+        current = 9
 
 async def db_init():
     async with aiosqlite.connect(DB) as db:
@@ -748,6 +766,20 @@ async def get_cd_left(db, chat_id: int, user_id: int, key: str) -> int:
         if not row:
             return 0
         return max(0, row[0] - int(time.time()))
+
+async def claim_superword_once(db, chat_id: int, word: str, user_id: int) -> bool:
+    now = int(time.time())
+    await db.execute(
+        """
+        INSERT INTO superwords_found(chat_id, word, found_by, found_ts)
+        VALUES(?,?,?,?)
+        ON CONFLICT(chat_id, word) DO NOTHING
+        """,
+        (chat_id, word.lower(), user_id, now),
+    )
+    async with db.execute("SELECT changes()") as cur:
+        row = await cur.fetchone()
+    return bool(row and int(row[0]) > 0)
 
 def _secs_until_tomorrow() -> int:
     now = datetime.datetime.now()
@@ -1253,22 +1285,20 @@ async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE
             (now, chat.id, user.id)
         )
 
-        # Superworte (einmal pro Woche je Wort & User)
+        # Superworte (pro Chat nur einmal pro Wort, global fuer alle User)
         msg_text = msg.text or ""
         msg_lower = msg_text.lower()
         for word in SUPERWORDS:
             pattern = rf"\b{re.escape(word.lower())}\b"
             if not re.search(pattern, msg_lower):
                 continue
-            cd_key = f"superword:{word}"
-            left = await get_cd_left(db, chat.id, user.id, cd_key)
-            if left > 0:
-                break
+            claimed = await claim_superword_once(db, chat.id, word, user.id)
+            if not claimed:
+                continue
             await db.execute(
                 "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
                 (SUPERWORD_REWARD, chat.id, user.id)
             )
-            await set_cd(db, chat.id, user.id, cd_key, SUPERWORD_COOLDOWN_S)
             await db.commit()
             try:
                 await msg.reply_text(
