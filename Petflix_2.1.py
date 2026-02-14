@@ -137,6 +137,10 @@ STEAL_FAIL_PENALTY = 50
 BUY_SUCCESS_MAX = 0.95   # Bei 0/25 Pflege fast sicher kaufbar
 BUY_SUCCESS_MIN = 0.05   # Bei 25/25 Pflege fast nicht kaufbar
 BUY_FAIL_PENALTY_RATIO = 0.50  # Bei Fehlversuch immer 50% Coins weg
+CARE_FIFTYFIFTY_UNTIL = 25
+CARE_HARD_PROTECT_START = 70
+RISK_BONUS_PER_PRICE = 0.20  # Risiko in Hoehe des Preises => +20% Chance
+RISK_MAX_BONUS = 0.35        # Maximal +35% durch Risiko
 
 # =========================
 # Pet-Skills
@@ -2587,6 +2591,7 @@ async def register_commands(application: Application):
         BotCommand("leckerli", "Schenke Coins an einen User"),
         BotCommand("steal", "Versuche Coins zu klauen (48% Chance)"),
         BotCommand("buy", "Kaufe einen anderen User"),
+        BotCommand("risk", "Klauversuch mit Coin-Risiko fuer mehr Chance"),
         BotCommand("release", "Gib dein Haustier frei"),
         BotCommand("owner", "Zeigt den Besitzer eines Users"),
         BotCommand("ownerlist", "Zeigt alle Besitzverhältnisse + Wert"),
@@ -3837,6 +3842,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/balance - Wie viele Coins du hast (nicht genug)\n"
         "/treat - Coins verschenken (Alias: /leckerli)\n"
         "/buy – Kauf dir was – mit meinem Geld\n"
+        "/risk – Klauen mit Risikoeinsatz für mehr Chance\n"
         "/owner – Wer dich besitzt (Spoiler: Ich)\n"
         "/ownerlist – Die Konkurrenz (als ob's welche gäbe)\n"
         "/prices – Was Gehorsam kostet\n"
@@ -4002,17 +4008,18 @@ async def cmd_blackjack(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(f"Chat ID: {update.effective_chat.id}")
 
-async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def _attempt_pet_buy(update: Update, context: ContextTypes.DEFAULT_TYPE, risk_amount: int = 0):
     if not is_group(update):
         return
     chat_id = update.effective_chat.id
+    msg = update.effective_message
     buyer = update.effective_user
     buyer_id = buyer.id
 
     target_id = None
     target_username = None
-    if update.effective_message.reply_to_message and update.effective_message.reply_to_message.from_user:
-        target = update.effective_message.reply_to_message.from_user
+    if msg.reply_to_message and msg.reply_to_message.from_user:
+        target = msg.reply_to_message.from_user
         target_id = target.id
         target_username = target.username
     elif context.args:
@@ -4023,21 +4030,24 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if target_id is None:
             if not target_username:
-                await update.effective_message.reply_text("Benutze /buy als Antwort auf die Nachricht der Person ODER /buy <username>.")
+                if risk_amount > 0:
+                    await msg.reply_text("Nutzung: als Reply `/risk 200` oder `/risk @user 200`.", parse_mode="Markdown")
+                else:
+                    await msg.reply_text("Benutze /buy als Antwort auf die Nachricht der Person ODER /buy <username>.")
                 return
             async with db.execute("SELECT user_id FROM players WHERE chat_id=? AND username=?", (chat_id, target_username)) as cur:
                 row = await cur.fetchone()
             if not row:
-                await update.effective_message.reply_text("User nicht gefunden oder noch nicht aktiv.")
+                await msg.reply_text("User nicht gefunden oder noch nicht aktiv.")
                 return
             target_id = row[0]
 
         if target_id == buyer_id:
-            await update.effective_message.reply_text("Dich selbst kaufen? Entspann dich.")
+            await msg.reply_text("Dich selbst kaufen? Entspann dich.")
             return
 
-        if target_username is None and update.effective_message.reply_to_message:
-            target_username = update.effective_message.reply_to_message.from_user.username
+        if target_username is None and msg.reply_to_message:
+            target_username = msg.reply_to_message.from_user.username
         await ensure_player(db, chat_id, target_id, target_username or "")
 
         price = await get_user_price(db, chat_id, target_id)
@@ -4052,7 +4062,11 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 prow = await cur.fetchone()
                 prev_owner_uname = prow[0] if prow else None
         if prev_owner == buyer_id:
-            await update.effective_message.reply_text("Du besitzt das Haustier bereits.")
+            await msg.reply_text("Du besitzt das Haustier bereits.")
+            await db.commit()
+            return
+        if risk_amount > 0 and (not prev_owner or prev_owner == buyer_id):
+            await msg.reply_text("Risk geht nur beim Klauen eines bereits besessenen Pets.")
             await db.commit()
             return
 
@@ -4063,7 +4077,7 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             h = left // 3600
             m = (left % 3600) // 60
             target_tag_inline = f"@{target_username}" if target_username else f"ID:{target_id}"
-            await update.effective_message.reply_text(
+            await msg.reply_text(
                 f"{escape(target_tag_inline, False)} ist noch {h}h {m}m geschuetzt. Kauf erst danach moeglich."
             )
             await db.commit()
@@ -4072,53 +4086,71 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         async with db.execute("SELECT coins FROM players WHERE chat_id=? AND user_id=?", (chat_id, buyer_id)) as cur:
             row = await cur.fetchone()
         buyer_coins = row[0] if row else 0
-        if buyer_coins < price:
-            await update.effective_message.reply_text(f"Zu teuer. Preis: {price} Coins. Dein Guthaben: {buyer_coins}.")
+        need_for_success = price + risk_amount
+        if buyer_coins < need_for_success:
+            if risk_amount > 0:
+                await msg.reply_text(
+                    f"Zu wenig Coins. Preis: {price} + Risiko: {risk_amount} = {need_for_success}. "
+                    f"Dein Guthaben: {buyer_coins}."
+                )
+            else:
+                await msg.reply_text(f"Zu teuer. Preis: {price} Coins. Dein Guthaben: {buyer_coins}.")
             await db.commit()
             return
 
         care_done = 0
         skill_for_attempt = prev_skill
         skill_meta_attempt = _skill_meta(skill_for_attempt)
+        risk_bonus = 0.0
 
         if prev_owner and prev_owner != buyer_id:
             care = await get_care(db, chat_id, target_id)
             today = today_ymd()
             care_done = int(care["done"]) if (care and care["day"] == today and care["done"] is not None) else 0
-            if care_done < 25:
+            if care_done < CARE_FIFTYFIFTY_UNTIL:
                 success_chance = 0.50
+            elif care_done < CARE_HARD_PROTECT_START:
+                # 25..69: weiterhin gut klau-bar (50% -> 40%)
+                span = max(1, CARE_HARD_PROTECT_START - CARE_FIFTYFIFTY_UNTIL)
+                t = (care_done - CARE_FIFTYFIFTY_UNTIL) / span
+                success_chance = 0.50 - (0.10 * t)
             else:
-                if CARES_PER_DAY > 0:
-                    care_ratio = min(1.0, max(0.0, care_done / CARES_PER_DAY))
-                else:
-                    care_ratio = 1.0
-                success_chance = BUY_SUCCESS_MAX - (BUY_SUCCESS_MAX - BUY_SUCCESS_MIN) * care_ratio
+                # Ab 70: starker Schutz (40% -> 5% bis 100)
+                hard_span = max(1, CARES_PER_DAY - CARE_HARD_PROTECT_START)
+                t = min(1.0, max(0.0, (care_done - CARE_HARD_PROTECT_START) / hard_span))
+                success_chance = 0.40 - (0.35 * t)
+            success_chance = min(BUY_SUCCESS_MAX, max(BUY_SUCCESS_MIN, success_chance))
             if skill_for_attempt == "schildwall":
                 success_chance = max(BUY_SUCCESS_MIN, success_chance - 0.20)
             if skill_for_attempt == "treuesiegel" and care_done >= CARES_PER_DAY:
                 success_chance = max(0.01, min(success_chance, BUY_SUCCESS_MIN * 0.5))
+            if risk_amount > 0:
+                risk_bonus = min(RISK_MAX_BONUS, (risk_amount / max(1, price)) * RISK_BONUS_PER_PRICE)
+                success_chance = min(0.99, success_chance + risk_bonus)
 
             if random.random() > success_chance:
                 penalty = max(1, int(buyer_coins * BUY_FAIL_PENALTY_RATIO)) if buyer_coins > 0 else 0
-                new_coins = max(0, buyer_coins - penalty)
+                total_penalty = penalty + risk_amount
+                new_coins = max(0, buyer_coins - total_penalty)
                 await db.execute(
                     "UPDATE players SET coins=? WHERE chat_id=? AND user_id=?",
                     (new_coins, chat_id, buyer_id)
                 )
                 await db.commit()
                 target_tag_inline = f"@{target_username}" if target_username else f"ID:{target_id}"
-                await update.effective_message.reply_text(
+                risk_fail_txt = f" + Riskeinsatz -{risk_amount}" if risk_amount > 0 else ""
+                await msg.reply_text(
                     f"Fehlschlag, {mention_html(buyer_id, buyer.username or None)}. "
                     f"{escape(target_tag_inline, False)} zerlegt deinen Klauversuch mit {care_done}/{CARES_PER_DAY} Pflege heute. "
                     f"Skill aktiv: <b>{escape(skill_meta_attempt['name'], False)}</b>. "
-                    f"Du zahlst Blutgeld: -{penalty} Coins (50%).",
+                    f"Du zahlst Blutgeld: -{penalty} Coins (50%){risk_fail_txt}.",
                     parse_mode=ParseMode.HTML
                 )
                 return
 
         await db.execute(
             "UPDATE players SET coins=coins-? WHERE chat_id=? AND user_id=?",
-            (price, chat_id, buyer_id)
+            (price + risk_amount, chat_id, buyer_id)
         )
 
         next_skill, rerolled = resolve_next_skill(prev_skill, bool(prev_owner and prev_owner != buyer_id))
@@ -4160,11 +4192,39 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if prev_owner and prev_owner != buyer_id:
         prev_owner_tag = mention_html(int(prev_owner), prev_owner_uname or None)
         source_txt = f" Geklaut von {prev_owner_tag}."
-    await update.effective_message.reply_text(
+    risk_success_txt = ""
+    if risk_amount > 0 and prev_owner and prev_owner != buyer_id:
+        risk_success_txt = (
+            f" Risk: {risk_amount} Coins fuer +{int(round(risk_bonus * 100))}% Klau-Chance."
+        )
+    await msg.reply_text(
         f"{nice_name_html(buyer)} hat {escape(target_tag, False)} fuer {price} Coins gekauft. Neuer Preis: {new_price}. "
-        f"Skill: <b>{escape(skill_meta['name'], False)}</b>{reroll_txt} - {escape(skill_meta['desc'], False)}.{source_txt}{refund_txt}",
+        f"Skill: <b>{escape(skill_meta['name'], False)}</b>{reroll_txt} - {escape(skill_meta['desc'], False)}."
+        f"{source_txt}{refund_txt}{risk_success_txt}",
         parse_mode=ParseMode.HTML
     )
+
+
+async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await _attempt_pet_buy(update, context, risk_amount=0)
+
+
+async def cmd_risk(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    msg = update.effective_message
+    amount = _parse_amount_from_args(context)
+    if amount is None or amount <= 0:
+        return await msg.reply_text(
+            "Nutzung: als Reply `/risk 200` oder `/risk @user 200`.",
+            parse_mode="Markdown"
+        )
+    if not msg.reply_to_message and (not context.args or len(context.args) < 2):
+        return await msg.reply_text(
+            "Nutzung: als Reply `/risk 200` oder `/risk @user 200`.",
+            parse_mode="Markdown"
+        )
+    await _attempt_pet_buy(update, context, risk_amount=amount)
 
 
 async def cmd_top(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -4607,6 +4667,7 @@ def main():
 
     # Kernspiel
     app.add_handler(CommandHandler("buy",       cmd_buy,       filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("risk",      cmd_risk,      filters=CHAT_FILTER))
     app.add_handler(CommandHandler("owner",     cmd_owner,     filters=CHAT_FILTER))
     app.add_handler(CommandHandler("ownerlist", cmd_ownerlist, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("release",   cmd_release,   filters=CHAT_FILTER))
