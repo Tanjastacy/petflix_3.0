@@ -54,6 +54,7 @@ ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 MESSAGE_THROTTLE_S = 1
 CARE_COOLDOWN_S = 5  # Sekunden zwischen Pflegeaktionen
 CARES_PER_DAY = 100
+CARE_CHAT_CLEANUP_S = 60
 RUNAWAY_HOURS = 24
 LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
@@ -713,6 +714,28 @@ async def _get_care_meta(context: ContextTypes.DEFAULT_TYPE, chat_id: int, messa
         "owner_msg_id": int(row[4]),
     }
 
+
+async def _delete_messages_job(context: ContextTypes.DEFAULT_TYPE):
+    data = context.job.data or {}
+    chat_id = data.get("chat_id")
+    message_ids = data.get("message_ids") or []
+    if not chat_id or not message_ids:
+        return
+
+    seen = set()
+    unique_ids = []
+    for message_id in message_ids:
+        if not message_id or message_id in seen:
+            continue
+        seen.add(message_id)
+        unique_ids.append(message_id)
+
+    for message_id in unique_ids:
+        try:
+            await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
+        except Exception:
+            pass
+
 def split_chunks(text, size=MAX_CHUNK):
     for i in range(0, len(text), size):
         yield text[i:i+size]
@@ -1089,10 +1112,20 @@ async def do_care(update, context, action_key, tame_lines):
     text = text.replace("{CARES_PER_DAY}", str(CARES_PER_DAY)).replace("{pets}", "{pet}")
     text = text.format(owner=nice_name_html(owner), pet=nice_name_html(pet), n=done)
     reply_msg = await msg.reply_text(text)
+    cleanup_message_ids = [msg.message_id, reply_msg.message_id]
     if level_up_text:
-        await msg.reply_text(level_up_text, parse_mode=ParseMode.HTML)
+        level_msg = await msg.reply_text(level_up_text, parse_mode=ParseMode.HTML)
+        cleanup_message_ids.append(level_msg.message_id)
     if bonus_text:
-        await msg.reply_text(bonus_text, parse_mode=ParseMode.HTML)
+        bonus_msg = await msg.reply_text(bonus_text, parse_mode=ParseMode.HTML)
+        cleanup_message_ids.append(bonus_msg.message_id)
+    if done % 10 == 0:
+        progress_text = (
+            f"Pflege-Stand: {nice_name_html(owner)} hat {nice_name_html(pet)} "
+            f"<b>{done}/{CARES_PER_DAY}</b> gepflegt. "
+            f"Level: <b>{new_level}</b> ({escape(pet_level_title(new_level), False)})."
+        )
+        await msg.reply_text(progress_text, parse_mode=ParseMode.HTML)
 
     care_map = context.application.bot_data.setdefault("care_map", {})
     if len(care_map) > 1000:
@@ -1118,6 +1151,14 @@ async def do_care(update, context, action_key, tame_lines):
             (chat_id, msg.message_id, pet.id, owner.id, action_key, meta["ts"])
         )
         await db.commit()
+
+    if context.job_queue:
+        context.job_queue.run_once(
+            _delete_messages_job,
+            when=CARE_CHAT_CLEANUP_S,
+            data={"chat_id": chat_id, "message_ids": cleanup_message_ids},
+            name=f"care_cleanup:{chat_id}:{msg.message_id}"
+        )
 
 
 async def cmd_dom(update: Update, context: ContextTypes.DEFAULT_TYPE):
