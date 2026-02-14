@@ -2457,7 +2457,6 @@ async def register_commands(application: Application):
         BotCommand("ownerlist", "Zeigt alle Besitzverhältnisse + Wert"),
         BotCommand("prices", "Zeigt Kaufpreise aller User"),
         BotCommand("top", "Top 10 Spieler nach Coins"),
-        BotCommand("blackjack", "Setz Coins im Blackjack"),
 
         # Pflege & Fun
         BotCommand("pet", "Streicheln"),
@@ -3704,8 +3703,6 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/prices – Was Gehorsam kostet\n"
         "/release – Frei? Träum weiter, du kleine Gefangene\n"
         "/top – Wer am besten bettelt (du vielleicht?)\n\n"
-        "🃏 <b>Casino</b>\n"
-        "/blackjack &lt;einsatz&gt; – riskier Coins im Kartenrausch\n\n"
         "💸 <b>Coins-Regel</b>\n"
         "5 Coins pro Nachricht – aber wehe, du spamst, du kleine Gierige. 1s Drosselung, weil Geduld sexy ist. 😈"
     )
@@ -4463,7 +4460,6 @@ def main():
     app.add_handler(CommandHandler("balance",  cmd_balance,  filters=CHAT_FILTER))
     app.add_handler(CommandHandler(["treat", "leckerli"], cmd_gift, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("daily",    cmd_daily,    filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("blackjack", cmd_blackjack, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("id",       cmd_id,       filters=CHAT_FILTER))
 
     # Kernspiel
