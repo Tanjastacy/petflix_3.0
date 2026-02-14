@@ -3705,7 +3705,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/release – Frei? Träum weiter, du kleine Gefangene\n"
         "/top – Wer am besten bettelt (du vielleicht?)\n\n"
         "🃏 <b>Casino</b>\n"
-        "/blackjack <einsatz> – riskier Coins im Kartenrausch\n\n"
+        "/blackjack &lt;einsatz&gt; – riskier Coins im Kartenrausch\n\n"
         "💸 <b>Coins-Regel</b>\n"
         "5 Coins pro Nachricht – aber wehe, du spamst, du kleine Gierige. 1s Drosselung, weil Geduld sexy ist. 😈"
     )
