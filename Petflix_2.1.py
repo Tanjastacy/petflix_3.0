@@ -65,6 +65,8 @@ CARE_CHAT_CLEANUP_S = 60
 RUNAWAY_HOURS = 24
 LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
+TITLE_BESTIENZAEHMER = "Bestienzaehmer 🐉"
+TITLE_DURATION_S = 2 * 3600
 DAILY_GIFT_COINS = 15
 DAILY_CURSE_PENALTY = 20
 DAILY_CURSE_ENABLED = False
@@ -436,7 +438,7 @@ log = logging.getLogger("Petflix_2.0")
 # DB-Setup 
 # =========================
 
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -627,6 +629,20 @@ async def migrate_db(db):
             )
         await _set_user_version(db, 13)
         current = 13
+
+    if current < 14:
+        await db.executescript("""
+        CREATE TABLE IF NOT EXISTS user_titles(
+          chat_id    INTEGER,
+          user_id    INTEGER,
+          title      TEXT,
+          expires_ts INTEGER,
+          PRIMARY KEY(chat_id, user_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_titles_exp ON user_titles(chat_id, expires_ts);
+        """)
+        await _set_user_version(db, 14)
+        current = 14
 
 async def db_init():
     async with aiosqlite.connect(DB) as db:
@@ -1261,6 +1277,44 @@ async def pick_random_player_excluding(chat_id: int, exclude_ids: set[int] | Non
 def mention_html(user_id: int, username: str | None) -> str:
     return f"@{escape(username, quote=False)}" if username else f"<a href='tg://user?id={user_id}'>ID:{user_id}</a>"
 
+
+async def set_temp_title(db, chat_id: int, user_id: int, title: str, duration_s: int):
+    expires_ts = int(time.time()) + max(1, int(duration_s))
+    await db.execute(
+        """
+        INSERT INTO user_titles(chat_id, user_id, title, expires_ts)
+        VALUES(?,?,?,?)
+        ON CONFLICT(chat_id, user_id) DO UPDATE SET
+          title=excluded.title,
+          expires_ts=excluded.expires_ts
+        """,
+        (chat_id, user_id, title, expires_ts)
+    )
+    return expires_ts
+
+
+async def get_active_titles_map(db, chat_id: int, user_ids: list[int]) -> dict[int, str]:
+    if not user_ids:
+        return {}
+    now = int(time.time())
+    await db.execute("DELETE FROM user_titles WHERE chat_id=? AND expires_ts<=?", (chat_id, now))
+    uniq_ids = sorted({int(u) for u in user_ids})
+    placeholders = ",".join("?" for _ in uniq_ids)
+    sql = (
+        f"SELECT user_id, title FROM user_titles "
+        f"WHERE chat_id=? AND expires_ts>? AND user_id IN ({placeholders})"
+    )
+    params = [chat_id, now, *uniq_ids]
+    async with db.execute(sql, params) as cur:
+        rows = await cur.fetchall()
+    return {int(uid): (title or "") for uid, title in rows}
+
+
+def with_title_suffix(label: str, title: str | None) -> str:
+    if not title:
+        return label
+    return f"{label} [{title}]"
+
 def runaway_text(pet_tag: str, owner_tag: str) -> str:
     line = random.choice(RUNAWAY_LINES)
     return line.format(pet=pet_tag, owner=owner_tag)
@@ -1383,6 +1437,19 @@ async def do_care(update, context, action_key, tame_lines):
                     f"Skill-Bonus <b>Petflix Prime</b>: {mention_html(owner.id, owner.username or None)} "
                     f"bekommt +{FULL_CARE_OWNER_BONUS} Coins fuer {CARES_PER_DAY}/{CARES_PER_DAY} Pflege."
                 )
+            until_ts = await set_temp_title(
+                db,
+                chat_id=chat_id,
+                user_id=owner.id,
+                title=TITLE_BESTIENZAEHMER,
+                duration_s=TITLE_DURATION_S,
+            )
+            mins = max(1, (until_ts - int(time.time())) // 60)
+            title_line = (
+                f"Titel aktiv: {mention_html(owner.id, owner.username or None)} ist jetzt "
+                f"<b>{escape(TITLE_BESTIENZAEHMER, False)}</b> fuer {mins} Minuten."
+            )
+            bonus_text = f"{bonus_text}\n{title_line}" if bonus_text else title_line
 
         await set_cd(db, chat_id, owner.id, cd_key, CARE_COOLDOWN_S)
         await db.commit()
@@ -4176,12 +4243,15 @@ async def cmd_top(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with aiosqlite.connect(DB) as db:
         async with db.execute("SELECT username, user_id, coins FROM players WHERE chat_id=? ORDER BY coins DESC LIMIT 10", (chat_id,)) as cur:
             rows = await cur.fetchall()
+        titles = await get_active_titles_map(db, chat_id, [int(r[1]) for r in rows])
+        await db.commit()
     if not rows:
         await update.effective_message.reply_text("Noch keine Spieler.")
         return
     lines = []
     for i, (uname, uid, c) in enumerate(rows, start=1):
         raw_tag = f"@{uname}" if uname else f"ID:{uid}"
+        raw_tag = with_title_suffix(raw_tag, titles.get(int(uid)))
         tag = escape(raw_tag, quote=False)
         lines.append(f"{i}. {tag}: {c} 💰")
 
@@ -4427,6 +4497,8 @@ async def cmd_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ) as cur:
                 r2 = await cur.fetchone()
                 owner_uname = r2[0] if r2 else None
+        title_map = await get_active_titles_map(db, chat_id, [owner_id] if owner_id else [])
+        owner_title = title_map.get(int(owner_id)) if owner_id else None
 
         # --- HIER: Lock-Info laden & Text bauen ---
         lock_until = await get_pet_lock_until(db, chat_id, target_id)
@@ -4438,9 +4510,11 @@ async def cmd_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
             m = (left % 3600) // 60
             lock_txt = f" 🔒{h}h{m:02d}m"
         # --- ENDE Lock-Block ---
+        await db.commit()
 
     if owner_id:
-        tag = f"@{owner_uname}" if owner_uname else f"[ID:{owner_id}](tg://user?id={owner_id})"
+        raw_tag = f"@{owner_uname}" if owner_uname else f"[ID:{owner_id}](tg://user?id={owner_id})"
+        tag = with_title_suffix(raw_tag, owner_title)
         await update.effective_message.reply_text(
             f"Besitzer: {tag}. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{level_txt}",
             parse_mode="Markdown"
@@ -4478,6 +4552,14 @@ async def cmd_ownerlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 ORDER BY p.owner_id ASC, current_price DESC, p.pet_id ASC
             """, (chat_id,)) as cur:
                 rows = await cur.fetchall()
+            title_user_ids = []
+            for owner_id, _, pet_id, _, _, _, _, _ in rows:
+                if owner_id:
+                    title_user_ids.append(int(owner_id))
+                if pet_id:
+                    title_user_ids.append(int(pet_id))
+            titles = await get_active_titles_map(db, chat_id, title_user_ids)
+            await db.commit()
     except Exception as e:
         return await update.effective_message.reply_text(
             f"⚠️ Konnte Ownerliste nicht laden: <code>{type(e).__name__}</code> – {escape(str(e), False)}"
@@ -4496,7 +4578,8 @@ async def cmd_ownerlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     def tag(uid: int | None, uname: str | None) -> str:
         if uid is None:
             return "—"
-        return f"@{uname}" if uname else f"<a href='tg://user?id={uid}'>ID:{uid}</a>"
+        base = f"@{uname}" if uname else f"<a href='tg://user?id={uid}'>ID:{uid}</a>"
+        return with_title_suffix(base, titles.get(int(uid)))
 
     out = ["📜 <b>Ownerliste</b> — gruppiert nach Besitzer:\n"]
     owners_sorted = sorted(by_owner.keys(), key=lambda k: (k[0] is None, k[0] or 0))
