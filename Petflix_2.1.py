@@ -128,7 +128,7 @@ SUPERWORDS = [
 # /steal
 # =========================
 STEAL_SUCCESS_CHANCE = 0.48
-STEAL_COOLDOWN_S = 30 * 60
+STEAL_COOLDOWN_S = 10 * 60
 STEAL_FAIL_PENALTY = 50
 
 # =========================
