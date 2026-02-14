@@ -1129,8 +1129,9 @@ async def do_care(update, context, action_key, tame_lines):
         )
         if new_level > prev_level:
             level_up_text = (
-                f"<b>Level Up!</b> {nice_name_html(pet)} ist jetzt Level <b>{new_level}</b> - "
-                f"<b>{escape(pet_level_title(new_level), False)}</b>."
+                f"Lvl <b>{new_level}</b> ({escape(pet_level_title(new_level), False)}) | "
+                f"{nice_name_html(pet)} | Owner: {mention_html(owner.id, owner.username or None)} | "
+                f"Pflege <b>{done}/{CARES_PER_DAY}</b>"
             )
 
         bonus_text = None
@@ -1167,7 +1168,6 @@ async def do_care(update, context, action_key, tame_lines):
     cleanup_message_ids = [msg.message_id, reply_msg.message_id]
     if level_up_text:
         level_msg = await msg.reply_text(level_up_text, parse_mode=ParseMode.HTML)
-        cleanup_message_ids.append(level_msg.message_id)
     if bonus_text:
         bonus_msg = await msg.reply_text(bonus_text, parse_mode=ParseMode.HTML)
         cleanup_message_ids.append(bonus_msg.message_id)
