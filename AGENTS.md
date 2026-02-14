@@ -29,3 +29,14 @@
 ## Security & Configuration Tips
 - Never commit real bot tokens or production database files.
 - Keep secrets in local environment variables or a private `.env` file and update `DB_PATH` for non-local deployments.
+
+## Collaboration Defaults (Persistent)
+- Preferred language for communication is German.
+- For normal requests, implement changes directly first and ask follow-up questions only when requirements are ambiguous or risky.
+- Keep diffs small and focused; avoid unrelated refactors in `Petflix_2.1.py`.
+- After code changes, run a quick syntax check with `python -m py_compile Petflix_2.1.py` when possible.
+- In every final response, include:
+  - short summary of what changed,
+  - touched file paths,
+  - what was verified (or what could not be verified).
+- Do not change secrets in `.env` and do not commit database content changes unless explicitly requested.
