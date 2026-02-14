@@ -54,6 +54,9 @@ ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 MESSAGE_THROTTLE_S = 1
 CARE_COOLDOWN_S = 5  # Sekunden zwischen Pflegeaktionen
 CARES_PER_DAY = 100
+MIN_CARES_PER_24H = 20
+LEVEL_DECAY_XP = 3
+LEVEL_DECAY_INTERVAL_S = 6 * 3600
 CARE_CHAT_CLEANUP_S = 60
 RUNAWAY_HOURS = 24
 LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
@@ -414,7 +417,7 @@ log = logging.getLogger("Petflix_2.0")
 # DB-Setup 
 # =========================
 
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -452,6 +455,7 @@ async def migrate_db(db):
           chat_id          INTEGER,
           pet_id           INTEGER,
           owner_id         INTEGER,
+          acquired_ts      INTEGER DEFAULT NULL,
           last_care_ts     INTEGER DEFAULT NULL,
           care_done_today  INTEGER DEFAULT 0,
           day_ymd          TEXT,
@@ -583,6 +587,15 @@ async def migrate_db(db):
             await db.execute("ALTER TABLE pets ADD COLUMN pet_level INTEGER DEFAULT 0")
         await _set_user_version(db, 11)
         current = 11
+
+    if current < 12:
+        if not await _table_has_column(db, "pets", "acquired_ts"):
+            await db.execute("ALTER TABLE pets ADD COLUMN acquired_ts INTEGER DEFAULT NULL")
+        await db.execute(
+            "UPDATE pets SET acquired_ts=COALESCE(acquired_ts, last_care_ts, CAST(strftime('%s','now') AS INTEGER))"
+        )
+        await _set_user_version(db, 12)
+        current = 12
 
 async def db_init():
     async with aiosqlite.connect(DB) as db:
@@ -825,13 +838,13 @@ def today_ymd():
 
 async def get_care(db, chat_id, pet_id):
     async with db.execute(
-        "SELECT last_care_ts, care_done_today, day_ymd FROM pets WHERE chat_id=? AND pet_id=?",
+        "SELECT last_care_ts, care_done_today, day_ymd, acquired_ts FROM pets WHERE chat_id=? AND pet_id=?",
         (chat_id, pet_id)
     ) as cur:
         row = await cur.fetchone()
     if not row:
         return None
-    return {"last": row[0], "done": row[1], "day": row[2]}
+    return {"last": row[0], "done": row[1], "day": row[2], "acquired_ts": row[3]}
 
 async def set_care(db, chat_id, pet_id, last, done, day):
     await db.execute("""
@@ -843,6 +856,47 @@ async def set_care(db, chat_id, pet_id, last, done, day):
         day_ymd=excluded.day_ymd
     """, (chat_id, pet_id, last, done, day))
     await db.commit()
+
+
+async def _care_count_last_24h(db, chat_id: int, pet_id: int, owner_id: int, now_ts: int) -> int:
+    since_ts = now_ts - RUNAWAY_HOURS * 3600
+    async with db.execute(
+        """
+        SELECT COUNT(*) FROM care_events
+        WHERE chat_id=? AND pet_id=? AND owner_id=? AND ts>=?
+        """,
+        (chat_id, pet_id, owner_id, since_ts)
+    ) as cur:
+        row = await cur.fetchone()
+    raw_events = int(row[0]) if row and row[0] is not None else 0
+    return max(0, raw_events // 2)
+
+
+async def _should_runaway(
+    db,
+    chat_id: int,
+    pet_id: int,
+    owner_id: int,
+    acquired_ts: int | None,
+    now_ts: int,
+    care_24h: int | None = None
+) -> bool:
+    if not owner_id:
+        return False
+    if not acquired_ts:
+        return False
+    if now_ts - int(acquired_ts) < RUNAWAY_HOURS * 3600:
+        return False
+    if care_24h is None:
+        care_24h = await _care_count_last_24h(db, chat_id, pet_id, owner_id, now_ts)
+    return care_24h < MIN_CARES_PER_24H
+
+
+async def _apply_runaway_owner_penalty(db, chat_id: int, owner_id: int):
+    await db.execute(
+        "UPDATE players SET coins = MAX(0, coins - (coins / 2)) WHERE chat_id=? AND user_id=?",
+        (chat_id, owner_id)
+    )
 
 def _skill_meta(skill_key: str | None) -> dict:
     return PET_SKILLS.get(skill_key or "", {"name": "Ohne Skill", "desc": "Kein passiver Effekt."})
@@ -1038,12 +1092,9 @@ async def do_care(update, context, action_key, tame_lines):
         prev_level = int(prog_row[1]) if prog_row else 0
 
         now = int(time.time())
-        if care and care["last"] and now - care["last"] >= RUNAWAY_HOURS * 3600:
+        if await _should_runaway(db, chat_id, pet.id, owner.id, care["acquired_ts"] if care else None, now):
             await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet.id))
-            await db.execute(
-                "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
-                (RUNAWAY_PENALTY, chat_id, owner.id)
-            )
+            await _apply_runaway_owner_penalty(db, chat_id, owner.id)
             await db.commit()
             await msg.reply_text(
                 runaway_text(
@@ -1945,7 +1996,6 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def runaway_watchdog_job(context: ContextTypes.DEFAULT_TYPE):
     chat_id = ALLOWED_CHAT_ID
     now = int(time.time())
-    cutoff = now - RUNAWAY_HOURS * 3600
 
     async with aiosqlite.connect(DB) as db:
         # Alte Pets ohne care-timestamp bekommen eine faire Startzeit
@@ -1953,29 +2003,70 @@ async def runaway_watchdog_job(context: ContextTypes.DEFAULT_TYPE):
             "UPDATE pets SET last_care_ts=? WHERE chat_id=? AND last_care_ts IS NULL",
             (now, chat_id)
         )
+        await db.execute(
+            "UPDATE pets SET acquired_ts=COALESCE(acquired_ts, last_care_ts, ?) WHERE chat_id=?",
+            (now, chat_id)
+        )
 
         async with db.execute("""
-            SELECT p.pet_id, p.owner_id, pl.username, ou.username
+            SELECT p.pet_id, p.owner_id, p.acquired_ts, pl.username, ou.username
             FROM pets p
             LEFT JOIN players pl ON pl.chat_id=p.chat_id AND pl.user_id=p.pet_id
             LEFT JOIN players ou ON ou.chat_id=p.chat_id AND ou.user_id=p.owner_id
-            WHERE p.chat_id=? AND p.last_care_ts <= ?
-        """, (chat_id, cutoff)) as cur:
+            WHERE p.chat_id=?
+        """, (chat_id,)) as cur:
             rows = await cur.fetchall()
 
         if not rows:
             await db.commit()
             return
 
-        for pet_id, owner_id, pet_username, owner_username in rows:
-            await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id))
-            if owner_id:
-                await db.execute(
-                    "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
-                    (RUNAWAY_PENALTY, chat_id, int(owner_id))
-                )
-            pet_tag = mention_html(int(pet_id), pet_username or None)
-            owner_tag = mention_html(int(owner_id), owner_username or None) if owner_id else "niemandem"
+        for pet_id, owner_id, acquired_ts, pet_username, owner_username in rows:
+            if not owner_id:
+                continue
+            pet_id_i = int(pet_id)
+            owner_id_i = int(owner_id)
+            care_24h = await _care_count_last_24h(db, chat_id, pet_id_i, owner_id_i, now)
+
+            if care_24h < MIN_CARES_PER_24H:
+                decay_key = f"petlvl_decay:{pet_id_i}"
+                decay_left = await get_cd_left(db, chat_id, 0, decay_key)
+                if decay_left <= 0:
+                    async with db.execute(
+                        "SELECT COALESCE(pet_xp,0) FROM pets WHERE chat_id=? AND pet_id=?",
+                        (chat_id, pet_id_i)
+                    ) as cur:
+                        xp_row = await cur.fetchone()
+                    old_xp = int(xp_row[0]) if xp_row and xp_row[0] is not None else 0
+                    new_xp = max(0, old_xp - LEVEL_DECAY_XP)
+                    if new_xp != old_xp:
+                        old_level = pet_level_from_xp(old_xp)
+                        new_level = pet_level_from_xp(new_xp)
+                        await db.execute(
+                            "UPDATE pets SET pet_xp=?, pet_level=? WHERE chat_id=? AND pet_id=?",
+                            (new_xp, new_level, chat_id, pet_id_i)
+                        )
+                        pet_tag = mention_html(pet_id_i, pet_username or None)
+                        owner_tag = mention_html(owner_id_i, owner_username or None)
+                        try:
+                            await context.bot.send_message(
+                                chat_id=chat_id,
+                                text=(
+                                    f"Pflege-Reminder: {pet_tag} hat zu wenig Pflege (<{MIN_CARES_PER_24H}/24h). "
+                                    f"-{LEVEL_DECAY_XP} XP | Level {old_level} -> {new_level} (Owner: {owner_tag})."
+                                ),
+                                parse_mode=ParseMode.HTML
+                            )
+                        except Exception:
+                            pass
+                    await set_cd(db, chat_id, 0, decay_key, LEVEL_DECAY_INTERVAL_S)
+
+            if not await _should_runaway(db, chat_id, pet_id_i, owner_id_i, acquired_ts, now, care_24h=care_24h):
+                continue
+            await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id_i))
+            await _apply_runaway_owner_penalty(db, chat_id, owner_id_i)
+            pet_tag = mention_html(pet_id_i, pet_username or None)
+            owner_tag = mention_html(owner_id_i, owner_username or None)
             msg = runaway_text(pet_tag, owner_tag)
             try:
                 await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
@@ -3694,10 +3785,14 @@ async def set_owner(db, chat_id: int, pet_id: int, owner_id: Optional[int]):
     if owner_id is None:
         await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id))
     else:
+        now = int(time.time())
         await db.execute("""
-            INSERT INTO pets(chat_id, pet_id, owner_id) VALUES(?,?,?)
-            ON CONFLICT(chat_id, pet_id) DO UPDATE SET owner_id=excluded.owner_id
-        """, (chat_id, pet_id, owner_id))
+            INSERT INTO pets(chat_id, pet_id, owner_id, acquired_ts, last_care_ts) VALUES(?,?,?,?,?)
+            ON CONFLICT(chat_id, pet_id) DO UPDATE SET
+                owner_id=excluded.owner_id,
+                acquired_ts=excluded.acquired_ts,
+                last_care_ts=COALESCE(pets.last_care_ts, excluded.last_care_ts)
+        """, (chat_id, pet_id, owner_id, now, now))
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_allowed_chat(update):
@@ -3990,11 +4085,14 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             care = await get_care(db, chat_id, target_id)
             today = today_ymd()
             care_done = int(care["done"]) if (care and care["day"] == today and care["done"] is not None) else 0
-            if CARES_PER_DAY > 0:
-                care_ratio = min(1.0, max(0.0, care_done / CARES_PER_DAY))
+            if care_done < 25:
+                success_chance = 0.50
             else:
-                care_ratio = 1.0
-            success_chance = BUY_SUCCESS_MAX - (BUY_SUCCESS_MAX - BUY_SUCCESS_MIN) * care_ratio
+                if CARES_PER_DAY > 0:
+                    care_ratio = min(1.0, max(0.0, care_done / CARES_PER_DAY))
+                else:
+                    care_ratio = 1.0
+                success_chance = BUY_SUCCESS_MAX - (BUY_SUCCESS_MAX - BUY_SUCCESS_MIN) * care_ratio
             if skill_for_attempt == "schildwall":
                 success_chance = max(BUY_SUCCESS_MIN, success_chance - 0.20)
             if skill_for_attempt == "treuesiegel" and care_done >= CARES_PER_DAY:
@@ -4031,17 +4129,18 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         today = today_ymd()
         lock_until_new = now + LOCK_SECONDS
         await db.execute("""
-            INSERT INTO pets(chat_id, pet_id, owner_id, purchase_lock_until, last_care_ts, care_done_today, day_ymd, pet_skill, care_bonus_day)
-            VALUES(?,?,?,?,?,?,?,?,?)
+            INSERT INTO pets(chat_id, pet_id, owner_id, acquired_ts, purchase_lock_until, last_care_ts, care_done_today, day_ymd, pet_skill, care_bonus_day)
+            VALUES(?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(chat_id, pet_id) DO UPDATE SET
                 owner_id=excluded.owner_id,
+                acquired_ts=excluded.acquired_ts,
                 purchase_lock_until=excluded.purchase_lock_until,
                 last_care_ts=excluded.last_care_ts,
                 care_done_today=excluded.care_done_today,
                 day_ymd=excluded.day_ymd,
                 pet_skill=excluded.pet_skill,
                 care_bonus_day=excluded.care_bonus_day
-        """, (chat_id, target_id, buyer_id, lock_until_new, now, 0, today, next_skill, None))
+        """, (chat_id, target_id, buyer_id, now, lock_until_new, now, 0, today, next_skill, None))
 
         new_price = price + step
         await set_user_price(db, chat_id, target_id, new_price)
