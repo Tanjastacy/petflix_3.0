@@ -674,6 +674,24 @@ async def migrate_db(db):
         await _set_user_version(db, 14)
         current = 14
 
+    if current < 15:
+        await db.executescript("""
+        CREATE VIEW IF NOT EXISTS pets_named AS
+        SELECT
+          p.chat_id,
+          p.pet_id,
+          pp.username AS pet_username,
+          p.owner_id,
+          po.username AS owner_username,
+          p.acquired_ts,
+          p.last_care_ts
+        FROM pets p
+        LEFT JOIN players pp ON pp.chat_id=p.chat_id AND pp.user_id=p.pet_id
+        LEFT JOIN players po ON po.chat_id=p.chat_id AND po.user_id=p.owner_id;
+        """)
+        await _set_user_version(db, 15)
+        current = 15
+
 async def db_init():
     async with aiosqlite.connect(DB) as db:
         await db.execute("PRAGMA journal_mode=WAL;")
@@ -709,7 +727,10 @@ async def _start_hass(db, chat_id: int, user_id: int, username: str | None, trig
         INSERT INTO hass_challenges(chat_id, user_id, username, triggered_by, started_ts, expires_ts, required, done, penalty, active)
         VALUES(?,?,?,?,?,?,?,?,?,1)
         ON CONFLICT(chat_id, user_id) DO UPDATE SET
-          username=excluded.username,
+          username=CASE
+            WHEN TRIM(COALESCE(excluded.username, '')) <> '' THEN excluded.username
+            ELSE hass_challenges.username
+          END,
           triggered_by=excluded.triggered_by,
           started_ts=excluded.started_ts,
           expires_ts=excluded.expires_ts,
@@ -1029,7 +1050,11 @@ async def ensure_player(db, chat_id: int, user_id: int, username: str):
         """
         INSERT INTO players(chat_id, user_id, username, coins, price)
         VALUES(?,?,?,?,?)
-        ON CONFLICT(chat_id, user_id) DO UPDATE SET username=excluded.username
+        ON CONFLICT(chat_id, user_id) DO UPDATE SET
+          username=CASE
+            WHEN TRIM(COALESCE(excluded.username, '')) <> '' THEN excluded.username
+            ELSE players.username
+          END
         """,
         (chat_id, user_id, username or "", START_COINS, USER_BASE_PRICE),
     )
@@ -1799,7 +1824,10 @@ async def _start_love(db, chat_id: int, user_id: int, username: str | None, trig
         INSERT INTO love_challenges(chat_id, user_id, username, triggered_by, started_ts, expires_ts, remind_stage, active)
         VALUES(?,?,?,?,?,?,0,1)
         ON CONFLICT(chat_id, user_id) DO UPDATE SET
-          username=excluded.username,
+          username=CASE
+            WHEN TRIM(COALESCE(excluded.username, '')) <> '' THEN excluded.username
+            ELSE love_challenges.username
+          END,
           triggered_by=excluded.triggered_by,
           started_ts=excluded.started_ts,
           expires_ts=excluded.expires_ts,
