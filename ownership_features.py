@@ -50,9 +50,9 @@ def create_ownership_features(deps: dict):
             raw_tag = f"@{uname}" if uname else f"ID:{uid}"
             raw_tag = with_title_suffix(raw_tag, titles.get(int(uid)))
             tag = escape(raw_tag, quote=False)
-            lines.append(f"{i}. {tag}: {c} ðŸ’°")
+            lines.append(f"{i}. {tag}: {c} Coins")
 
-        text = "ðŸ“‹ Rangliste Top 10 Spieler:\n\n" + "\n".join(lines)
+        text = "Rangliste Top 10 Spieler:\n\n" + "\n".join(lines)
         for chunk in [text[i:i+4000] for i in range(0, len(text), 4000)]:
             await update.effective_message.reply_text(chunk, quote=False)
 
@@ -109,7 +109,7 @@ def create_ownership_features(deps: dict):
                 left = lock_until - now
                 h = left // 3600
                 m = (left % 3600) // 60
-                lock_txt = f" ðŸ”’{h}h{m:02d}m"
+                lock_txt = f" [LOCK {h}h{m:02d}m]"
             await db.commit()
 
         if owner_id:
@@ -160,11 +160,11 @@ def create_ownership_features(deps: dict):
                 await db.commit()
         except Exception as e:
             return await update.effective_message.reply_text(
-                f"âš ï¸ Konnte Ownerliste nicht laden: <code>{type(e).__name__}</code> â€“ {escape(str(e), False)}"
+                f"Konnte Ownerliste nicht laden: <code>{type(e).__name__}</code> - {escape(str(e), False)}"
             )
 
         if not rows:
-            return await update.effective_message.reply_text("Noch keine BesitzverhÃ¤ltnisse. Kauf dir erstmal jemanden. ðŸ¾")
+            return await update.effective_message.reply_text("Noch keine Besitzverhaeltnisse. Kauf dir erstmal jemanden.")
 
         by_owner = {}
         for owner_id, owner_uname, pet_id, pet_uname, price, locked_until, pet_skill, pet_level in rows:
@@ -174,11 +174,11 @@ def create_ownership_features(deps: dict):
 
         def tag(uid, uname):
             if uid is None:
-                return "â€”"
+                return "-"
             base = f"@{uname}" if uname else f"<a href='tg://user?id={uid}'>ID:{uid}</a>"
             return with_title_suffix(base, titles.get(int(uid)))
 
-        out = ["ðŸ“œ <b>Ownerliste</b> â€” gruppiert nach Besitzer:\n"]
+        out = ["<b>Ownerliste</b> - gruppiert nach Besitzer:\n"]
         owners_sorted = sorted(by_owner.keys(), key=lambda k: (k[0] is None, k[0] or 0))
         for (owner_id, owner_uname) in owners_sorted:
             pets = by_owner[(owner_id, owner_uname)]
@@ -193,7 +193,7 @@ def create_ownership_features(deps: dict):
                 if locked_until > now:
                     mins_total = (locked_until - now) // 60
                     hrs, mins = divmod(mins_total, 60)
-                    lock_txt = f" ðŸ”’{hrs}h{mins:02d}m"
+                    lock_txt = f" [LOCK {hrs}h{mins:02d}m]"
                 out.append(
                     f" - {pet_tag}  (<b>{price}</b>) [Lvl {pet_level}: {escape(level_name, False)}] "
                     f"[{escape(skill_name, False)}]{lock_txt}"

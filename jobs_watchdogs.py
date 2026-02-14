@@ -53,7 +53,7 @@ def create_jobs_watchdogs(deps: dict):
 
         user_mention = _mention_from_uid_username(uid, uname)
         line = random.choice(_SAVAGE_LINES).format(user=user_mention, coins=DAILY_GIFT_COINS)
-        await context.bot.send_message(chat_id=chat_id, text=f"ðŸŽ TÃ¤gliche Almosen-Time!\n{line}", parse_mode="Markdown")
+        await context.bot.send_message(chat_id=chat_id, text=f"Taegliche Almosen-Time!\n{line}", parse_mode="Markdown")
 
     async def daily_curse_job(context):
         chat_id = ALLOWED_CHAT_ID
@@ -86,7 +86,7 @@ def create_jobs_watchdogs(deps: dict):
         line = random.choice(FLUCH_LINES).format(user=user_mention)
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"â˜ ï¸ TÃ¤glicher Fluch!\n{line}\n<b>Strafe:</b> -{DAILY_CURSE_PENALTY} Coins",
+            text=f"Taeglicher Fluch!\n{line}\n<b>Strafe:</b> -{DAILY_CURSE_PENALTY} Coins",
             parse_mode=ParseMode.HTML
         )
 
@@ -113,9 +113,9 @@ def create_jobs_watchdogs(deps: dict):
 
                 if done < required:
                     await _apply_hass_penalty(db, chat_id, user_id, penalty)
-                    msg = f"âŒ› Hass-Deadline vorbei. {mention_html(user_id, username or None)} hat nur {done}/{required}. âˆ’{penalty} Coins."
+                    msg = f"Hass-Deadline vorbei. {mention_html(user_id, username or None)} hat nur {done}/{required}. -{penalty} Coins."
                 else:
-                    msg = f"âœ… Hass-Check: {mention_html(user_id, username or None)} war rechtzeitig ({done}/{required})."
+                    msg = f"Hass-Check: {mention_html(user_id, username or None)} war rechtzeitig ({done}/{required})."
 
                 await _finish_hass(db, chat_id, user_id)
 
@@ -154,7 +154,7 @@ def create_jobs_watchdogs(deps: dict):
                     )
                     await _finish_love(db, chat_id, user_id)
                     msg = (
-                        f"ðŸ’€ {mention_html(user_id, username or None)} hatte nicht genug Eier fuer ein bisschen Liebe.\n"
+                        f"{mention_html(user_id, username or None)} hatte nicht genug Eier fuer ein bisschen Liebe.\n"
                         "Jetzt weiss jeder: Unter der harten Schale steckt nichts. Nur Leere und kalte Finger."
                     )
                     try:
@@ -167,7 +167,7 @@ def create_jobs_watchdogs(deps: dict):
                     remind_stage = 2
                     left = max(0, expires_ts - now)
                     m = left // 60
-                    msg = f"â³ {mention_html(user_id, username or None)} letzte Erinnerung: noch {m}m fuer dein Liebesgestaendniss."
+                    msg = f"{mention_html(user_id, username or None)} letzte Erinnerung: noch {m}m fuer dein Liebesgestaendniss."
                     try:
                         await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
                     except Exception:
@@ -182,7 +182,7 @@ def create_jobs_watchdogs(deps: dict):
                     remind_stage = 1
                     left = max(0, expires_ts - now)
                     m = left // 60
-                    msg = f"â³ {mention_html(user_id, username or None)} Erinnerung: noch {m}m fuer dein Liebesgestaendniss."
+                    msg = f"{mention_html(user_id, username or None)} Erinnerung: noch {m}m fuer dein Liebesgestaendniss."
                     try:
                         await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
                     except Exception:
@@ -197,7 +197,7 @@ def create_jobs_watchdogs(deps: dict):
                     remind_stage = 2
                     left = max(0, expires_ts - now)
                     m = left // 60
-                    msg = f"â³ {mention_html(user_id, username or None)} letzte Erinnerung: noch {m}m fuer dein Liebesgestaendniss."
+                    msg = f"{mention_html(user_id, username or None)} letzte Erinnerung: noch {m}m fuer dein Liebesgestaendniss."
                     try:
                         await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
                     except Exception:

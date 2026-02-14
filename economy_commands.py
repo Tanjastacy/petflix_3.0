@@ -79,7 +79,7 @@ def create_economy_commands(deps: dict):
 
         sender_tag = mention_html(sender.id, sender.username or None)
         target_tag = mention_html(tid, tname if tname else None)
-        await msg.reply_text(f"ðŸŽ {sender_tag} schenkt {target_tag} {amount} Coins.", parse_mode=ParseMode.HTML)
+        await msg.reply_text(f"Geschenk: {sender_tag} schenkt {target_tag} {amount} Coins.", parse_mode=ParseMode.HTML)
 
     async def cmd_daily(update, context):
         if not is_group(update):
@@ -157,13 +157,13 @@ def create_economy_commands(deps: dict):
             await db.commit()
 
         if result_key == "bust":
-            line = f"ðŸ‚¡ Blackjack: <b>{result_name}</b>. Einsatz -{amount}. Neuer Stand: {final_coins}."
+            line = f"Blackjack: <b>{result_name}</b>. Einsatz -{amount}. Neuer Stand: {final_coins}."
         elif result_key == "push":
-            line = f"ðŸ‚¡ Blackjack: <b>{result_name}</b>. Einsatz zurueck (+0). Neuer Stand: {final_coins}."
+            line = f"Blackjack: <b>{result_name}</b>. Einsatz zurueck (+0). Neuer Stand: {final_coins}."
         elif result_key == "blackjack":
-            line = f"ðŸ‚¡ Blackjack: <b>{result_name}</b>! Gewinn +{net}. Neuer Stand: {final_coins}."
+            line = f"Blackjack: <b>{result_name}</b>! Gewinn +{net}. Neuer Stand: {final_coins}."
         else:
-            line = f"ðŸ‚¡ Blackjack: <b>{result_name}</b>. Gewinn +{net}. Neuer Stand: {final_coins}."
+            line = f"Blackjack: <b>{result_name}</b>. Gewinn +{net}. Neuer Stand: {final_coins}."
 
         await update.effective_message.reply_text(line, parse_mode=ParseMode.HTML)
 
