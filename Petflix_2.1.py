@@ -93,46 +93,71 @@ RUNAWAY_PENALTY = 400
 # =========================
 SUPERWORD_REWARD = 5000
 SUPERWORDS = [
-    "kriegdersterne",
-    "standbyme",
-    "teenwolf",
-    "zurueckindiezukunft",
+    "krieg der sterne",
+    "stand by me",
+    "teen wolf",
+    "zurueck in die zukunft",
     "ghostbusters",
-    "topgun",
-    "stirblangsam",
-    "bladerunner",
-    "breakfastclub",
-    "karatekid",
-    "dasdingauseineranderenwelt",
+    "top gun",
+    "stirb langsam",
+    "blade runner",
+    "breakfast club",
+    "karate kid",
+    "das ding",
     "predator",
     "robocop",
     "beetlejuice",
     "gremlins",
     "labyrinth",
     "flashdance",
-    "dirtydancing",
-    "rainman",
-    "diegoonies",
-    "etderauserirdische",
-    "jaegerdesverlorenenschatzes",
-    "dasimperiumschlaegtzurueck",
-    "dierueckkehrderjedi",
-    "ferrismachtblau",
-    "zweistaehlernenerv",
+    "dirty dancing",
+    "rain man",
+    "die goonies",
+    "et",
+    "jagd auf roter oktober",
+    "risky business",
+    "ferris macht blau",
+    "zwei stahlharte profis",
     "big",
     "akira",
-    "falschesspielmitrogerrabbit",
-    "derprinzauszamunda",
-    "nummer5lebt",
-    "dieunendlichegeschichte",
-    "ariellediemeerjungfrau",
-    "dieunglaublichereiseineinemverruecktenflugzeug",
-    "bluesbrothers",
+    "roger rabbit",
+    "der prinz aus zamunda",
+    "nummer 5 lebt",
+    "die unendliche geschichte",
+    "arielle",
+    "die nackte kanone",
+    "blues brothers",
     "poltergeist",
-    "fullmetaljacket",
-    "nightmaremoerderischetraeume",
-    "dieunbestechlichen",
-    "wallstreet"
+    "full metal jacket",
+    "nightmare",
+    "die unbestechlichen",
+    "wall street",
+    "scarface",
+    "aliens",
+    "rambo",
+    "rambo 2",
+    "rambo 3",
+    "die hard 2",
+    "die hard 3",
+    "batman",
+    "batman returns",
+    "terminator",
+    "terminator 2",
+    "total recall",
+    "the running man",
+    "commando",
+    "rocky 3",
+    "rocky 4",
+    "rocky 5",
+    "bloodsport",
+    "kickboxer",
+    "highlander",
+    "police academy",
+    "the fly",
+    "the thing",
+    "shining",
+    "platoon",
+    "goodfellas"
 ]
 # =========================
 # /steal
@@ -1042,6 +1067,14 @@ async def claim_superword_once(db, chat_id: int, word: str, user_id: int) -> boo
         row = await cur.fetchone()
     return bool(row and int(row[0]) > 0)
 
+
+def superword_pattern(word: str) -> str:
+    parts = re.findall(r"[a-z0-9]+", (word or "").lower())
+    if not parts:
+        return ""
+    body = r"[\s\-_]*".join(re.escape(p) for p in parts)
+    return rf"(?<![a-z0-9]){body}(?![a-z0-9])"
+
 def _secs_until_tomorrow() -> int:
     now = datetime.datetime.now()
     tomorrow = (now + datetime.timedelta(days=1)).date()
@@ -1516,10 +1549,13 @@ async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE
         msg_text = msg.text or ""
         msg_lower = msg_text.lower()
         for word in SUPERWORDS:
-            pattern = rf"\b{re.escape(word.lower())}\b"
-            if not re.search(pattern, msg_lower):
+            pattern = superword_pattern(word)
+            if not pattern or not re.search(pattern, msg_lower):
                 continue
-            claimed = await claim_superword_once(db, chat.id, word, user.id)
+            superword_key = re.sub(r"[^a-z0-9]+", "", word.lower())
+            if not superword_key:
+                continue
+            claimed = await claim_superword_once(db, chat.id, superword_key, user.id)
             if not claimed:
                 continue
             await db.execute(
