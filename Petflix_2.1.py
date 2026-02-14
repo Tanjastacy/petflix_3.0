@@ -1329,9 +1329,36 @@ async def do_care(update, context, action_key, tame_lines):
     chat_id = update.effective_chat.id
     owner = update.effective_user
 
-    # Ziel bestimmen
-    if not msg.reply_to_message or not msg.reply_to_message.from_user:
-        # Fallback: letztes Haustier des Owners
+    # Ziel bestimmen: Reply > @username/user_id > letztes Haustier
+    pet = None
+    if msg.reply_to_message and msg.reply_to_message.from_user:
+        pet = msg.reply_to_message.from_user
+    elif context.args:
+        target_id = None
+        target_name = None
+        first = context.args[0].lstrip("@")
+        if first.isdigit():
+            target_id = int(first)
+        else:
+            async with aiosqlite.connect(DB) as db:
+                async with db.execute(
+                    "SELECT user_id, username FROM players WHERE chat_id=? AND username=?",
+                    (chat_id, first)
+                ) as cur:
+                    row = await cur.fetchone()
+            if row:
+                target_id = int(row[0])
+                target_name = row[1] or first
+        if target_id is None:
+            await msg.reply_text("Ziel nicht gefunden. Nutze Reply, @username oder user_id.")
+            return
+        class Obj:
+            pass
+        pet = Obj()
+        pet.id = target_id
+        pet.first_name = target_name or "Dein Haustier"
+        pet.username = target_name
+    else:
         async with aiosqlite.connect(DB) as db:
             async with db.execute("""
                 SELECT pet_id FROM pets
@@ -1340,7 +1367,7 @@ async def do_care(update, context, action_key, tame_lines):
             """, (chat_id, owner.id)) as cur:
                 row = await cur.fetchone()
         if not row:
-            await msg.reply_text("Antworte auf dein Haustier oder kaufe dir eines mit /buy.")
+            await msg.reply_text("Antworte auf dein Haustier, nutze @username oder kaufe dir eines mit /buy.")
             return
         class Obj:
             pass
@@ -1348,8 +1375,6 @@ async def do_care(update, context, action_key, tame_lines):
         pet.id = row[0]
         pet.first_name = "Dein Haustier"
         pet.username = None
-    else:
-        pet = msg.reply_to_message.from_user
 
     if pet.id == owner.id:
         await msg.reply_text("Selbstpflege ist wichtig, aber zaehlt hier nicht.")
