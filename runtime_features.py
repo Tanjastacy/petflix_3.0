@@ -235,20 +235,21 @@ def create_runtime_features(deps: dict):
             await update.effective_message.reply_text("Dieses Spiel laeuft nur in der vorgesehenen Gruppe.")
             return
         text = (
-            "<b>Petflix Hilfe</b>\n"
-            "\n<b>Basis</b>\n"
+            "<b>SOSPET</b>\n"
+            "Petflix ist ein Gruppen-Game mit Coins, Besitzsystem, Pflegeaktionen und Challenges.\n"
+            "\n<b>Schnellstart</b>\n"
+            "1) Schreibe normal im Chat fuer Coins\n"
+            "2) Nutze /buy oder /risk fuer Besitzaktionen\n"
+            "3) Pflege dein Pet regelmaessig mit /pet, /walk, /kiss, ...\n"
+            "\n<b>Wichtige Commands</b>\n"
             "/balance, /daily, /treasure, /top, /prices\n"
             "/treat (alias /leckerli), /buy, /risk, /steal\n"
-            "\n<b>Besitz</b>\n"
             "/owner, /ownerlist, /release\n"
-            "\n<b>Pflege</b>\n"
-            "/pet, /walk, /kiss, /dine, /massage, /lapdance\n"
             "\n<b>Challenges</b>\n"
             "/hass, /selbst, /liebes\n"
             "\n<b>Admin</b>\n"
             "/settings, /admin, /backupnow, /backups, /restorebackup\n"
-            "/addcoins, /takecoins, /setcoins, /resetcoins\n"
-            "\nTipp: Antworten auf User-Nachrichten aktivieren viele Commands direkt."
+            "\nTipp: Die meisten Commands funktionieren als Reply oder mit @username."
         )
         await update.effective_message.reply_text(text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
@@ -257,7 +258,7 @@ def create_runtime_features(deps: dict):
             await update.effective_message.reply_text("Dieses Spiel laeuft nur in der vorgesehenen Gruppe.")
             return
         await update.effective_message.reply_text(
-            "Petflix ist aktiv. Nutze /help fuer die kurze Befehlsuebersicht."
+            "Petflix ist aktiv. Nutze /sospet fuer die kurze Uebersicht."
         )
 
     return {
