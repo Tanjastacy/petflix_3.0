@@ -1898,8 +1898,8 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     caller_tag = mention_html(caller.id, caller.username or None)
     await update.effective_message.reply_text(
         (
-            "ðŸ’£ <b>Liebes-Bombe detoniert.</b>\n"
-            f"AusgelÃ¶st von: {caller_tag}\n"
+            "💣 <b>Liebes-Bombe detoniert.</b>\n"
+            f"Ausgeloest von: {caller_tag}\n"
             f"Ziel: {target}\n"
             f"Zeit: <b>{LOVE_CHALLENGE_HOURS}h</b> (Deadline: <b>{until}</b>)\n\n"
             "Schreib einen suessen, uebertriebenen Liebesbrief in den Chat:\n"
