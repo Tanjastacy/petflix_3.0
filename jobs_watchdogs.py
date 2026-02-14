@@ -14,6 +14,7 @@ def create_jobs_watchdogs(deps: dict):
     DAILY_GIFT_COINS = deps["DAILY_GIFT_COINS"]
     get_runtime_settings = deps["get_runtime_settings"]
     DAILY_CURSE_PENALTY = deps["DAILY_CURSE_PENALTY"]
+    DAILY_PRIMETIME_COINS = deps["DAILY_PRIMETIME_COINS"]
     mention_html = deps["mention_html"]
     FLUCH_LINES = deps["FLUCH_LINES"]
     _apply_hass_penalty = deps["_apply_hass_penalty"]
@@ -30,6 +31,13 @@ def create_jobs_watchdogs(deps: dict):
     _should_runaway = deps["_should_runaway"]
     _apply_runaway_owner_penalty = deps["_apply_runaway_owner_penalty"]
     runaway_text = deps["runaway_text"]
+    PRIME_TIME_LINES = [
+        "Prime-Time Jackpot! {user} hat heute den Chat gerockt und kassiert +{coins} Coins.",
+        "20:00 Uhr, Spotlight an: {user} schnappt sich +{coins} Coins aus dem Nichts.",
+        "Abendbonus explodiert: {user} wird gezogen und nimmt +{coins} Coins mit.",
+        "Zufall trifft voll: {user} raeumt den Prime-Time Pot mit +{coins} Coins ab.",
+        "Jackpot-Alarm! {user} bekommt fuer heute +{coins} Coins auf die Kralle."
+    ]
 
     async def daily_gift_job(context):
         chat_id = ALLOWED_CHAT_ID
@@ -89,6 +97,48 @@ def create_jobs_watchdogs(deps: dict):
             text=f"Taeglicher Fluch!\n{line}\n<b>Strafe:</b> -{DAILY_CURSE_PENALTY} Coins",
             parse_mode=ParseMode.HTML
         )
+
+    async def daily_primetime_job(context):
+        chat_id = ALLOWED_CHAT_ID
+        today = today_ymd()
+        cd_key = f"dailyprimetime:{today}"
+
+        async with aiosqlite.connect(deps["DB"]) as db:
+            left = await get_cd_left(db, chat_id, 0, cd_key)
+            if left > 0:
+                return
+
+            async with db.execute(
+                """
+                SELECT user_id, username
+                FROM players
+                WHERE chat_id=?
+                  AND last_seen IS NOT NULL
+                  AND date(last_seen, 'unixepoch', 'localtime') = ?
+                ORDER BY RANDOM()
+                LIMIT 1
+                """,
+                (chat_id, today),
+            ) as cur:
+                row = await cur.fetchone()
+
+            if not row:
+                await set_cd(db, chat_id, 0, cd_key, _secs_until_tomorrow())
+                await db.commit()
+                return
+
+            uid = int(row[0])
+            uname = row[1] if len(row) > 1 else None
+            await db.execute(
+                "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
+                (DAILY_PRIMETIME_COINS, chat_id, uid),
+            )
+            await set_cd(db, chat_id, 0, cd_key, _secs_until_tomorrow())
+            await db.commit()
+
+        user_mention = mention_html(uid, uname or None)
+        line = random.choice(PRIME_TIME_LINES).format(user=user_mention, coins=DAILY_PRIMETIME_COINS)
+        await context.bot.send_message(chat_id=chat_id, text=line, parse_mode=ParseMode.HTML)
 
     async def hass_watchdog_job(context):
         chat_id = ALLOWED_CHAT_ID
@@ -293,6 +343,7 @@ def create_jobs_watchdogs(deps: dict):
     return {
         "daily_gift_job": daily_gift_job,
         "daily_curse_job": daily_curse_job,
+        "daily_primetime_job": daily_primetime_job,
         "hass_watchdog_job": hass_watchdog_job,
         "love_watchdog_job": love_watchdog_job,
         "runaway_watchdog_job": runaway_watchdog_job,

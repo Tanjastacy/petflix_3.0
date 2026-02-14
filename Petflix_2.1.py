@@ -73,6 +73,7 @@ TITLE_BESTIENZAEHMER = "Bestienzaehmer 🐉"
 TITLE_DURATION_S = 2 * 3600
 DAILY_GIFT_COINS = 15
 DAILY_CURSE_PENALTY = 20
+DAILY_PRIMETIME_COINS = 50000
 DAILY_CURSE_ENABLED = False
 MORAL_TAX_DEFAULT = 5
 REWARD_AMOUNT = 1 
@@ -2017,6 +2018,7 @@ _JOBS_WATCHDOGS = create_jobs_watchdogs({
     "DAILY_GIFT_COINS": DAILY_GIFT_COINS,
     "get_runtime_settings": get_runtime_settings,
     "DAILY_CURSE_PENALTY": DAILY_CURSE_PENALTY,
+    "DAILY_PRIMETIME_COINS": DAILY_PRIMETIME_COINS,
     "mention_html": mention_html,
     "FLUCH_LINES": FLUCH_LINES,
     "_apply_hass_penalty": _apply_hass_penalty,
@@ -2037,6 +2039,7 @@ _JOBS_WATCHDOGS = create_jobs_watchdogs({
 })
 daily_gift_job = _JOBS_WATCHDOGS["daily_gift_job"]
 daily_curse_job = _JOBS_WATCHDOGS["daily_curse_job"]
+daily_primetime_job = _JOBS_WATCHDOGS["daily_primetime_job"]
 hass_watchdog_job = _JOBS_WATCHDOGS["hass_watchdog_job"]
 love_watchdog_job = _JOBS_WATCHDOGS["love_watchdog_job"]
 runaway_watchdog_job = _JOBS_WATCHDOGS["runaway_watchdog_job"]
@@ -4115,6 +4118,8 @@ def main():
     app.job_queue.run_daily(daily_gift_job, time=gift_time, name="daily_gift_10am")
     curse_time = dtime(hour=20, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
     app.job_queue.run_daily(daily_curse_job, time=curse_time, name="daily_curse_8pm")
+    primetime_time = dtime(hour=20, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
+    app.job_queue.run_daily(daily_primetime_job, time=primetime_time, name="daily_primetime_8pm")
     backup_time = dtime(hour=3, minute=30, tzinfo=ZoneInfo(PETFLIX_TZ))
     app.job_queue.run_daily(daily_backup_job, time=backup_time, name="daily_backup_330am")
     app.job_queue.run_repeating(hass_watchdog_job, interval=60, first=30, name="hass_watchdog")
