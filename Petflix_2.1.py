@@ -17,6 +17,8 @@ from html import escape
 from love_text_rules import LoveTextRules, love_text_ok
 from text_helpers import get_cached_json, split_chunks
 from admin_coin_commands import create_admin_coin_commands
+from runtime_features import create_runtime_features
+from ownership_features import create_ownership_features
 
 from telegram import Update, BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatType, ChatMemberStatus, ParseMode
@@ -802,50 +804,6 @@ async def get_moraltax_settings(db, chat_id: int):
     return enabled, amount
 
 
-async def get_runtime_settings(db, chat_id: int) -> dict:
-    await db.execute(
-        "INSERT INTO settings(chat_id) VALUES(?) ON CONFLICT(chat_id) DO NOTHING",
-        (chat_id,)
-    )
-    async with db.execute(
-        """
-        SELECT
-            COALESCE(moraltax_enabled, 1),
-            COALESCE(moraltax_amount, ?),
-            COALESCE(daily_curse_enabled, ?),
-            COALESCE(auto_curse_enabled, ?)
-        FROM settings
-        WHERE chat_id=?
-        """,
-        (MORAL_TAX_DEFAULT, 1 if DAILY_CURSE_ENABLED else 0, 1 if AUTO_CURSE_ENABLED else 0, chat_id)
-    ) as cur:
-        row = await cur.fetchone()
-    if not row:
-        return {
-            "moraltax_enabled": True,
-            "moraltax_amount": MORAL_TAX_DEFAULT,
-            "daily_curse_enabled": DAILY_CURSE_ENABLED,
-            "auto_curse_enabled": AUTO_CURSE_ENABLED,
-        }
-    return {
-        "moraltax_enabled": bool(int(row[0] or 0)),
-        "moraltax_amount": int(row[1] or MORAL_TAX_DEFAULT),
-        "daily_curse_enabled": bool(int(row[2] or 0)),
-        "auto_curse_enabled": bool(int(row[3] or 0)),
-    }
-
-
-async def set_runtime_flag(db, chat_id: int, key: str, enabled: bool):
-    if key not in {"moraltax_enabled", "daily_curse_enabled", "auto_curse_enabled"}:
-        raise ValueError("invalid runtime flag")
-    await db.execute(
-        "INSERT INTO settings(chat_id) VALUES(?) ON CONFLICT(chat_id) DO NOTHING",
-        (chat_id,)
-    )
-    await db.execute(
-        f"UPDATE settings SET {key}=? WHERE chat_id=?",
-        (1 if enabled else 0, chat_id)
-    )
 
 def is_too_nice(text: str) -> bool:
     if not text:
@@ -914,173 +872,6 @@ def today_ymd():
     return datetime.date.today().isoformat()
 
 
-def _backup_file_prefix(chat_id: int) -> str:
-    return f"petflix_backup_{chat_id}_"
-
-
-def _backup_path(chat_id: int, ts: int | None = None) -> str:
-    ts = ts or int(time.time())
-    stamp = datetime.datetime.fromtimestamp(ts).strftime("%Y%m%d_%H%M%S")
-    return os.path.join(BACKUP_DIR, f"{_backup_file_prefix(chat_id)}{stamp}.db")
-
-
-def _list_backups(chat_id: int) -> list[str]:
-    if not os.path.isdir(BACKUP_DIR):
-        return []
-    prefix = _backup_file_prefix(chat_id)
-    files = []
-    for name in os.listdir(BACKUP_DIR):
-        if not name.startswith(prefix) or not name.endswith(".db"):
-            continue
-        files.append(os.path.join(BACKUP_DIR, name))
-    files.sort(key=lambda p: os.path.getmtime(p), reverse=True)
-    return files
-
-
-def _rotate_backups(chat_id: int, keep: int = BACKUP_KEEP_FILES) -> int:
-    files = _list_backups(chat_id)
-    removed = 0
-    for path in files[keep:]:
-        try:
-            os.remove(path)
-            removed += 1
-        except Exception:
-            pass
-    return removed
-
-
-async def _create_backup(chat_id: int) -> str:
-    os.makedirs(BACKUP_DIR, exist_ok=True)
-    dst = _backup_path(chat_id)
-    try:
-        async with aiosqlite.connect(DB) as src:
-            async with aiosqlite.connect(dst) as target:
-                await src.backup(target)
-                await target.commit()
-    except Exception:
-        shutil.copy2(DB, dst)
-    _rotate_backups(chat_id, BACKUP_KEEP_FILES)
-    return dst
-
-
-async def cmd_backupnow(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not _is_admin_here(update):
-        return await update.effective_message.reply_text("Nur Admin.")
-    chat_id = update.effective_chat.id
-    try:
-        path = await _create_backup(chat_id)
-        await update.effective_message.reply_text(f"Backup erstellt: <code>{escape(path, quote=True)}</code>", parse_mode=ParseMode.HTML)
-    except Exception as e:
-        await update.effective_message.reply_text(f"Backup fehlgeschlagen: {type(e).__name__}: {e}")
-
-
-async def cmd_backups(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not _is_admin_here(update):
-        return await update.effective_message.reply_text("Nur Admin.")
-    chat_id = update.effective_chat.id
-    files = _list_backups(chat_id)
-    if not files:
-        return await update.effective_message.reply_text("Keine Backups gefunden.")
-    lines = ["<b>Backups (neu -> alt)</b>"]
-    for p in files[:10]:
-        name = os.path.basename(p)
-        size_kb = max(1, int(os.path.getsize(p) / 1024))
-        lines.append(f"- <code>{escape(name, quote=True)}</code> ({size_kb} KB)")
-    await update.effective_message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
-
-
-async def cmd_restorebackup(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not _is_admin_here(update):
-        return await update.effective_message.reply_text("Nur Admin.")
-    if not context.args:
-        return await update.effective_message.reply_text("Nutzung: /restorebackup <dateiname.db>")
-
-    name = os.path.basename(context.args[0].strip())
-    src = os.path.join(BACKUP_DIR, name)
-    if not os.path.isfile(src):
-        return await update.effective_message.reply_text("Backup-Datei nicht gefunden.")
-
-    try:
-        shutil.copy2(src, DB)
-        for suffix in ("-wal", "-shm"):
-            sidecar = DB + suffix
-            if os.path.exists(sidecar):
-                os.remove(sidecar)
-        await update.effective_message.reply_text(
-            f"Restore abgeschlossen aus <code>{escape(name, quote=True)}</code>.",
-            parse_mode=ParseMode.HTML
-        )
-    except Exception as e:
-        await update.effective_message.reply_text(f"Restore fehlgeschlagen: {type(e).__name__}: {e}")
-
-
-async def cmd_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not _is_admin_here(update):
-        return await update.effective_message.reply_text("Nur Admin.")
-    chat_id = update.effective_chat.id
-    key_map = {
-        "moraltax": "moraltax_enabled",
-        "dailycurse": "daily_curse_enabled",
-        "autocurse": "auto_curse_enabled",
-    }
-    async with aiosqlite.connect(DB) as db:
-        if len(context.args) >= 2:
-            k = context.args[0].lower()
-            v = context.args[1].lower()
-            if k in key_map and v in {"on", "off"}:
-                await set_runtime_flag(db, chat_id, key_map[k], v == "on")
-                await db.commit()
-            else:
-                return await update.effective_message.reply_text(
-                    "Nutzung: /settings <moraltax|dailycurse|autocurse> <on|off> oder /settings status"
-                )
-        runtime = await get_runtime_settings(db, chat_id)
-        await db.commit()
-    text = (
-        "<b>Settings</b>\n"
-        f"- Moraltax: {'on' if runtime['moraltax_enabled'] else 'off'} (amount={runtime['moraltax_amount']})\n"
-        f"- Daily Curse: {'on' if runtime['daily_curse_enabled'] else 'off'}\n"
-        f"- Auto Curse: {'on' if runtime['auto_curse_enabled'] else 'off'}\n"
-        "Beispiel: /settings dailycurse on"
-    )
-    await update.effective_message.reply_text(text, parse_mode=ParseMode.HTML)
-
-
-async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not _is_admin_here(update):
-        return await update.effective_message.reply_text("Nur Admin.")
-    chat_id = update.effective_chat.id
-    now = int(time.time())
-    day_start = now - 86400
-    async with aiosqlite.connect(DB) as db:
-        runtime = await get_runtime_settings(db, chat_id)
-        async with db.execute("SELECT COUNT(*) FROM players WHERE chat_id=?", (chat_id,)) as cur:
-            players = int((await cur.fetchone())[0] or 0)
-        async with db.execute("SELECT COUNT(*) FROM pets WHERE chat_id=?", (chat_id,)) as cur:
-            pets = int((await cur.fetchone())[0] or 0)
-        async with db.execute("SELECT COUNT(*) FROM hass_challenges WHERE chat_id=? AND active=1", (chat_id,)) as cur:
-            hass_active = int((await cur.fetchone())[0] or 0)
-        async with db.execute("SELECT COUNT(*) FROM love_challenges WHERE chat_id=? AND active=1", (chat_id,)) as cur:
-            love_active = int((await cur.fetchone())[0] or 0)
-        async with db.execute("SELECT COUNT(*) FROM care_events WHERE chat_id=? AND ts>=?", (chat_id, day_start)) as cur:
-            care_events_24h = int((await cur.fetchone())[0] or 0)
-        await db.commit()
-
-    backups = _list_backups(chat_id)
-    latest_backup = os.path.basename(backups[0]) if backups else "keins"
-    text = (
-        "<b>Admin Dashboard</b>\n"
-        f"- Players: {players}\n"
-        f"- Pets: {pets}\n"
-        f"- Active Hass: {hass_active}\n"
-        f"- Active Love: {love_active}\n"
-        f"- Care Events (24h): {care_events_24h}\n"
-        f"- Moraltax: {'on' if runtime['moraltax_enabled'] else 'off'} ({runtime['moraltax_amount']})\n"
-        f"- Daily Curse: {'on' if runtime['daily_curse_enabled'] else 'off'}\n"
-        f"- Auto Curse: {'on' if runtime['auto_curse_enabled'] else 'off'}\n"
-        f"- Latest Backup: <code>{escape(latest_backup, quote=True)}</code>"
-    )
-    await update.effective_message.reply_text(text, parse_mode=ParseMode.HTML)
 
 async def get_care(db, chat_id, pet_id):
     async with db.execute(
@@ -1689,12 +1480,6 @@ async def daily_curse_job(context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-async def daily_backup_job(context: ContextTypes.DEFAULT_TYPE):
-    chat_id = ALLOWED_CHAT_ID
-    try:
-        await _create_backup(chat_id)
-    except Exception as e:
-        log.error(f"daily backup failed: {e}")
 
 # ==============================================================================
 # hass watchdog
@@ -2367,6 +2152,61 @@ def _parse_amount_from_args(context: ContextTypes.DEFAULT_TYPE) -> int | None:
             if raw.isdigit():
                 return int(raw)
     return None
+
+
+_RUNTIME_FEATURES = create_runtime_features({
+    "aiosqlite": aiosqlite,
+    "datetime": datetime,
+    "os": os,
+    "shutil": shutil,
+    "time": time,
+    "escape": escape,
+    "ParseMode": ParseMode,
+    "BACKUP_DIR": BACKUP_DIR,
+    "BACKUP_KEEP_FILES": BACKUP_KEEP_FILES,
+    "DB": DB,
+    "MORAL_TAX_DEFAULT": MORAL_TAX_DEFAULT,
+    "DAILY_CURSE_ENABLED": DAILY_CURSE_ENABLED,
+    "AUTO_CURSE_ENABLED": AUTO_CURSE_ENABLED,
+    "ALLOWED_CHAT_ID": ALLOWED_CHAT_ID,
+    "_is_admin_here": _is_admin_here,
+    "is_allowed_chat": is_allowed_chat,
+    "log": log,
+})
+get_runtime_settings = _RUNTIME_FEATURES["get_runtime_settings"]
+set_runtime_flag = _RUNTIME_FEATURES["set_runtime_flag"]
+cmd_backupnow = _RUNTIME_FEATURES["cmd_backupnow"]
+cmd_backups = _RUNTIME_FEATURES["cmd_backups"]
+cmd_restorebackup = _RUNTIME_FEATURES["cmd_restorebackup"]
+cmd_settings = _RUNTIME_FEATURES["cmd_settings"]
+cmd_admin = _RUNTIME_FEATURES["cmd_admin"]
+daily_backup_job = _RUNTIME_FEATURES["daily_backup_job"]
+cmd_help = _RUNTIME_FEATURES["cmd_help"]
+cmd_start = _RUNTIME_FEATURES["cmd_start"]
+
+_OWNERSHIP_FEATURES = create_ownership_features({
+    "aiosqlite": aiosqlite,
+    "DB": DB,
+    "time": time,
+    "escape": escape,
+    "MAX_CHUNK": MAX_CHUNK,
+    "ALLOWED_CHAT_ID": ALLOWED_CHAT_ID,
+    "is_group": is_group,
+    "get_user_price": get_user_price,
+    "get_pet_skill": get_pet_skill,
+    "_skill_label": _skill_label,
+    "pet_level_title": pet_level_title,
+    "get_pet_lock_until": get_pet_lock_until,
+    "get_active_titles_map": get_active_titles_map,
+    "with_title_suffix": with_title_suffix,
+    "_skill_meta": _skill_meta,
+})
+get_owner_id = _OWNERSHIP_FEATURES["get_owner_id"]
+set_owner = _OWNERSHIP_FEATURES["set_owner"]
+cmd_top = _OWNERSHIP_FEATURES["cmd_top"]
+cmd_owner = _OWNERSHIP_FEATURES["cmd_owner"]
+cmd_ownerlist = _OWNERSHIP_FEATURES["cmd_ownerlist"]
+cmd_release = _OWNERSHIP_FEATURES["cmd_release"]
 
 
 _ADMIN_COIN_CMDS = create_admin_coin_commands({
@@ -3845,54 +3685,6 @@ async def cmd_treasure(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 # Kern-Spiel: Kaufen/Owner/Listen
 # =========================
-async def get_owner_id(db, chat_id: int, pet_id: int) -> Optional[int]:
-    async with db.execute("SELECT owner_id FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id)) as cur:
-        row = await cur.fetchone()
-    return row[0] if row else None
-
-async def set_owner(db, chat_id: int, pet_id: int, owner_id: Optional[int]):
-    if owner_id is None:
-        await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id))
-    else:
-        now = int(time.time())
-        await db.execute("""
-            INSERT INTO pets(chat_id, pet_id, owner_id, acquired_ts, last_care_ts) VALUES(?,?,?,?,?)
-            ON CONFLICT(chat_id, pet_id) DO UPDATE SET
-                owner_id=excluded.owner_id,
-                acquired_ts=excluded.acquired_ts,
-                last_care_ts=COALESCE(pets.last_care_ts, excluded.last_care_ts)
-        """, (chat_id, pet_id, owner_id, now, now))
-
-async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_allowed_chat(update):
-        await update.effective_message.reply_text("Dieses Spiel laeuft nur in der vorgesehenen Gruppe.")
-        return
-    text = (
-        "<b>Petflix Hilfe</b>\n"
-        "\n<b>Basis</b>\n"
-        "/balance, /daily, /treasure, /top, /prices\n"
-        "/treat (alias /leckerli), /buy, /risk, /steal\n"
-        "\n<b>Besitz</b>\n"
-        "/owner, /ownerlist, /release\n"
-        "\n<b>Pflege</b>\n"
-        "/pet, /walk, /kiss, /dine, /massage, /lapdance\n"
-        "\n<b>Challenges</b>\n"
-        "/hass, /selbst, /liebes\n"
-        "\n<b>Admin</b>\n"
-        "/settings, /admin, /backupnow, /backups, /restorebackup\n"
-        "/addcoins, /takecoins, /setcoins, /resetcoins\n"
-        "\nTipp: Antworten auf User-Nachrichten aktivieren viele Commands direkt."
-    )
-    await update.effective_message.reply_text(text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
-
-
-async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_allowed_chat(update):
-        await update.effective_message.reply_text("Dieses Spiel laeuft nur in der vorgesehenen Gruppe.")
-        return
-    await update.effective_message.reply_text(
-        "Petflix ist aktiv. Nutze /help fuer die kurze Befehlsuebersicht."
-    )
 
 async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update): return
@@ -4081,7 +3873,7 @@ async def _attempt_pet_buy(update: Update, context: ContextTypes.DEFAULT_TYPE, r
         if target_id is None:
             if not target_username:
                 if risk_amount > 0:
-                    await msg.reply_text("Nutzung: als Reply `/risk 200` oder `/risk @user 200`.", parse_mode="Markdown")
+                    await msg.reply_text("Nutzung: als Reply `/risk <coins>` oder `/risk @user <coins>`.", parse_mode="Markdown")
                 else:
                     await msg.reply_text("Benutze /buy als Antwort auf die Nachricht der Person ODER /buy <username>.")
                 return
@@ -4270,39 +4062,16 @@ async def cmd_risk(update: Update, context: ContextTypes.DEFAULT_TYPE):
     amount = _parse_amount_from_args(context)
     if amount is None or amount <= 0:
         return await msg.reply_text(
-            "Nutzung: als Reply `/risk 30000` oder `/risk @user 30000` (auch `/risk 30000 @user`).",
+            "Nutzung: als Reply `/risk <coins>` oder `/risk @user <coins>` (auch `/risk <coins> @user`).",
             parse_mode="Markdown"
         )
     if not msg.reply_to_message and (not context.args or len(context.args) < 2):
         return await msg.reply_text(
-            "Nutzung: als Reply `/risk 30000` oder `/risk @user 30000` (auch `/risk 30000 @user`).",
+            "Nutzung: als Reply `/risk <coins>` oder `/risk @user <coins>` (auch `/risk <coins> @user`).",
             parse_mode="Markdown"
         )
     await _attempt_pet_buy(update, context, risk_amount=amount)
 
-
-async def cmd_top(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.id != ALLOWED_CHAT_ID:
-        return
-    chat_id = update.effective_chat.id
-    async with aiosqlite.connect(DB) as db:
-        async with db.execute("SELECT username, user_id, coins FROM players WHERE chat_id=? ORDER BY coins DESC LIMIT 10", (chat_id,)) as cur:
-            rows = await cur.fetchall()
-        titles = await get_active_titles_map(db, chat_id, [int(r[1]) for r in rows])
-        await db.commit()
-    if not rows:
-        await update.effective_message.reply_text("Noch keine Spieler.")
-        return
-    lines = []
-    for i, (uname, uid, c) in enumerate(rows, start=1):
-        raw_tag = f"@{uname}" if uname else f"ID:{uid}"
-        raw_tag = with_title_suffix(raw_tag, titles.get(int(uid)))
-        tag = escape(raw_tag, quote=False)
-        lines.append(f"{i}. {tag}: {c} 💰")
-
-    text = "📋 Rangliste Top 10 Spieler:\n\n" + "\n".join(lines)
-    for chunk in [text[i:i+4000] for i in range(0, len(text), 4000)]:
-        await update.effective_message.reply_text(chunk, quote=False)
 
 
 # Auto-Purge bei Austritt
@@ -4494,189 +4263,6 @@ async def cmd_purgeuser(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text("pong")
 
-# =========================
-# Besitzer-Abfragen & Listen
-# =========================
-async def cmd_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_group(update):
-        return
-
-    chat_id = update.effective_chat.id
-
-    # Ziel bestimmen: Reply > Argument > Self
-    target_id = None
-    if update.effective_message.reply_to_message and update.effective_message.reply_to_message.from_user:
-        target_id = update.effective_message.reply_to_message.from_user.id
-    elif context.args:
-        uname = context.args[0].lstrip("@")
-        async with aiosqlite.connect(DB) as db:
-            async with db.execute(
-                "SELECT user_id FROM players WHERE chat_id=? AND username=?",
-                (chat_id, uname)
-            ) as cur:
-                row = await cur.fetchone()
-        if row:
-            target_id = int(row[0])
-
-    if target_id is None:
-        target_id = update.effective_user.id
-
-    async with aiosqlite.connect(DB) as db:
-        owner_id = await get_owner_id(db, chat_id, target_id)
-        price = await get_user_price(db, chat_id, target_id)
-        skill_key = await get_pet_skill(db, chat_id, target_id)
-        skill_txt = _skill_label(skill_key)
-        async with db.execute(
-            "SELECT COALESCE(pet_level,0) FROM pets WHERE chat_id=? AND pet_id=?",
-            (chat_id, target_id)
-        ) as cur:
-            lrow = await cur.fetchone()
-        pet_level = int(lrow[0]) if lrow else 0
-        level_txt = f"Level {pet_level} - {pet_level_title(pet_level)}"
-
-        owner_uname = None
-        if owner_id:
-            async with db.execute(
-                "SELECT username FROM players WHERE chat_id=? AND user_id=?",
-                (chat_id, owner_id)
-            ) as cur:
-                r2 = await cur.fetchone()
-                owner_uname = r2[0] if r2 else None
-        title_map = await get_active_titles_map(db, chat_id, [owner_id] if owner_id else [])
-        owner_title = title_map.get(int(owner_id)) if owner_id else None
-
-        # --- HIER: Lock-Info laden & Text bauen ---
-        lock_until = await get_pet_lock_until(db, chat_id, target_id)
-        lock_txt = ""
-        now = int(time.time())
-        if lock_until and lock_until > now:
-            left = lock_until - now
-            h = left // 3600
-            m = (left % 3600) // 60
-            lock_txt = f" 🔒{h}h{m:02d}m"
-        # --- ENDE Lock-Block ---
-        await db.commit()
-
-    if owner_id:
-        raw_tag = f"@{owner_uname}" if owner_uname else f"[ID:{owner_id}](tg://user?id={owner_id})"
-        tag = with_title_suffix(raw_tag, owner_title)
-        await update.effective_message.reply_text(
-            f"Besitzer: {tag}. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{level_txt}",
-            parse_mode="Markdown"
-        )
-    else:
-        await update.effective_message.reply_text(
-            f"Kein Besitzer. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{level_txt}"
-        )
-
-
-async def cmd_ownerlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Zeigt alle Besitzverhältnisse gruppiert nach Besitzer (mit Lockzeit und Wert)."""
-    if not is_group(update):
-        return
-    chat_id = update.effective_chat.id
-    now = int(time.time())
-
-    try:
-        async with aiosqlite.connect(DB) as db:
-            async with db.execute("""
-                SELECT 
-                    p.owner_id,
-                    ou.username                                 AS owner_username,
-                    p.pet_id,
-                    pu.username                                 AS pet_username,
-                    COALESCE(pl.price, 0)                       AS current_price,
-                    COALESCE(p.purchase_lock_until, 0)          AS locked_until,
-                    p.pet_skill                                  AS pet_skill,
-                    COALESCE(p.pet_level, 0)                    AS pet_level
-                FROM pets p
-                LEFT JOIN players ou ON ou.chat_id=p.chat_id AND ou.user_id=p.owner_id
-                LEFT JOIN players pu ON pu.chat_id=p.chat_id AND pu.user_id=p.pet_id
-                LEFT JOIN players pl ON pl.chat_id=p.chat_id AND pl.user_id=p.pet_id
-                WHERE p.chat_id=?
-                ORDER BY p.owner_id ASC, current_price DESC, p.pet_id ASC
-            """, (chat_id,)) as cur:
-                rows = await cur.fetchall()
-            title_user_ids = []
-            for owner_id, _, pet_id, _, _, _, _, _ in rows:
-                if owner_id:
-                    title_user_ids.append(int(owner_id))
-                if pet_id:
-                    title_user_ids.append(int(pet_id))
-            titles = await get_active_titles_map(db, chat_id, title_user_ids)
-            await db.commit()
-    except Exception as e:
-        return await update.effective_message.reply_text(
-            f"⚠️ Konnte Ownerliste nicht laden: <code>{type(e).__name__}</code> – {escape(str(e), False)}"
-        )
-
-    if not rows:
-        return await update.effective_message.reply_text("Noch keine Besitzverhältnisse. Kauf dir erstmal jemanden. 🐾")
-
-    # Gruppieren nach Owner
-    by_owner = {}
-    for owner_id, owner_uname, pet_id, pet_uname, price, locked_until, pet_skill, pet_level in rows:
-        by_owner.setdefault((owner_id, owner_uname), []).append(
-            (pet_id, pet_uname, int(price or 0), int(locked_until or 0), pet_skill, int(pet_level or 0))
-        )
-
-    def tag(uid: int | None, uname: str | None) -> str:
-        if uid is None:
-            return "—"
-        base = f"@{uname}" if uname else f"<a href='tg://user?id={uid}'>ID:{uid}</a>"
-        return with_title_suffix(base, titles.get(int(uid)))
-
-    out = ["📜 <b>Ownerliste</b> — gruppiert nach Besitzer:\n"]
-    owners_sorted = sorted(by_owner.keys(), key=lambda k: (k[0] is None, k[0] or 0))
-    for (owner_id, owner_uname) in owners_sorted:
-        pets = by_owner[(owner_id, owner_uname)]
-        total_value = sum(p[2] for p in pets)
-
-        out.append(f"<b>{tag(owner_id, owner_uname)}</b>  <i>({len(pets)} Pet(s), Gesamtwert: {total_value})</i>")
-        for pet_id, pet_uname, price, locked_until, pet_skill, pet_level in pets:
-            pet_tag = tag(pet_id, pet_uname)
-            lock_txt = ""
-            skill_name = _skill_meta(pet_skill)["name"]
-            level_name = pet_level_title(pet_level)
-            if locked_until > now:
-                mins_total = (locked_until - now) // 60
-                hrs, mins = divmod(mins_total, 60)
-                lock_txt = f" 🔒{hrs}h{mins:02d}m"
-            out.append(
-                f" - {pet_tag}  (<b>{price}</b>) [Lvl {pet_level}: {escape(level_name, False)}] "
-                f"[{escape(skill_name, False)}]{lock_txt}"
-            )
-        out.append("")
-
-    text = "\n".join(out).strip()
-    for i in range(0, len(text), MAX_CHUNK):
-        await update.effective_message.reply_text(text[i:i+MAX_CHUNK], disable_web_page_preview=True)
-
-
-
-
-async def cmd_release(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Gibt dein aktuelles Haustier frei. Muss als Reply auf das Pet genutzt werden."""
-    if not is_group(update):
-        return
-    chat_id = update.effective_chat.id
-    me = update.effective_user.id
-
-    if not update.effective_message.reply_to_message or not update.effective_message.reply_to_message.from_user:
-        await update.effective_message.reply_text("Antworte auf dein Haustier mit /release.")
-        return
-
-    pet_id = update.effective_message.reply_to_message.from_user.id
-
-    async with aiosqlite.connect(DB) as db:
-        owner = await get_owner_id(db, chat_id, pet_id)
-        if owner != me:
-            await update.effective_message.reply_text("Das ist nicht dein Haustier.")
-            return
-        await set_owner(db, chat_id, pet_id, None)
-        await db.commit()
-
-    await update.effective_message.reply_text("Freigelassen. Das Band ist durch, die Leine auch.")
 
 # =========================
 # Bot-Mitgliedschaftsänderungen
