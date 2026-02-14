@@ -9,11 +9,12 @@ import aiosqlite
 import datetime
 import hashlib
 import re
-import json
 from typing import Optional
 from datetime import time as dtime
 from zoneinfo import ZoneInfo  # Python 3.9+
 from html import escape
+from love_text_rules import LoveTextRules, love_text_ok
+from text_helpers import get_cached_json, split_chunks
 
 from telegram import Update, BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatType, ChatMemberStatus, ParseMode
@@ -327,6 +328,17 @@ LOVE_VERB_RE = re.compile(
     r"mochte|mochtest|mochten|"
     r"liebte|liebtest|liebten)\b",
     re.IGNORECASE
+)
+LOVE_TEXT_RULES = LoveTextRules(
+    min_words=LOVE_MIN_WORDS,
+    min_emojis=LOVE_MIN_EMOJIS,
+    min_sentences=LOVE_MIN_SENTENCES,
+    sentence_min_words=LOVE_SENTENCE_MIN_WORDS,
+    min_verbs=LOVE_MIN_VERBS,
+    count_any_emoji=LOVE_COUNT_ANY_EMOJI,
+    emojis=tuple(LOVE_EMOJIS),
+    sad_patterns=tuple(LOVE_SAD_PATTERNS),
+    verb_re=LOVE_VERB_RE,
 )
 
 SELF_LINES = [
@@ -680,36 +692,6 @@ def nice_name_html(u) -> str:
     # Für alle Antworten, die mit HTML geparst werden (Default!)
     return escape(nice_name(u), quote=False)
 
-def _load_care_responses():
-    try:
-        with open(CARE_RESPONSES_PATH, "r", encoding="utf-8") as fh:
-            data = json.load(fh)
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
-
-def _load_dom_responses():
-    try:
-        with open(DOM_RESPONSES_PATH, "r", encoding="utf-8") as fh:
-            data = json.load(fh)
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
-
-def _get_care_responses(context: ContextTypes.DEFAULT_TYPE):
-    data = context.application.bot_data.get("care_responses")
-    if data is None:
-        data = _load_care_responses()
-        context.application.bot_data["care_responses"] = data
-    return data
-
-def _get_dom_responses(context: ContextTypes.DEFAULT_TYPE):
-    data = context.application.bot_data.get("dom_responses")
-    if data is None:
-        data = _load_dom_responses()
-        context.application.bot_data["dom_responses"] = data
-    return data
-
 async def _get_care_meta(context: ContextTypes.DEFAULT_TYPE, chat_id: int, message_id: int):
     care_map = context.application.bot_data.get("care_map", {})
     meta = care_map.get((chat_id, message_id))
@@ -771,10 +753,6 @@ async def _send_or_replace_level_message(
     level_msg = await trigger_msg.reply_text(text, parse_mode=ParseMode.HTML)
     store[chat_id] = level_msg.message_id
     return level_msg
-
-def split_chunks(text, size=MAX_CHUNK):
-    for i in range(0, len(text), size):
-        yield text[i:i+size]
 
 async def get_moraltax_settings(db, chat_id: int):
     async with db.execute("SELECT moraltax_enabled, moraltax_amount FROM settings WHERE chat_id=?", (chat_id,)) as cur:
@@ -969,9 +947,6 @@ def pet_level_title(level: int) -> str:
 
 def is_group(update: Update) -> bool:
     return update.effective_chat and update.effective_chat.type in {ChatType.GROUP, ChatType.SUPERGROUP}
-
-def nice_name(u) -> str:
-    return f"@{u.username}" if getattr(u, "username", None) else (u.full_name or str(u.id))
 
 async def get_user_price(db, chat_id: int, user_id: int) -> int:
     async with db.execute(
@@ -1182,7 +1157,7 @@ async def do_care(update, context, action_key, tame_lines):
         await set_cd(db, chat_id, owner.id, cd_key, CARE_COOLDOWN_S)
         await db.commit()
 
-    lines = _get_care_responses(context).get(action_key) or tame_lines
+    lines = get_cached_json(context, "care_responses", CARE_RESPONSES_PATH).get(action_key) or tame_lines
     text = random.choice(lines)
     text = text.replace("{CARES_PER_DAY}", str(CARES_PER_DAY)).replace("{pets}", "{pet}")
     text = text.format(owner=nice_name_html(owner), pet=nice_name_html(pet), n=done)
@@ -1276,7 +1251,7 @@ async def cmd_dom(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         await db.commit()
 
-    responses = _get_dom_responses(context).get("dom", [])
+    responses = get_cached_json(context, "dom_responses", DOM_RESPONSES_PATH).get("dom", [])
     owner_tag = mention_html(sender.id, sender.username or None)
     pet_tag = mention_html(target.id, target.username or None)
     if responses:
@@ -1629,7 +1604,7 @@ async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE
             break
 
         love = await _get_active_love_for_user(db, chat.id, user.id)
-        if love and _love_text_ok(msg.text):
+        if love and love_text_ok(msg.text, LOVE_TEXT_RULES):
             await db.execute(
                 "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
                 (LOVE_REWARD, chat.id, user.id)
@@ -1846,81 +1821,6 @@ async def cmd_selbst(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 # ============== Liebesgestaendniss
-def _count_love_words(text: str) -> int:
-    return len(re.findall(r"\b\w+\b", text))
-
-def _count_love_nicknames(text: str) -> int:
-    t = text.lower()
-    found = set()
-    for name in LOVE_NICKNAMES:
-        if re.search(rf"\\b{re.escape(name.lower())}\\b", t):
-            found.add(name.lower())
-    return len(found)
-
-def _count_love_emojis(text: str) -> int:
-    if LOVE_COUNT_ANY_EMOJI:
-        emoji_re = re.compile(r"[\U0001F300-\U0001FAFF\U00002600-\U000027BF]")
-        return len(emoji_re.findall(text))
-    return sum(text.count(e) for e in LOVE_EMOJIS)
-
-def _count_love_sad_sentences(text: str) -> int:
-    sentences = re.split(r"[.!?]+", text)
-    count = 0
-    for s in sentences:
-        if not s.strip():
-            continue
-        s_lower = s.lower()
-        if any(re.search(pat, s_lower) for pat in LOVE_SAD_PATTERNS):
-            count += 1
-    return count
-
-def _has_love_verb(words: list[str]) -> bool:
-    if not words:
-        return False
-    return bool(LOVE_VERB_RE.search(" ".join(words)))
-
-def _count_love_verbs(text: str) -> int:
-    return len(LOVE_VERB_RE.findall(text or ""))
-
-def _count_love_sentences(text: str) -> int:
-    parts = re.split(r"[.!?]+|\n+", text)
-    count = 0
-    for part in parts:
-        if not part.strip():
-            continue
-        words = re.findall(r"\b\w+\b", part)
-        if len(words) < LOVE_SENTENCE_MIN_WORDS:
-            continue
-        count += 1
-    if count > 0:
-        return count
-
-    # Fallback: sentence-like chunks when punctuation is missing.
-    words = re.findall(r"\b\w+\b", text)
-    chunk = []
-    for word in words:
-        chunk.append(word)
-        if len(chunk) >= LOVE_SENTENCE_MIN_WORDS:
-            count += 1
-            chunk = []
-    return count
-
-def _love_text_ok(text: str) -> bool:
-    if not text:
-        return False
-    word_count = _count_love_words(text)
-    emoji_count = _count_love_emojis(text)
-    sentence_count = _count_love_sentences(text)
-    verb_count = _count_love_verbs(text)
-    if word_count < LOVE_MIN_WORDS:
-        return False
-    if emoji_count < LOVE_MIN_EMOJIS:
-        return False
-    if LOVE_MIN_SENTENCES > 0 and sentence_count < LOVE_MIN_SENTENCES:
-        return False
-    if LOVE_MIN_VERBS > 0 and verb_count < LOVE_MIN_VERBS:
-        return False
-    return True
 
 async def _start_love(db, chat_id: int, user_id: int, username: str | None, triggered_by: int):
     now = int(time.time())
@@ -3870,7 +3770,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "5 Coins pro Nachricht – aber wehe, du spamst, du kleine Gierige. 1s Drosselung, weil Geduld sexy ist. 😈"
     )
     try:
-        for chunk in split_chunks(legende):
+        for chunk in split_chunks(legende, MAX_CHUNK):
             await update.effective_message.reply_text(chunk, disable_web_page_preview=True)
     except Exception as e:
         await update.effective_message.reply_text(
