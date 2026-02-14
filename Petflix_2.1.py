@@ -60,6 +60,7 @@ LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
 DAILY_GIFT_COINS = 15
 DAILY_CURSE_PENALTY = 20
+DAILY_CURSE_ENABLED = False
 MORAL_TAX_DEFAULT = 5
 REWARD_AMOUNT = 1 
 # =========================
@@ -214,7 +215,7 @@ BLACKJACK_OUTCOMES = [
 # Fluch
 # =========================
 
-AUTO_CURSE_ENABLED = True
+AUTO_CURSE_ENABLED = False
 AUTO_CURSE_CHANCE_PER_MESSAGE = 0.3  # 2% pro normaler Nachricht
 AUTO_CURSE_COOLDOWN_S = 30 * 60       # 30 Minuten globaler Cooldown im Chat
 
@@ -1283,6 +1284,8 @@ async def daily_gift_job(context: ContextTypes.DEFAULT_TYPE):
 # Daily Curse
 # =========================
 async def daily_curse_job(context: ContextTypes.DEFAULT_TYPE):
+    if not DAILY_CURSE_ENABLED:
+        return
     chat_id = ALLOWED_CHAT_ID
     today = today_ymd()
     cd_key = f"dailycurse:{today}"
@@ -4604,7 +4607,8 @@ def main():
     gift_time = dtime(hour=10, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
     app.job_queue.run_daily(daily_gift_job, time=gift_time, name="daily_gift_10am")
     curse_time = dtime(hour=20, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
-    app.job_queue.run_daily(daily_curse_job, time=curse_time, name="daily_curse_8pm")
+    if DAILY_CURSE_ENABLED:
+        app.job_queue.run_daily(daily_curse_job, time=curse_time, name="daily_curse_8pm")
     app.job_queue.run_repeating(hass_watchdog_job, interval=60, first=30, name="hass_watchdog")
     app.job_queue.run_repeating(love_watchdog_job, interval=60, first=30, name="love_watchdog")
     app.job_queue.run_repeating(runaway_watchdog_job, interval=60, first=30, name="runaway_watchdog")
