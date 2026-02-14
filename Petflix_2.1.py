@@ -53,7 +53,7 @@ USER_PRICE_STEP = 50  # 100 -> 150 -> 200 ...
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 MESSAGE_THROTTLE_S = 1
 CARE_COOLDOWN_S = 5  # Sekunden zwischen Pflegeaktionen
-CARES_PER_DAY = 25
+CARES_PER_DAY = 100
 RUNAWAY_HOURS = 24
 LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
@@ -65,11 +65,11 @@ REWARD_AMOUNT = 1
 # Ausreißer
 # =========================
 RUNAWAY_LINES = [
-    "{pet} reißt ab. Eine Leine weniger.",
-    "{pet} ist weg. Keine Spuren, kein Mitleid.",
-    "{pet} beißt sich frei. Schluss.",
-    "{pet} verschwindet. Einfach so.",
-    "{pet} zerreißt die Leine und ist Staub."
+    "{pet} reisst aus und laeuft von {owner} weg. Eine Leine weniger.",
+    "{pet} ist weg von {owner}. Keine Spuren, kein Mitleid.",
+    "{pet} beisst sich frei und rennt von {owner} weg.",
+    "{pet} verschwindet einfach so - weg von {owner}.",
+    "{pet} zerreisst die Leine von {owner} und ist Staub."
 ]
 RUNAWAY_PENALTY = 400
 
@@ -125,6 +125,90 @@ SUPERWORDS = [
 STEAL_SUCCESS_CHANCE = 0.48
 STEAL_COOLDOWN_S = 30 * 60
 STEAL_FAIL_PENALTY = 50
+
+# =========================
+# /buy Schutz durch Pflege
+# =========================
+BUY_SUCCESS_MAX = 0.95   # Bei 0/25 Pflege fast sicher kaufbar
+BUY_SUCCESS_MIN = 0.05   # Bei 25/25 Pflege fast nicht kaufbar
+BUY_FAIL_PENALTY_RATIO = 0.50  # Bei Fehlversuch immer 50% Coins weg
+
+# =========================
+# Pet-Skills
+# =========================
+SKILL_KEEP_CHANCE = 0.70
+SKILL_REROLL_CHANCE = 0.30
+FULL_CARE_OWNER_BONUS = 40
+PRICE_STEP_SKILL_BONUS = 80
+BUY_REFUND_SKILL_RATIO = 0.15
+
+PET_SKILLS = {
+    "schildwall": {
+        "name": "Petflix Firewall",
+        "desc": "Blockt Angreifer: -20% Kaufchance.",
+        "weight": 25,
+    },
+    "treuesiegel": {
+        "name": "Besitzvertrag X",
+        "desc": f"Bei {CARES_PER_DAY}/{CARES_PER_DAY} Pflege ist Klauen nahezu unmoeglich.",
+        "weight": 18,
+    },
+    "goldzahn": {
+        "name": "Coin-Ruecklauf",
+        "desc": "Bei erfolgreichem Kauf: 15% Cashback auf den Kaufpreis.",
+        "weight": 18,
+    },
+    "wertanlage": {
+        "name": "Hype-Maschine",
+        "desc": f"Preis steigt nach Kauf um {PRICE_STEP_SKILL_BONUS} statt {USER_PRICE_STEP}.",
+        "weight": 16,
+    },
+    "goldesel": {
+        "name": "Petflix Prime",
+        "desc": f"Bei {CARES_PER_DAY}/{CARES_PER_DAY} Pflege erhaelt der Owner +{FULL_CARE_OWNER_BONUS} Bonus/Tag.",
+        "weight": 13,
+    },
+    "chamaeleon": {
+        "name": "Patchnote",
+        "desc": "Bei Besitzerwechsel wird der Skill sofort neu ausgewuerfelt.",
+        "weight": 10,
+    },
+}
+
+PET_LEVEL_TITLES = [
+    "Schwaechling",
+    "Winzling",
+    "Jungtier",
+    "Kleiner Freund",
+    "Begleiter",
+    "Treuer Begleiter",
+    "Kaempfer",
+    "Beschuetzer",
+    "Waechter",
+    "Elite-Pet",
+    "Veteran",
+    "Alpha",
+    "Champion",
+    "Meistertier",
+    "Legenden-Pet",
+    "Titan",
+    "Urbestie",
+    "Mythos",
+    "Goettlicher Begleiter",
+]
+
+# =========================
+# /blackjack
+# =========================
+BLACKJACK_COOLDOWN_S = 45
+BLACKJACK_MIN_BET = 10
+BLACKJACK_MAX_BET = 5000
+BLACKJACK_OUTCOMES = [
+    ("bust", 0.50, 0.0, "Bust"),
+    ("push", 0.11, 1.0, "Push"),
+    ("win", 0.27, 1.8, "Win"),
+    ("blackjack", 0.12, 2.4, "Blackjack"),
+]
 # =========================
 # Fluch
 # =========================
@@ -328,7 +412,7 @@ log = logging.getLogger("Petflix_2.0")
 # DB-Setup 
 # =========================
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 11
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -481,6 +565,22 @@ async def migrate_db(db):
         """)
         await _set_user_version(db, 9)
         current = 9
+
+    if current < 10:
+        if not await _table_has_column(db, "pets", "pet_skill"):
+            await db.execute("ALTER TABLE pets ADD COLUMN pet_skill TEXT DEFAULT NULL")
+        if not await _table_has_column(db, "pets", "care_bonus_day"):
+            await db.execute("ALTER TABLE pets ADD COLUMN care_bonus_day TEXT DEFAULT NULL")
+        await _set_user_version(db, 10)
+        current = 10
+
+    if current < 11:
+        if not await _table_has_column(db, "pets", "pet_xp"):
+            await db.execute("ALTER TABLE pets ADD COLUMN pet_xp INTEGER DEFAULT 0")
+        if not await _table_has_column(db, "pets", "pet_level"):
+            await db.execute("ALTER TABLE pets ADD COLUMN pet_level INTEGER DEFAULT 0")
+        await _set_user_version(db, 11)
+        current = 11
 
 async def db_init():
     async with aiosqlite.connect(DB) as db:
@@ -720,6 +820,53 @@ async def set_care(db, chat_id, pet_id, last, done, day):
     """, (chat_id, pet_id, last, done, day))
     await db.commit()
 
+def _skill_meta(skill_key: str | None) -> dict:
+    return PET_SKILLS.get(skill_key or "", {"name": "Ohne Skill", "desc": "Kein passiver Effekt."})
+
+def _skill_label(skill_key: str | None) -> str:
+    meta = _skill_meta(skill_key)
+    return f"{meta['name']} ({meta['desc']})"
+
+def _roll_pet_skill() -> str:
+    keys = list(PET_SKILLS.keys())
+    weights = [int(PET_SKILLS[k]["weight"]) for k in keys]
+    return random.choices(keys, weights=weights, k=1)[0]
+
+async def get_pet_skill(db, chat_id: int, pet_id: int) -> Optional[str]:
+    async with db.execute("SELECT pet_skill FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id)) as cur:
+        row = await cur.fetchone()
+    if not row:
+        return None
+    return row[0]
+
+async def set_pet_skill(db, chat_id: int, pet_id: int, skill_key: str):
+    await db.execute(
+        "UPDATE pets SET pet_skill=? WHERE chat_id=? AND pet_id=?",
+        (skill_key, chat_id, pet_id)
+    )
+
+def resolve_next_skill(prev_skill: Optional[str], has_prev_owner: bool) -> tuple[str, bool]:
+    if not has_prev_owner:
+        return _roll_pet_skill(), True
+    if prev_skill == "chamaeleon":
+        return _roll_pet_skill(), True
+    if not prev_skill:
+        return _roll_pet_skill(), True
+    reroll_chance = max(SKILL_REROLL_CHANCE, 1.0 - SKILL_KEEP_CHANCE)
+    if random.random() < reroll_chance:
+        return _roll_pet_skill(), True
+    return prev_skill, False
+
+def pet_level_from_xp(xp: int) -> int:
+    return max(0, min(100, int(xp)))
+
+def pet_level_title(level: int) -> str:
+    lvl = max(0, min(100, int(level)))
+    if not PET_LEVEL_TITLES:
+        return f"Level {lvl}"
+    idx = min(len(PET_LEVEL_TITLES) - 1, (lvl * (len(PET_LEVEL_TITLES) - 1)) // 100)
+    return PET_LEVEL_TITLES[idx]
+
 def is_group(update: Update) -> bool:
     return update.effective_chat and update.effective_chat.type in {ChatType.GROUP, ChatType.SUPERGROUP}
 
@@ -809,15 +956,15 @@ async def pick_random_player_excluding(chat_id: int, exclude_ids: set[int] | Non
 def mention_html(user_id: int, username: str | None) -> str:
     return f"@{escape(username, quote=False)}" if username else f"<a href='tg://user?id={user_id}'>ID:{user_id}</a>"
 
-def runaway_text(pet_tag: str) -> str:
+def runaway_text(pet_tag: str, owner_tag: str) -> str:
     line = random.choice(RUNAWAY_LINES)
-    return line.format(pet=pet_tag)
+    return line.format(pet=pet_tag, owner=owner_tag)
 
 # =========================
 # Pflegeaktionen (gemeinsamer Handler)
 # =========================
 async def do_care(update, context, action_key, tame_lines):
-    if not is_group(update): 
+    if not is_group(update):
         return
     msg = update.effective_message
     chat_id = update.effective_chat.id
@@ -834,9 +981,10 @@ async def do_care(update, context, action_key, tame_lines):
             """, (chat_id, owner.id)) as cur:
                 row = await cur.fetchone()
         if not row:
-            await msg.reply_text("❌ Antworte auf dein Haustier oder kaufe dir eines mit /buy.")
+            await msg.reply_text("Antworte auf dein Haustier oder kaufe dir eines mit /buy.")
             return
-        class Obj: pass
+        class Obj:
+            pass
         pet = Obj()
         pet.id = row[0]
         pet.first_name = "Dein Haustier"
@@ -845,19 +993,26 @@ async def do_care(update, context, action_key, tame_lines):
         pet = msg.reply_to_message.from_user
 
     if pet.id == owner.id:
-        await msg.reply_text("Selbstpflege ist wichtig, aber zählt hier nicht.")
+        await msg.reply_text("Selbstpflege ist wichtig, aber zaehlt hier nicht.")
         return
 
     async with aiosqlite.connect(DB) as db:
-        # Besitz prüfen
+        # Besitz pruefen
         async with db.execute("SELECT owner_id FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet.id)) as cur:
             row = await cur.fetchone()
         if not row or row[0] != owner.id:
             await msg.reply_text("Das ist nicht dein Haustier.")
             return
 
-        # runaway check
         care = await get_care(db, chat_id, pet.id)
+        async with db.execute(
+            "SELECT COALESCE(pet_xp,0), COALESCE(pet_level,0) FROM pets WHERE chat_id=? AND pet_id=?",
+            (chat_id, pet.id)
+        ) as cur:
+            prog_row = await cur.fetchone()
+        prev_xp = int(prog_row[0]) if prog_row else 0
+        prev_level = int(prog_row[1]) if prog_row else 0
+
         now = int(time.time())
         if care and care["last"] and now - care["last"] >= RUNAWAY_HOURS * 3600:
             await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet.id))
@@ -866,17 +1021,21 @@ async def do_care(update, context, action_key, tame_lines):
                 (RUNAWAY_PENALTY, chat_id, owner.id)
             )
             await db.commit()
-            await msg.reply_text(runaway_text(nice_name_html(pet)))
+            await msg.reply_text(
+                runaway_text(
+                    nice_name_html(pet),
+                    mention_html(owner.id, owner.username or None),
+                ),
+                parse_mode=ParseMode.HTML,
+            )
             return
 
-        # cooldown
         cd_key = f"care:{action_key}:{owner.id}:{pet.id}"
         left = await get_cd_left(db, chat_id, owner.id, cd_key)
         if left > 0:
             await msg.reply_text("Langsam, Casanova. Etwas Geduld.")
             return
 
-        # Tageszähler
         today = today_ymd()
         done = care["done"] if (care and care["day"] == today) else 0
         if done >= CARES_PER_DAY:
@@ -885,6 +1044,43 @@ async def do_care(update, context, action_key, tame_lines):
 
         done += 1
         await set_care(db, chat_id, pet.id, now, done, today)
+
+        level_up_text = None
+        new_xp = prev_xp + 1
+        new_level = pet_level_from_xp(new_xp)
+        await db.execute(
+            "UPDATE pets SET pet_xp=?, pet_level=? WHERE chat_id=? AND pet_id=?",
+            (new_xp, new_level, chat_id, pet.id)
+        )
+        if new_level > prev_level:
+            level_up_text = (
+                f"<b>Level Up!</b> {nice_name_html(pet)} ist jetzt Level <b>{new_level}</b> - "
+                f"<b>{escape(pet_level_title(new_level), False)}</b>."
+            )
+
+        bonus_text = None
+        if done >= CARES_PER_DAY:
+            async with db.execute(
+                "SELECT pet_skill, care_bonus_day FROM pets WHERE chat_id=? AND pet_id=?",
+                (chat_id, pet.id)
+            ) as cur:
+                prow = await cur.fetchone()
+            skill_key = prow[0] if prow else None
+            care_bonus_day = prow[1] if prow else None
+            if skill_key == "goldesel" and care_bonus_day != today:
+                await db.execute(
+                    "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
+                    (FULL_CARE_OWNER_BONUS, chat_id, owner.id)
+                )
+                await db.execute(
+                    "UPDATE pets SET care_bonus_day=? WHERE chat_id=? AND pet_id=?",
+                    (today, chat_id, pet.id)
+                )
+                bonus_text = (
+                    f"Skill-Bonus <b>Petflix Prime</b>: {mention_html(owner.id, owner.username or None)} "
+                    f"bekommt +{FULL_CARE_OWNER_BONUS} Coins fuer {CARES_PER_DAY}/{CARES_PER_DAY} Pflege."
+                )
+
         await set_cd(db, chat_id, owner.id, cd_key, CARE_COOLDOWN_S)
         await db.commit()
 
@@ -893,6 +1089,11 @@ async def do_care(update, context, action_key, tame_lines):
     text = text.replace("{CARES_PER_DAY}", str(CARES_PER_DAY)).replace("{pets}", "{pet}")
     text = text.format(owner=nice_name_html(owner), pet=nice_name_html(pet), n=done)
     reply_msg = await msg.reply_text(text)
+    if level_up_text:
+        await msg.reply_text(level_up_text, parse_mode=ParseMode.HTML)
+    if bonus_text:
+        await msg.reply_text(bonus_text, parse_mode=ParseMode.HTML)
+
     care_map = context.application.bot_data.setdefault("care_map", {})
     if len(care_map) > 1000:
         care_map.clear()
@@ -917,6 +1118,7 @@ async def do_care(update, context, action_key, tame_lines):
             (chat_id, msg.message_id, pet.id, owner.id, action_key, meta["ts"])
         )
         await db.commit()
+
 
 async def cmd_dom(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update):
@@ -1709,9 +1911,10 @@ async def runaway_watchdog_job(context: ContextTypes.DEFAULT_TYPE):
         )
 
         async with db.execute("""
-            SELECT p.pet_id, p.owner_id, pl.username
+            SELECT p.pet_id, p.owner_id, pl.username, ou.username
             FROM pets p
             LEFT JOIN players pl ON pl.chat_id=p.chat_id AND pl.user_id=p.pet_id
+            LEFT JOIN players ou ON ou.chat_id=p.chat_id AND ou.user_id=p.owner_id
             WHERE p.chat_id=? AND p.last_care_ts <= ?
         """, (chat_id, cutoff)) as cur:
             rows = await cur.fetchall()
@@ -1720,7 +1923,7 @@ async def runaway_watchdog_job(context: ContextTypes.DEFAULT_TYPE):
             await db.commit()
             return
 
-        for pet_id, owner_id, pet_username in rows:
+        for pet_id, owner_id, pet_username, owner_username in rows:
             await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id))
             if owner_id:
                 await db.execute(
@@ -1728,7 +1931,8 @@ async def runaway_watchdog_job(context: ContextTypes.DEFAULT_TYPE):
                     (RUNAWAY_PENALTY, chat_id, int(owner_id))
                 )
             pet_tag = mention_html(int(pet_id), pet_username or None)
-            msg = runaway_text(pet_tag)
+            owner_tag = mention_html(int(owner_id), owner_username or None) if owner_id else "niemandem"
+            msg = runaway_text(pet_tag, owner_tag)
             try:
                 await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
             except Exception:
@@ -2253,6 +2457,7 @@ async def register_commands(application: Application):
         BotCommand("ownerlist", "Zeigt alle Besitzverhältnisse + Wert"),
         BotCommand("prices", "Zeigt Kaufpreise aller User"),
         BotCommand("top", "Top 10 Spieler nach Coins"),
+        BotCommand("blackjack", "Setz Coins im Blackjack"),
 
         # Pflege & Fun
         BotCommand("pet", "Streicheln"),
@@ -3499,6 +3704,8 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/prices – Was Gehorsam kostet\n"
         "/release – Frei? Träum weiter, du kleine Gefangene\n"
         "/top – Wer am besten bettelt (du vielleicht?)\n\n"
+        "🃏 <b>Casino</b>\n"
+        "/blackjack <einsatz> – riskier Coins im Kartenrausch\n\n"
         "💸 <b>Coins-Regel</b>\n"
         "5 Coins pro Nachricht – aber wehe, du spamst, du kleine Gierige. 1s Drosselung, weil Geduld sexy ist. 😈"
     )
@@ -3586,6 +3793,76 @@ async def cmd_daily(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await db.commit()
     await update.effective_message.reply_text(f"+{DAILY_COINS} Coins Tagesbonus.")
 
+async def cmd_blackjack(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    amount = _parse_amount_from_args(context)
+    if amount is None:
+        return await update.effective_message.reply_text(
+            f"Nutzung: /blackjack <einsatz> (min {BLACKJACK_MIN_BET}, max {BLACKJACK_MAX_BET})"
+        )
+    if amount < BLACKJACK_MIN_BET or amount > BLACKJACK_MAX_BET:
+        return await update.effective_message.reply_text(
+            f"Einsatz muss zwischen {BLACKJACK_MIN_BET} und {BLACKJACK_MAX_BET} liegen."
+        )
+
+    chat_id = update.effective_chat.id
+    user = update.effective_user
+    uid = user.id
+
+    async with aiosqlite.connect(DB) as db:
+        await ensure_player(db, chat_id, uid, user.username or user.full_name or "")
+        left = await get_cd_left(db, chat_id, uid, "blackjack")
+        if left > 0:
+            return await update.effective_message.reply_text(
+                f"Blackjack-Cooldown aktiv. Versuch es in {left}s nochmal."
+            )
+
+        coins = await _get_coins(db, chat_id, uid)
+        if coins < amount:
+            return await update.effective_message.reply_text(
+                f"Zu wenig Coins. Du hast {coins}, Einsatz waere {amount}."
+            )
+
+        await db.execute(
+            "UPDATE players SET coins=coins-? WHERE chat_id=? AND user_id=?",
+            (amount, chat_id, uid)
+        )
+
+        r = random.random()
+        acc = 0.0
+        result_key, _, payout_mult, result_name = BLACKJACK_OUTCOMES[-1]
+        for key, chance, mult, label in BLACKJACK_OUTCOMES:
+            acc += chance
+            if r <= acc:
+                result_key, payout_mult, result_name = key, mult, label
+                break
+
+        payout_total = int(amount * payout_mult)
+        net = payout_total - amount
+        if payout_total > 0:
+            await db.execute(
+                "UPDATE players SET coins=coins+? WHERE chat_id=? AND user_id=?",
+                (payout_total, chat_id, uid)
+            )
+
+        await set_cd(db, chat_id, uid, "blackjack", BLACKJACK_COOLDOWN_S)
+        async with db.execute("SELECT coins FROM players WHERE chat_id=? AND user_id=?", (chat_id, uid)) as cur:
+            row = await cur.fetchone()
+        final_coins = int(row[0]) if row else 0
+        await db.commit()
+
+    if result_key == "bust":
+        line = f"🂡 Blackjack: <b>{result_name}</b>. Einsatz -{amount}. Neuer Stand: {final_coins}."
+    elif result_key == "push":
+        line = f"🂡 Blackjack: <b>{result_name}</b>. Einsatz zurueck (+0). Neuer Stand: {final_coins}."
+    elif result_key == "blackjack":
+        line = f"🂡 Blackjack: <b>{result_name}</b>! Gewinn +{net}. Neuer Stand: {final_coins}."
+    else:
+        line = f"🂡 Blackjack: <b>{result_name}</b>. Gewinn +{net}. Neuer Stand: {final_coins}."
+
+    await update.effective_message.reply_text(line, parse_mode=ParseMode.HTML)
+
 async def cmd_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(f"Chat ID: {update.effective_chat.id}")
 
@@ -3627,16 +3904,22 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             target_username = update.effective_message.reply_to_message.from_user.username
         await ensure_player(db, chat_id, target_id, target_username or "")
 
-        # Preis + aktueller Besitzer
         price = await get_user_price(db, chat_id, target_id)
         prev_owner = await get_owner_id(db, chat_id, target_id)
+        prev_skill = await get_pet_skill(db, chat_id, target_id)
+        prev_owner_uname = None
+        if prev_owner:
+            async with db.execute(
+                "SELECT username FROM players WHERE chat_id=? AND user_id=?",
+                (chat_id, prev_owner)
+            ) as cur:
+                prow = await cur.fetchone()
+                prev_owner_uname = prow[0] if prow else None
         if prev_owner == buyer_id:
             await update.effective_message.reply_text("Du besitzt das Haustier bereits.")
             await db.commit()
             return
 
-        # >>> HIER KOMMT DER KAUFSCHUTZ-CHECK REIN <<<
-        # 48h-Kaufschutz prüfen (nur wenn es einen Vorbesitzer gibt, der nicht der Käufer ist)
         lock_until = await get_pet_lock_until(db, chat_id, target_id)
         now = int(time.time())
         if prev_owner and prev_owner != buyer_id and lock_until and lock_until > now:
@@ -3645,13 +3928,11 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             m = (left % 3600) // 60
             target_tag_inline = f"@{target_username}" if target_username else f"ID:{target_id}"
             await update.effective_message.reply_text(
-                f"{escape(target_tag_inline, False)} ist noch {h}h {m}m geschützt. Kauf erst danach möglich."
+                f"{escape(target_tag_inline, False)} ist noch {h}h {m}m geschuetzt. Kauf erst danach moeglich."
             )
             await db.commit()
             return
-        # <<< ENDE KAUFSCHUTZ-CHECK <<<
 
-        # Coins prüfen
         async with db.execute("SELECT coins FROM players WHERE chat_id=? AND user_id=?", (chat_id, buyer_id)) as cur:
             row = await cur.fetchone()
         buyer_coins = row[0] if row else 0
@@ -3660,36 +3941,89 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await db.commit()
             return
 
-        # Coins abziehen
+        care_done = 0
+        skill_for_attempt = prev_skill
+        skill_meta_attempt = _skill_meta(skill_for_attempt)
+
+        if prev_owner and prev_owner != buyer_id:
+            care = await get_care(db, chat_id, target_id)
+            today = today_ymd()
+            care_done = int(care["done"]) if (care and care["day"] == today and care["done"] is not None) else 0
+            if CARES_PER_DAY > 0:
+                care_ratio = min(1.0, max(0.0, care_done / CARES_PER_DAY))
+            else:
+                care_ratio = 1.0
+            success_chance = BUY_SUCCESS_MAX - (BUY_SUCCESS_MAX - BUY_SUCCESS_MIN) * care_ratio
+            if skill_for_attempt == "schildwall":
+                success_chance = max(BUY_SUCCESS_MIN, success_chance - 0.20)
+            if skill_for_attempt == "treuesiegel" and care_done >= CARES_PER_DAY:
+                success_chance = max(0.01, min(success_chance, BUY_SUCCESS_MIN * 0.5))
+
+            if random.random() > success_chance:
+                penalty = max(1, int(buyer_coins * BUY_FAIL_PENALTY_RATIO)) if buyer_coins > 0 else 0
+                new_coins = max(0, buyer_coins - penalty)
+                await db.execute(
+                    "UPDATE players SET coins=? WHERE chat_id=? AND user_id=?",
+                    (new_coins, chat_id, buyer_id)
+                )
+                await db.commit()
+                target_tag_inline = f"@{target_username}" if target_username else f"ID:{target_id}"
+                await update.effective_message.reply_text(
+                    f"Fehlschlag, {mention_html(buyer_id, buyer.username or None)}. "
+                    f"{escape(target_tag_inline, False)} zerlegt deinen Klauversuch mit {care_done}/{CARES_PER_DAY} Pflege heute. "
+                    f"Skill aktiv: <b>{escape(skill_meta_attempt['name'], False)}</b>. "
+                    f"Du zahlst Blutgeld: -{penalty} Coins (50%).",
+                    parse_mode=ParseMode.HTML
+                )
+                return
+
         await db.execute(
             "UPDATE players SET coins=coins-? WHERE chat_id=? AND user_id=?",
             (price, chat_id, buyer_id)
         )
 
-        # Owner setzen + neuen Kaufschutz starten
+        next_skill, rerolled = resolve_next_skill(prev_skill, bool(prev_owner and prev_owner != buyer_id))
+        step = PRICE_STEP_SKILL_BONUS if next_skill == "wertanlage" else USER_PRICE_STEP
+        refund = int(price * BUY_REFUND_SKILL_RATIO) if next_skill == "goldzahn" else 0
+
         now = int(time.time())
         today = today_ymd()
-        lock_until_new = now + LOCK_SECONDS  # LOCK_SECONDS = 48*3600 (global)
+        lock_until_new = now + LOCK_SECONDS
         await db.execute("""
-            INSERT INTO pets(chat_id, pet_id, owner_id, purchase_lock_until, last_care_ts, care_done_today, day_ymd)
-            VALUES(?,?,?,?,?,?,?)
+            INSERT INTO pets(chat_id, pet_id, owner_id, purchase_lock_until, last_care_ts, care_done_today, day_ymd, pet_skill, care_bonus_day)
+            VALUES(?,?,?,?,?,?,?,?,?)
             ON CONFLICT(chat_id, pet_id) DO UPDATE SET
                 owner_id=excluded.owner_id,
                 purchase_lock_until=excluded.purchase_lock_until,
                 last_care_ts=excluded.last_care_ts,
                 care_done_today=excluded.care_done_today,
-                day_ymd=excluded.day_ymd
-        """, (chat_id, target_id, buyer_id, lock_until_new, now, 0, today))
+                day_ymd=excluded.day_ymd,
+                pet_skill=excluded.pet_skill,
+                care_bonus_day=excluded.care_bonus_day
+        """, (chat_id, target_id, buyer_id, lock_until_new, now, 0, today, next_skill, None))
 
-        # Preis erhöhen
-        new_price = price + USER_PRICE_STEP
+        new_price = price + step
         await set_user_price(db, chat_id, target_id, new_price)
+        if refund > 0:
+            await db.execute(
+                "UPDATE players SET coins=coins+? WHERE chat_id=? AND user_id=?",
+                (refund, chat_id, buyer_id)
+            )
 
         await db.commit()
 
     target_tag = f"@{target_username}" if target_username else f"ID:{target_id}"
+    skill_meta = _skill_meta(next_skill)
+    reroll_txt = " (neu ausgewuerfelt)" if rerolled else " (behalten)"
+    refund_txt = f" Rueckzahlung durch Goldzahn: +{refund} Coins." if refund > 0 else ""
+    source_txt = ""
+    if prev_owner and prev_owner != buyer_id:
+        prev_owner_tag = mention_html(int(prev_owner), prev_owner_uname or None)
+        source_txt = f" Geklaut von {prev_owner_tag}."
     await update.effective_message.reply_text(
-        f"{nice_name_html(buyer)} hat {escape(target_tag, False)} für {price} Coins gekauft. Neuer Preis: {new_price}."
+        f"{nice_name_html(buyer)} hat {escape(target_tag, False)} fuer {price} Coins gekauft. Neuer Preis: {new_price}. "
+        f"Skill: <b>{escape(skill_meta['name'], False)}</b>{reroll_txt} - {escape(skill_meta['desc'], False)}.{source_txt}{refund_txt}",
+        parse_mode=ParseMode.HTML
     )
 
 
@@ -3933,6 +4267,15 @@ async def cmd_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with aiosqlite.connect(DB) as db:
         owner_id = await get_owner_id(db, chat_id, target_id)
         price = await get_user_price(db, chat_id, target_id)
+        skill_key = await get_pet_skill(db, chat_id, target_id)
+        skill_txt = _skill_label(skill_key)
+        async with db.execute(
+            "SELECT COALESCE(pet_level,0) FROM pets WHERE chat_id=? AND pet_id=?",
+            (chat_id, target_id)
+        ) as cur:
+            lrow = await cur.fetchone()
+        pet_level = int(lrow[0]) if lrow else 0
+        level_txt = f"Level {pet_level} - {pet_level_title(pet_level)}"
 
         owner_uname = None
         if owner_id:
@@ -3957,12 +4300,12 @@ async def cmd_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if owner_id:
         tag = f"@{owner_uname}" if owner_uname else f"[ID:{owner_id}](tg://user?id={owner_id})"
         await update.effective_message.reply_text(
-            f"Besitzer: {tag}. Aktueller Preis: {price}.{lock_txt}",
+            f"Besitzer: {tag}. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{level_txt}",
             parse_mode="Markdown"
         )
     else:
         await update.effective_message.reply_text(
-            f"Kein Besitzer. Aktueller Preis: {price}.{lock_txt}"
+            f"Kein Besitzer. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{level_txt}"
         )
 
 
@@ -3982,7 +4325,9 @@ async def cmd_ownerlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     p.pet_id,
                     pu.username                                 AS pet_username,
                     COALESCE(pl.price, 0)                       AS current_price,
-                    COALESCE(p.purchase_lock_until, 0)          AS locked_until
+                    COALESCE(p.purchase_lock_until, 0)          AS locked_until,
+                    p.pet_skill                                  AS pet_skill,
+                    COALESCE(p.pet_level, 0)                    AS pet_level
                 FROM pets p
                 LEFT JOIN players ou ON ou.chat_id=p.chat_id AND ou.user_id=p.owner_id
                 LEFT JOIN players pu ON pu.chat_id=p.chat_id AND pu.user_id=p.pet_id
@@ -4001,9 +4346,9 @@ async def cmd_ownerlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Gruppieren nach Owner
     by_owner = {}
-    for owner_id, owner_uname, pet_id, pet_uname, price, locked_until in rows:
+    for owner_id, owner_uname, pet_id, pet_uname, price, locked_until, pet_skill, pet_level in rows:
         by_owner.setdefault((owner_id, owner_uname), []).append(
-            (pet_id, pet_uname, int(price or 0), int(locked_until or 0))
+            (pet_id, pet_uname, int(price or 0), int(locked_until or 0), pet_skill, int(pet_level or 0))
         )
 
     def tag(uid: int | None, uname: str | None) -> str:
@@ -4018,14 +4363,19 @@ async def cmd_ownerlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
         total_value = sum(p[2] for p in pets)
 
         out.append(f"<b>{tag(owner_id, owner_uname)}</b>  <i>({len(pets)} Pet(s), Gesamtwert: {total_value})</i>")
-        for pet_id, pet_uname, price, locked_until in pets:
+        for pet_id, pet_uname, price, locked_until, pet_skill, pet_level in pets:
             pet_tag = tag(pet_id, pet_uname)
             lock_txt = ""
+            skill_name = _skill_meta(pet_skill)["name"]
+            level_name = pet_level_title(pet_level)
             if locked_until > now:
                 mins_total = (locked_until - now) // 60
                 hrs, mins = divmod(mins_total, 60)
                 lock_txt = f" 🔒{hrs}h{mins:02d}m"
-            out.append(f" ├─ {pet_tag}  (<b>{price}</b>){lock_txt}")
+            out.append(
+                f" - {pet_tag}  (<b>{price}</b>) [Lvl {pet_level}: {escape(level_name, False)}] "
+                f"[{escape(skill_name, False)}]{lock_txt}"
+            )
         out.append("")
 
     text = "\n".join(out).strip()
@@ -4113,6 +4463,7 @@ def main():
     app.add_handler(CommandHandler("balance",  cmd_balance,  filters=CHAT_FILTER))
     app.add_handler(CommandHandler(["treat", "leckerli"], cmd_gift, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("daily",    cmd_daily,    filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("blackjack", cmd_blackjack, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("id",       cmd_id,       filters=CHAT_FILTER))
 
     # Kernspiel
