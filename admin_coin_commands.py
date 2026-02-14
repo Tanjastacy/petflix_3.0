@@ -7,7 +7,7 @@ def create_admin_coin_commands(deps: dict):
     random = deps["random"]
     STEAL_SUCCESS_CHANCE = deps["STEAL_SUCCESS_CHANCE"]
     STEAL_COOLDOWN_S = deps["STEAL_COOLDOWN_S"]
-    STEAL_FAIL_PENALTY = deps["STEAL_FAIL_PENALTY"]
+    STEAL_FAIL_PENALTY_RATIO = deps["STEAL_FAIL_PENALTY_RATIO"]
     set_cd = deps["set_cd"]
     get_cd_left = deps["get_cd_left"]
     mention_html = deps["mention_html"]
@@ -211,7 +211,8 @@ def create_admin_coin_commands(deps: dict):
             if random.random() > STEAL_SUCCESS_CHANCE:
                 target_tag = mention_html(tid, uname or None)
                 thief_old = await _get_coins(db, chat_id, thief.id)
-                new_thief = max(0, thief_old - STEAL_FAIL_PENALTY)
+                penalty = max(1, int(thief_old * STEAL_FAIL_PENALTY_RATIO)) if thief_old > 0 else 0
+                new_thief = max(0, thief_old - penalty)
                 await db.execute(
                     "UPDATE players SET coins=? WHERE chat_id=? AND user_id=?",
                     (new_thief, chat_id, thief.id)
@@ -219,7 +220,7 @@ def create_admin_coin_commands(deps: dict):
                 await set_cd(db, chat_id, thief.id, "steal", STEAL_COOLDOWN_S)
                 await db.commit()
                 return await update.effective_message.reply_text(
-                    f"War wohl nix. {mention_html(thief.id, thief.username or None)} hat versucht {target_tag} zu beklauen - erwischt. (-{STEAL_FAIL_PENALTY})",
+                    f"War wohl nix. {mention_html(thief.id, thief.username or None)} hat versucht {target_tag} zu beklauen - erwischt. (-{penalty} / 20%)",
                     parse_mode=ParseMode.HTML
                 )
 

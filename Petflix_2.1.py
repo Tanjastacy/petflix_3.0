@@ -164,14 +164,14 @@ SUPERWORDS = [
 # =========================
 STEAL_SUCCESS_CHANCE = 0.48
 STEAL_COOLDOWN_S = 10 * 60
-STEAL_FAIL_PENALTY = 50
+STEAL_FAIL_PENALTY_RATIO = 0.20
 
 # =========================
 # /buy Schutz durch Pflege
 # =========================
 BUY_SUCCESS_MAX = 0.95   # Bei 0/25 Pflege fast sicher kaufbar
 BUY_SUCCESS_MIN = 0.05   # Bei 25/25 Pflege fast nicht kaufbar
-BUY_FAIL_PENALTY_RATIO = 0.50  # Bei Fehlversuch immer 50% Coins weg
+BUY_FAIL_PENALTY_RATIO = 0.20  # Bei Fehlversuch immer 20% Coins weg
 CARE_FIFTYFIFTY_UNTIL = 25
 CARE_HARD_PROTECT_START = 70
 RISK_BONUS_PER_PRICE = 0.20  # Risiko in Hoehe des Preises => +20% Chance
@@ -2051,7 +2051,7 @@ _ADMIN_COIN_CMDS = create_admin_coin_commands({
     "random": random,
     "STEAL_SUCCESS_CHANCE": STEAL_SUCCESS_CHANCE,
     "STEAL_COOLDOWN_S": STEAL_COOLDOWN_S,
-    "STEAL_FAIL_PENALTY": STEAL_FAIL_PENALTY,
+    "STEAL_FAIL_PENALTY_RATIO": STEAL_FAIL_PENALTY_RATIO,
     "set_cd": set_cd,
     "get_cd_left": get_cd_left,
     "mention_html": mention_html,
@@ -3675,7 +3675,7 @@ async def _attempt_pet_buy(update: Update, context: ContextTypes.DEFAULT_TYPE, r
                     f"Fehlschlag, {mention_html(buyer_id, buyer.username or None)}. "
                     f"{escape(target_tag_inline, False)} zerlegt deinen Klauversuch mit {care_done}/{CARES_PER_DAY} Pflege heute. "
                     f"Skill aktiv: <b>{escape(skill_meta_attempt['name'], False)}</b>. "
-                    f"Du zahlst Blutgeld: -{penalty} Coins (50%){risk_fail_txt}.",
+                    f"Du zahlst Blutgeld: -{penalty} Coins (20%){risk_fail_txt}.",
                     parse_mode=ParseMode.HTML
                 )
                 return
