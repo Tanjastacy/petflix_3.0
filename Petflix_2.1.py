@@ -2362,10 +2362,10 @@ async def _get_coins(db, chat_id: int, user_id: int) -> int:
 
 def _parse_amount_from_args(context: ContextTypes.DEFAULT_TYPE) -> int | None:
     if context.args:
-        try:
-            return int(context.args[-1])
-        except ValueError:
-            return None
+        for token in reversed(context.args):
+            raw = token.strip()
+            if raw.isdigit():
+                return int(raw)
     return None
 
 
@@ -4057,7 +4057,23 @@ async def _attempt_pet_buy(update: Update, context: ContextTypes.DEFAULT_TYPE, r
         target_id = target.id
         target_username = target.username
     elif context.args:
-        target_username = context.args[0].lstrip("@")
+        args = [a.strip() for a in context.args if a and a.strip()]
+        target_token = None
+        if risk_amount > 0:
+            non_numeric = [a for a in args if not a.lstrip("@").isdigit()]
+            if non_numeric:
+                target_token = non_numeric[0]
+            elif len(args) >= 2 and args[0].lstrip("@").isdigit():
+                target_token = args[0]
+        else:
+            target_token = args[0] if args else None
+
+        if target_token:
+            raw_target = target_token.lstrip("@")
+            if raw_target.isdigit():
+                target_id = int(raw_target)
+            else:
+                target_username = raw_target
 
     async with aiosqlite.connect(DB) as db:
         await ensure_player(db, chat_id, buyer_id, buyer.username or buyer.full_name or "")
@@ -4069,12 +4085,16 @@ async def _attempt_pet_buy(update: Update, context: ContextTypes.DEFAULT_TYPE, r
                 else:
                     await msg.reply_text("Benutze /buy als Antwort auf die Nachricht der Person ODER /buy <username>.")
                 return
-            async with db.execute("SELECT user_id FROM players WHERE chat_id=? AND username=?", (chat_id, target_username)) as cur:
+            async with db.execute(
+                "SELECT user_id, username FROM players WHERE chat_id=? AND lower(username)=lower(?)",
+                (chat_id, target_username)
+            ) as cur:
                 row = await cur.fetchone()
             if not row:
                 await msg.reply_text("User nicht gefunden oder noch nicht aktiv.")
                 return
-            target_id = row[0]
+            target_id = int(row[0])
+            target_username = row[1] or target_username
 
         if target_id == buyer_id:
             await msg.reply_text("Dich selbst kaufen? Entspann dich.")
@@ -4250,12 +4270,12 @@ async def cmd_risk(update: Update, context: ContextTypes.DEFAULT_TYPE):
     amount = _parse_amount_from_args(context)
     if amount is None or amount <= 0:
         return await msg.reply_text(
-            "Nutzung: als Reply `/risk 200` oder `/risk @user 200`.",
+            "Nutzung: als Reply `/risk 30000` oder `/risk @user 30000` (auch `/risk 30000 @user`).",
             parse_mode="Markdown"
         )
     if not msg.reply_to_message and (not context.args or len(context.args) < 2):
         return await msg.reply_text(
-            "Nutzung: als Reply `/risk 200` oder `/risk @user 200`.",
+            "Nutzung: als Reply `/risk 30000` oder `/risk @user 30000` (auch `/risk 30000 @user`).",
             parse_mode="Markdown"
         )
     await _attempt_pet_buy(update, context, risk_amount=amount)
