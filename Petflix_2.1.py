@@ -754,6 +754,24 @@ async def _delete_messages_job(context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
+
+async def _send_or_replace_level_message(
+    context: ContextTypes.DEFAULT_TYPE,
+    chat_id: int,
+    trigger_msg,
+    text: str,
+):
+    store = context.application.bot_data.setdefault("latest_level_message", {})
+    prev_message_id = store.get(chat_id)
+    if prev_message_id:
+        try:
+            await context.bot.delete_message(chat_id=chat_id, message_id=prev_message_id)
+        except Exception:
+            pass
+    level_msg = await trigger_msg.reply_text(text, parse_mode=ParseMode.HTML)
+    store[chat_id] = level_msg.message_id
+    return level_msg
+
 def split_chunks(text, size=MAX_CHUNK):
     for i in range(0, len(text), size):
         yield text[i:i+size]
@@ -1171,7 +1189,7 @@ async def do_care(update, context, action_key, tame_lines):
     reply_msg = await msg.reply_text(text)
     cleanup_message_ids = [msg.message_id, reply_msg.message_id]
     if level_up_text:
-        level_msg = await msg.reply_text(level_up_text, parse_mode=ParseMode.HTML)
+        await _send_or_replace_level_message(context, chat_id, msg, level_up_text)
     if bonus_text:
         bonus_msg = await msg.reply_text(bonus_text, parse_mode=ParseMode.HTML)
         cleanup_message_ids.append(bonus_msg.message_id)
@@ -1181,7 +1199,7 @@ async def do_care(update, context, action_key, tame_lines):
             f"<b>{done}/{CARES_PER_DAY}</b> gepflegt. "
             f"Level: <b>{new_level}</b> ({escape(pet_level_title(new_level), False)})."
         )
-        await msg.reply_text(progress_text, parse_mode=ParseMode.HTML)
+        await _send_or_replace_level_message(context, chat_id, msg, progress_text)
 
     care_map = context.application.bot_data.setdefault("care_map", {})
     if len(care_map) > 1000:
