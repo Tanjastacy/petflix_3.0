@@ -5,6 +5,7 @@ import os
 import random
 import time
 import logging
+import shutil
 import aiosqlite
 import datetime
 import hashlib
@@ -34,6 +35,7 @@ except ValueError:
 
 DB = os.environ.get("DB_PATH", "petflix_2.1.db")
 BACKUP_DIR = os.getenv("BACKUP_DIR", "data")
+BACKUP_KEEP_FILES = 7
 MAX_CHUNK = 3500  # unter 4096 bleiben, wegen HTML-Overhead sicher
 DOM_RESPONSES_PATH = os.getenv("DOM_RESPONSES_PATH", "texts/dom_responses.json")
 CARE_RESPONSES_PATH = os.getenv("CARE_RESPONSES_PATH", "texts/care_responses.json")
@@ -434,7 +436,7 @@ log = logging.getLogger("Petflix_2.0")
 # DB-Setup 
 # =========================
 
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -614,6 +616,18 @@ async def migrate_db(db):
         await _set_user_version(db, 12)
         current = 12
 
+    if current < 13:
+        if not await _table_has_column(db, "settings", "daily_curse_enabled"):
+            await db.execute(
+                f"ALTER TABLE settings ADD COLUMN daily_curse_enabled INTEGER DEFAULT {1 if DAILY_CURSE_ENABLED else 0}"
+            )
+        if not await _table_has_column(db, "settings", "auto_curse_enabled"):
+            await db.execute(
+                f"ALTER TABLE settings ADD COLUMN auto_curse_enabled INTEGER DEFAULT {1 if AUTO_CURSE_ENABLED else 0}"
+            )
+        await _set_user_version(db, 13)
+        current = 13
+
 async def db_init():
     async with aiosqlite.connect(DB) as db:
         await db.execute("PRAGMA journal_mode=WAL;")
@@ -771,6 +785,52 @@ async def get_moraltax_settings(db, chat_id: int):
     amount = int(row[1]) if row[1] is not None else MORAL_TAX_DEFAULT
     return enabled, amount
 
+
+async def get_runtime_settings(db, chat_id: int) -> dict:
+    await db.execute(
+        "INSERT INTO settings(chat_id) VALUES(?) ON CONFLICT(chat_id) DO NOTHING",
+        (chat_id,)
+    )
+    async with db.execute(
+        """
+        SELECT
+            COALESCE(moraltax_enabled, 1),
+            COALESCE(moraltax_amount, ?),
+            COALESCE(daily_curse_enabled, ?),
+            COALESCE(auto_curse_enabled, ?)
+        FROM settings
+        WHERE chat_id=?
+        """,
+        (MORAL_TAX_DEFAULT, 1 if DAILY_CURSE_ENABLED else 0, 1 if AUTO_CURSE_ENABLED else 0, chat_id)
+    ) as cur:
+        row = await cur.fetchone()
+    if not row:
+        return {
+            "moraltax_enabled": True,
+            "moraltax_amount": MORAL_TAX_DEFAULT,
+            "daily_curse_enabled": DAILY_CURSE_ENABLED,
+            "auto_curse_enabled": AUTO_CURSE_ENABLED,
+        }
+    return {
+        "moraltax_enabled": bool(int(row[0] or 0)),
+        "moraltax_amount": int(row[1] or MORAL_TAX_DEFAULT),
+        "daily_curse_enabled": bool(int(row[2] or 0)),
+        "auto_curse_enabled": bool(int(row[3] or 0)),
+    }
+
+
+async def set_runtime_flag(db, chat_id: int, key: str, enabled: bool):
+    if key not in {"moraltax_enabled", "daily_curse_enabled", "auto_curse_enabled"}:
+        raise ValueError("invalid runtime flag")
+    await db.execute(
+        "INSERT INTO settings(chat_id) VALUES(?) ON CONFLICT(chat_id) DO NOTHING",
+        (chat_id,)
+    )
+    await db.execute(
+        f"UPDATE settings SET {key}=? WHERE chat_id=?",
+        (1 if enabled else 0, chat_id)
+    )
+
 def is_too_nice(text: str) -> bool:
     if not text:
         return False
@@ -836,6 +896,175 @@ async def apply_reward_if_needed(db, chat_id: int, user_id: int, text: str) -> t
 
 def today_ymd():
     return datetime.date.today().isoformat()
+
+
+def _backup_file_prefix(chat_id: int) -> str:
+    return f"petflix_backup_{chat_id}_"
+
+
+def _backup_path(chat_id: int, ts: int | None = None) -> str:
+    ts = ts or int(time.time())
+    stamp = datetime.datetime.fromtimestamp(ts).strftime("%Y%m%d_%H%M%S")
+    return os.path.join(BACKUP_DIR, f"{_backup_file_prefix(chat_id)}{stamp}.db")
+
+
+def _list_backups(chat_id: int) -> list[str]:
+    if not os.path.isdir(BACKUP_DIR):
+        return []
+    prefix = _backup_file_prefix(chat_id)
+    files = []
+    for name in os.listdir(BACKUP_DIR):
+        if not name.startswith(prefix) or not name.endswith(".db"):
+            continue
+        files.append(os.path.join(BACKUP_DIR, name))
+    files.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+    return files
+
+
+def _rotate_backups(chat_id: int, keep: int = BACKUP_KEEP_FILES) -> int:
+    files = _list_backups(chat_id)
+    removed = 0
+    for path in files[keep:]:
+        try:
+            os.remove(path)
+            removed += 1
+        except Exception:
+            pass
+    return removed
+
+
+async def _create_backup(chat_id: int) -> str:
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    dst = _backup_path(chat_id)
+    try:
+        async with aiosqlite.connect(DB) as src:
+            async with aiosqlite.connect(dst) as target:
+                await src.backup(target)
+                await target.commit()
+    except Exception:
+        shutil.copy2(DB, dst)
+    _rotate_backups(chat_id, BACKUP_KEEP_FILES)
+    return dst
+
+
+async def cmd_backupnow(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("Nur Admin.")
+    chat_id = update.effective_chat.id
+    try:
+        path = await _create_backup(chat_id)
+        await update.effective_message.reply_text(f"Backup erstellt: <code>{escape(path, quote=True)}</code>", parse_mode=ParseMode.HTML)
+    except Exception as e:
+        await update.effective_message.reply_text(f"Backup fehlgeschlagen: {type(e).__name__}: {e}")
+
+
+async def cmd_backups(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("Nur Admin.")
+    chat_id = update.effective_chat.id
+    files = _list_backups(chat_id)
+    if not files:
+        return await update.effective_message.reply_text("Keine Backups gefunden.")
+    lines = ["<b>Backups (neu -> alt)</b>"]
+    for p in files[:10]:
+        name = os.path.basename(p)
+        size_kb = max(1, int(os.path.getsize(p) / 1024))
+        lines.append(f"- <code>{escape(name, quote=True)}</code> ({size_kb} KB)")
+    await update.effective_message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
+
+
+async def cmd_restorebackup(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("Nur Admin.")
+    if not context.args:
+        return await update.effective_message.reply_text("Nutzung: /restorebackup <dateiname.db>")
+
+    name = os.path.basename(context.args[0].strip())
+    src = os.path.join(BACKUP_DIR, name)
+    if not os.path.isfile(src):
+        return await update.effective_message.reply_text("Backup-Datei nicht gefunden.")
+
+    try:
+        shutil.copy2(src, DB)
+        for suffix in ("-wal", "-shm"):
+            sidecar = DB + suffix
+            if os.path.exists(sidecar):
+                os.remove(sidecar)
+        await update.effective_message.reply_text(
+            f"Restore abgeschlossen aus <code>{escape(name, quote=True)}</code>.",
+            parse_mode=ParseMode.HTML
+        )
+    except Exception as e:
+        await update.effective_message.reply_text(f"Restore fehlgeschlagen: {type(e).__name__}: {e}")
+
+
+async def cmd_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("Nur Admin.")
+    chat_id = update.effective_chat.id
+    key_map = {
+        "moraltax": "moraltax_enabled",
+        "dailycurse": "daily_curse_enabled",
+        "autocurse": "auto_curse_enabled",
+    }
+    async with aiosqlite.connect(DB) as db:
+        if len(context.args) >= 2:
+            k = context.args[0].lower()
+            v = context.args[1].lower()
+            if k in key_map and v in {"on", "off"}:
+                await set_runtime_flag(db, chat_id, key_map[k], v == "on")
+                await db.commit()
+            else:
+                return await update.effective_message.reply_text(
+                    "Nutzung: /settings <moraltax|dailycurse|autocurse> <on|off> oder /settings status"
+                )
+        runtime = await get_runtime_settings(db, chat_id)
+        await db.commit()
+    text = (
+        "<b>Settings</b>\n"
+        f"- Moraltax: {'on' if runtime['moraltax_enabled'] else 'off'} (amount={runtime['moraltax_amount']})\n"
+        f"- Daily Curse: {'on' if runtime['daily_curse_enabled'] else 'off'}\n"
+        f"- Auto Curse: {'on' if runtime['auto_curse_enabled'] else 'off'}\n"
+        "Beispiel: /settings dailycurse on"
+    )
+    await update.effective_message.reply_text(text, parse_mode=ParseMode.HTML)
+
+
+async def cmd_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("Nur Admin.")
+    chat_id = update.effective_chat.id
+    now = int(time.time())
+    day_start = now - 86400
+    async with aiosqlite.connect(DB) as db:
+        runtime = await get_runtime_settings(db, chat_id)
+        async with db.execute("SELECT COUNT(*) FROM players WHERE chat_id=?", (chat_id,)) as cur:
+            players = int((await cur.fetchone())[0] or 0)
+        async with db.execute("SELECT COUNT(*) FROM pets WHERE chat_id=?", (chat_id,)) as cur:
+            pets = int((await cur.fetchone())[0] or 0)
+        async with db.execute("SELECT COUNT(*) FROM hass_challenges WHERE chat_id=? AND active=1", (chat_id,)) as cur:
+            hass_active = int((await cur.fetchone())[0] or 0)
+        async with db.execute("SELECT COUNT(*) FROM love_challenges WHERE chat_id=? AND active=1", (chat_id,)) as cur:
+            love_active = int((await cur.fetchone())[0] or 0)
+        async with db.execute("SELECT COUNT(*) FROM care_events WHERE chat_id=? AND ts>=?", (chat_id, day_start)) as cur:
+            care_events_24h = int((await cur.fetchone())[0] or 0)
+        await db.commit()
+
+    backups = _list_backups(chat_id)
+    latest_backup = os.path.basename(backups[0]) if backups else "keins"
+    text = (
+        "<b>Admin Dashboard</b>\n"
+        f"- Players: {players}\n"
+        f"- Pets: {pets}\n"
+        f"- Active Hass: {hass_active}\n"
+        f"- Active Love: {love_active}\n"
+        f"- Care Events (24h): {care_events_24h}\n"
+        f"- Moraltax: {'on' if runtime['moraltax_enabled'] else 'off'} ({runtime['moraltax_amount']})\n"
+        f"- Daily Curse: {'on' if runtime['daily_curse_enabled'] else 'off'}\n"
+        f"- Auto Curse: {'on' if runtime['auto_curse_enabled'] else 'off'}\n"
+        f"- Latest Backup: <code>{escape(latest_backup, quote=True)}</code>"
+    )
+    await update.effective_message.reply_text(text, parse_mode=ParseMode.HTML)
 
 async def get_care(db, chat_id, pet_id):
     async with db.execute(
@@ -1333,13 +1562,15 @@ async def daily_gift_job(context: ContextTypes.DEFAULT_TYPE):
 # Daily Curse
 # =========================
 async def daily_curse_job(context: ContextTypes.DEFAULT_TYPE):
-    if not DAILY_CURSE_ENABLED:
-        return
     chat_id = ALLOWED_CHAT_ID
     today = today_ymd()
     cd_key = f"dailycurse:{today}"
 
     async with aiosqlite.connect(DB) as db:
+        runtime = await get_runtime_settings(db, chat_id)
+        if not runtime["daily_curse_enabled"]:
+            await db.commit()
+            return
         left = await get_cd_left(db, chat_id, 0, cd_key)
         if left > 0:
             return
@@ -1364,6 +1595,14 @@ async def daily_curse_job(context: ContextTypes.DEFAULT_TYPE):
         text=f"☠️ Täglicher Fluch!\n{line}\n<b>Strafe:</b> -{DAILY_CURSE_PENALTY} Coins",
         parse_mode=ParseMode.HTML
     )
+
+
+async def daily_backup_job(context: ContextTypes.DEFAULT_TYPE):
+    chat_id = ALLOWED_CHAT_ID
+    try:
+        await _create_backup(chat_id)
+    except Exception as e:
+        log.error(f"daily backup failed: {e}")
 
 # ==============================================================================
 # hass watchdog
@@ -1522,8 +1761,6 @@ async def mark_chat_and_maybe_announce(context: ContextTypes.DEFAULT_TYPE, chat_
 # Auto-Curse
 # =========================
 async def maybe_auto_curse(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not AUTO_CURSE_ENABLED:
-        return
     if not is_group(update) or update.effective_chat.id != ALLOWED_CHAT_ID:
         return
 
@@ -1534,6 +1771,10 @@ async def maybe_auto_curse(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
 
     async with aiosqlite.connect(DB) as db:
+        runtime = await get_runtime_settings(db, chat_id)
+        if not runtime["auto_curse_enabled"]:
+            await db.commit()
+            return
         left = await get_cd_left(db, chat_id, 0, "autocurse")
         if left > 0:
             return
@@ -2309,7 +2550,8 @@ async def cmd_setgender(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 async def register_commands(application: Application):
     commands = [
-        BotCommand("start", "Hilfe & Regeln"),
+        BotCommand("start", "Kurzstart"),
+        BotCommand("help", "Kurze Befehlsuebersicht"),
         BotCommand("ping", "Ping-Test (Antwort: pong)"),
         BotCommand("balance", "Zeigt deinen Coin-Kontostand"),
         BotCommand("treat", "Schenke Coins an einen User"),
@@ -2361,6 +2603,11 @@ async def register_commands(application: Application):
         BotCommand("hass", "Startet Hass-Status (2h, 3 mal /selbst)"),
         BotCommand("selbst", "Nur für betroffenen User: zählt 1/3 Strafen"),
         BotCommand("liebes", "Liebesgestaendniss-Challenge"),
+        BotCommand("settings", "Admin: Runtime-Settings"),
+        BotCommand("admin", "Admin: Uebersicht"),
+        BotCommand("backupnow", "Admin: Backup jetzt"),
+        BotCommand("backups", "Admin: Backupliste"),
+        BotCommand("restorebackup", "Admin: Backup wiederherstellen"),
 
     ]
     await application.bot.set_my_commands(commands)
@@ -3524,66 +3771,36 @@ async def set_owner(db, chat_id: int, pet_id: int, owner_id: Optional[int]):
                 last_care_ts=COALESCE(pets.last_care_ts, excluded.last_care_ts)
         """, (chat_id, pet_id, owner_id, now, now))
 
+async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_allowed_chat(update):
+        await update.effective_message.reply_text("Dieses Spiel laeuft nur in der vorgesehenen Gruppe.")
+        return
+    text = (
+        "<b>Petflix Hilfe</b>\n"
+        "\n<b>Basis</b>\n"
+        "/balance, /daily, /treasure, /top, /prices\n"
+        "/treat (alias /leckerli), /buy, /risk, /steal\n"
+        "\n<b>Besitz</b>\n"
+        "/owner, /ownerlist, /release\n"
+        "\n<b>Pflege</b>\n"
+        "/pet, /walk, /kiss, /dine, /massage, /lapdance\n"
+        "\n<b>Challenges</b>\n"
+        "/hass, /selbst, /liebes\n"
+        "\n<b>Admin</b>\n"
+        "/settings, /admin, /backupnow, /backups, /restorebackup\n"
+        "/addcoins, /takecoins, /setcoins, /resetcoins\n"
+        "\nTipp: Antworten auf User-Nachrichten aktivieren viele Commands direkt."
+    )
+    await update.effective_message.reply_text(text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+
+
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_allowed_chat(update):
-        await update.effective_message.reply_text("❌ Dieses Spiel läuft nur in der vorgesehenen Gruppe.")
+        await update.effective_message.reply_text("Dieses Spiel laeuft nur in der vorgesehenen Gruppe.")
         return
-    await update.effective_message.reply_text("✅ Petflix Starterpaket kommt gleich…")
-    legende = (
-        "🐾 <b>Willkommen bei Petflix, du kleine, neugierige Schlampe</b> 🐾\n\n"
-        "Hier bist du mein Haustier – gehorsam, geil und immer bereit zu betteln. Gutes Mädchen kriegt Belohnung... oder Strafe. Deine Wahl? Als ob. 😏\n\n"
-        "💋 <b>Süße Pflege – weil du's brauchst wie Luft</b>\n"
-        "/pet – Streicheln, bis du schnurrst\n"
-        "/walk – An der Leine, wo du hingehörst\n"
-        "/kiss – Meine Lippen, deine Sehnsucht\n"
-        "/dine – Gefüttert wie mein Lieblingsspielzeug\n"
-        "/massage – Entspannung? Oder Folter light?\n"
-        "/lapdance – Zeig mir, was du kannst, du kleine Tänzerin\n\n"
-        "⛓️ <b>Dark BDSM – der Spaß wird ernst</b>\n"
-        "/knien – Runter mit dir, genau da\n"
-        "/kriechen – Auf allen Vieren, wie's sich gehört\n"
-        "/klaps – Rot glühen für unartige Mädchen\n"
-        "/knabbern – Bisschen beißen, bisschen Liebe\n"
-        "/leine – Zieh dich nah, du kleine Ausreißerin\n"
-        "/halsband – Markiert und mein, für immer\n"
-        "/lecken – Zunge raus, Dienst ist Pflicht\n"
-        "/verweigern – Warte, bettle, leide süß\n"
-        "/kaefig – Zeit allein nachdenken... über mich\n"
-        "/schande – Rot werden, weil du's liebst\n"
-        "/erregen – Edge dich leer, du kleine Sucht\n"
-        "/betteln – Bitte? Wie süß, als ob's hilft\n"
-        "/stumm – Pssst, deine Worte gehören mir\n"
-        "/bestrafen – Unartig? Dann klatsch ich zu\n"
-        "/loben – Gutes Mädchen? Selten, aber geil\n"
-        "/dienen – Auf Knien, wo du hingehörst\n"
-        "/demuetigen – Klein machen, weil du's brauchst\n"
-        "/melken – Tropf für mich, du kleine Quelle\n"
-        "/ohrfeige – Klatsch und Kuss, meine Spezialität\n"
-        "/belohnen – Wenn du's verdienst... vielleicht\n\n"
-        "💰 <b>Tägliche Schatzsuche – grab für mich</b>\n"
-        "/treasure [methode] – Finde Coins, aber der echte Schatz bin ich 😉\n\n"
-        "⚙️ <b>Standard-Kram – langweilig, aber nützlich</b>\n"
-        "/start – Nochmal von vorn, du Vergessliche\n"
-        "/balance - Wie viele Coins du hast (nicht genug)\n"
-        "/treat - Coins verschenken (Alias: /leckerli)\n"
-        "/buy – Kauf dir was – mit meinem Geld\n"
-        "/risk – Klauen mit Risikoeinsatz für mehr Chance\n"
-        "/owner – Wer dich besitzt (Spoiler: Ich)\n"
-        "/ownerlist – Die Konkurrenz (als ob's welche gäbe)\n"
-        "/prices – Was Gehorsam kostet\n"
-        "/release – Frei? Träum weiter, du kleine Gefangene\n"
-        "/top – Wer am besten bettelt (du vielleicht?)\n\n"
-        "💸 <b>Coins-Regel</b>\n"
-        "5 Coins pro Nachricht – aber wehe, du spamst, du kleine Gierige. 1s Drosselung, weil Geduld sexy ist. 😈"
+    await update.effective_message.reply_text(
+        "Petflix ist aktiv. Nutze /help fuer die kurze Befehlsuebersicht."
     )
-    try:
-        for chunk in split_chunks(legende, MAX_CHUNK):
-            await update.effective_message.reply_text(chunk, disable_web_page_preview=True)
-    except Exception as e:
-        await update.effective_message.reply_text(
-            f"⚠️ Starttext-Fehler: <code>{type(e).__name__}</code> — {getattr(e, 'message', str(e))}",
-            parse_mode=ParseMode.HTML
-        )
 
 async def cmd_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update): return
@@ -4383,7 +4600,7 @@ def main():
 
     # Standard-Commands
     app.add_handler(CommandHandler("start",    cmd_start))
-    app.add_handler(CommandHandler("help",     cmd_start))  # Alias
+    app.add_handler(CommandHandler("help",     cmd_help))
     app.add_handler(CommandHandler("ping",     cmd_ping,     filters=CHAT_FILTER))
     app.add_handler(CommandHandler("balance",  cmd_balance,  filters=CHAT_FILTER))
     app.add_handler(CommandHandler(["treat", "leckerli"], cmd_gift, filters=CHAT_FILTER))
@@ -4405,6 +4622,11 @@ def main():
     # Moralsteuer
     app.add_handler(CommandHandler("moraltax",    cmd_moraltax,    filters=CHAT_FILTER))
     app.add_handler(CommandHandler("moraltaxset", cmd_moraltaxset, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("settings",    cmd_settings,    filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("admin",       cmd_admin,       filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("backupnow",   cmd_backupnow,   filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("backups",     cmd_backups,     filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("restorebackup", cmd_restorebackup, filters=CHAT_FILTER))
 
     # Pflege-/Fun-Commands
     app.add_handler(CommandHandler("pet",      cmd_pet,      filters=CHAT_FILTER))
@@ -4492,8 +4714,9 @@ def main():
     gift_time = dtime(hour=10, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
     app.job_queue.run_daily(daily_gift_job, time=gift_time, name="daily_gift_10am")
     curse_time = dtime(hour=20, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
-    if DAILY_CURSE_ENABLED:
-        app.job_queue.run_daily(daily_curse_job, time=curse_time, name="daily_curse_8pm")
+    app.job_queue.run_daily(daily_curse_job, time=curse_time, name="daily_curse_8pm")
+    backup_time = dtime(hour=3, minute=30, tzinfo=ZoneInfo(PETFLIX_TZ))
+    app.job_queue.run_daily(daily_backup_job, time=backup_time, name="daily_backup_330am")
     app.job_queue.run_repeating(hass_watchdog_job, interval=60, first=30, name="hass_watchdog")
     app.job_queue.run_repeating(love_watchdog_job, interval=60, first=30, name="love_watchdog")
     app.job_queue.run_repeating(runaway_watchdog_job, interval=60, first=30, name="runaway_watchdog")
