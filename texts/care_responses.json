@@ -234,7 +234,7 @@
     "{owner} knabbert am Arm: 'Und der hier ist, weil du’s liebst, wenn ich dich nerve. Auf Knien danken, Baby.' {pet} lacht sich kaputt. 🙏😂 Pflege {n}/{CARES_PER_DAY}."
   ],
   "leine": [
-"{owner} schnappt das Halsband zu, kalt auf Haut, graviert mit meinem Namen. {owner}: 'Für immer? Klar – bis du langweilst und ich dich gegen ’ne Frischere tausche.' Pflege {n}/{CARES_PER_DAY}.",
+    "{owner} schnappt das Halsband zu, kalt auf Haut, graviert mit meinem Namen. {owner}: 'Für immer? Klar – bis du langweilst und ich dich gegen ’ne Frischere tausche.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} zieht enger, {pet} keucht. {owner}: 'Neuer Schmuck, Baby. Leichter als deine tote Selbstständigkeit.' Pflege {n}/{CARES_PER_DAY}.",
     "Ringe klirren bei jedem Schritt. {owner}: 'Freiheit? Gerücht. Das hier passt perfekt zu deinem Dackelblick.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} schließt ab, Schlüssel in die Tasche. {owner}: 'Für immer – oder bis ich den Schlüssel verliere. Pech, ich bin schlampig.' Pflege {n}/{CARES_PER_DAY}.",
@@ -256,7 +256,7 @@
     "{owner} verschließt: 'Daily Reminder: Ohne mich bist du halb nackt und halb so geil. Und halb so wertvoll.' Pflege {n}/{CARES_PER_DAY}."
   ],
   "halsband": [
-"{owner} schnappt das Halsband zu, kalt auf Haut, graviert mit meinem Namen. {owner}: 'Für immer? Klar – bis du langweilst und ich dich gegen ’ne Frischere tausche.' Pflege {n}/{CARES_PER_DAY}.",
+    "{owner} schnappt das Halsband zu, kalt auf Haut, graviert mit meinem Namen. {owner}: 'Für immer? Klar – bis du langweilst und ich dich gegen ’ne Frischere tausche.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} zieht enger, {pet} keucht. {owner}: 'Neuer Schmuck, Baby. Leichter als deine tote Selbstständigkeit.' Pflege {n}/{CARES_PER_DAY}.",
     "Ringe klirren bei jedem Schritt. {owner}: 'Freiheit? Gerücht. Das hier passt perfekt zu deinem Dackelblick.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} schließt ab, Schlüssel in die Tasche. {owner}: 'Für immer – oder bis ich den Schlüssel verliere. Pech, ich bin schlampig.' Pflege {n}/{CARES_PER_DAY}.",
@@ -278,7 +278,6 @@
     "{owner} verschließt: 'Daily Reminder: Ohne mich bist du halb nackt und halb so geil. Und halb so wertvoll.' Pflege {n}/{CARES_PER_DAY}."
   ],
   "lecken": [
-[
     "{pet} leckt {owner}s Stiefel sauber. {owner}: 'Demütigung schmeckt besser als dein letztes Date – und das war schon Müll.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} drückt Kopf runter: 'Tiefer, Baby. Oder ich helf nach – und du kommst eh nicht ohne.' Pflege {n}/{CARES_PER_DAY}.",
     "{pet} leckt eigene Tränen. {owner}: 'Schmeck deine Niederlage – salzig und wertlos, wie du.' Pflege {n}/{CARES_PER_DAY}.",
@@ -322,10 +321,8 @@
     "Musik verweigert – Stille den ganzen Tag. {owner}: 'Dein Kopf ist laut genug. Und er schreit nur nach mir.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} verweigert den Namen zu nennen. {pet} ist nur 'du'. {owner}: 'Namen sind für Personen. Du bist ein Loch mit Bedürfnissen.' Pflege {n}/{CARES_PER_DAY}.",
     "Licht verweigert – Dunkelheit 24 Stunden. {owner}: 'Schatten sind deine neuen Freunde. Die verlassen dich wenigstens nicht.' Pflege {n}/{CARES_PER_DAY}."
-]
   ],
   "verweigern": [
-[
     "{owner} verweigert alles – Berührung, Wasser, Worte. {pet} windet sich stumm. {owner}: 'Ohne mich bist du ja komplett leer. Süß.' Pflege {n}/{CARES_PER_DAY}.",
     "Essen vor der Nase, Mund bleibt leer. {owner}: 'Hunger dressiert besser als jeder Schlag. Du riechst schon geil.' Pflege {n}/{CARES_PER_DAY}.",
     "Orgasmus verweigert, tagelang. {pet} heult. {owner}: 'Versprechen? Brauch ich nicht. Du kriechst eh.' Pflege {n}/{CARES_PER_DAY}.",
@@ -346,10 +343,8 @@
     "Kein Gute-Nacht-Kuss. {owner}: 'Träum von mir. Das ist intensiver – und billiger.' Pflege {n}/{CARES_PER_DAY}.",
     "{pet} will Aufmerksamkeit, {owner} guckt raus. {owner}: 'Wolken haben Vorrang. Die verschwinden wenigstens.' Pflege {n}/{CARES_PER_DAY}.",
     "Kein Happy End. {owner}: 'Nur Cliffhanger. Du kommst morgen wieder bettelnd – wie immer.' Pflege {n}/{CARES_PER_DAY}."
-]
   ],
   "kaefig": [
-[
     "{owner} schließt ab, grinst durchs Gitter: 'Zuhause, Baby. Nur dein Herz schlägt – und das nur für mich.' Pflege {n}/{CARES_PER_DAY}.",
     "Stunden nackt im Käfig, zitternd. {owner}: 'Gute Tiere lernen schnell. Du bist scheiße – und bettelst süß.' Pflege {n}/{CARES_PER_DAY}.",
     "Gitter werfen Schatten. {owner}: 'Tattoos? Nee, billiger Käfig-Muster – dein neuer Style.' Pflege {n}/{CARES_PER_DAY}.",
@@ -375,10 +370,8 @@
     "{owner} flüstert 'Bleib' und geht: 'Gutes Mädchen. Allein im Käfig – mein Lieblingsspiel.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} edged mit Worten: 'Gutes Mädchen. Vorfreude ist alles, was du kriegst – für immer.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} lässt zittern: 'Gutes Mädchen. Dein Zittern ist das Einzige, was hier laut ist.' Pflege {n}/{CARES_PER_DAY}."
-]
   ],
   "schande": [
-
     "{pet} nackt in der Ecke, alle starren. {owner}: 'Genieß’s, Exhibitionistin. Du tropfst eh schon.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} brüllt deine Geheimnisse raus. {owner}: 'Geheim? Die waren immer schon peinlich.' Pflege {n}/{CARES_PER_DAY}.",
     "Schild: 'Gebrauchtes Eigentum'. {owner}: 'Stolz? Der hat sich umgebracht.' Pflege {n}/{CARES_PER_DAY}.",
@@ -399,10 +392,8 @@
     "{owner} lacht über Vergangenheit. {owner}: 'Altes Ich Müll. Neues weint hübscher.' Pflege {n}/{CARES_PER_DAY}.",
     "{pet} in der Ecke. {owner}: 'Nur ich guck zu. Die anderen hätten eh keinen Bock auf deine Erbärmlichkeit.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} flüstert: 'Deine Schande ist mein Hobby. Und du machst mit, weil du sonst nichts wert bist.' Pflege {n}/{CARES_PER_DAY}."
-
   ],
   "erregen": [
-[
     "{owner} fingert genau da. {pet} hasst sich dafür. {owner}: 'Schmetterlinge? Die kotzen schon.' Pflege {n}/{CARES_PER_DAY}.",
     "Quälend langsam, kein Ende. {pet} bettelt. {owner}: 'Hollywood-Liebe? Endet nie – vor allem nicht für dich, Loserin.' Pflege {n}/{CARES_PER_DAY}.",
     "Finger tief, kein Kommen. {owner}: 'Geigen heulen? Mitleid? Beides nie.' Pflege {n}/{CARES_PER_DAY}.",
@@ -423,10 +414,8 @@
     "{pet} zittert. {owner}: 'Mein geiles Märchenprinzesschen – ohne Ende.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} fingert zart: 'Versprechen: Du kommst nie. Rosen blühen, du wartest.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner}: 'Liebe meines Lebens.' Finger quälen: 'Happy End? Werbepause – ewig.' Pflege {n}/{CARES_PER_DAY}."
-]
   ],
   "betteln": [
-[
     "{pet} bettelt auf Knien, Stimme bricht vor Sehnsucht. {owner} lächelt kalt: 'Ach, du armes, verkitzeltes Ding, wieder um meine unsterbliche Liebe?' Pflege {n}/{CARES_PER_DAY}.",
     "'Bitte, bitte, bitte' – bis die Worte leer und die Scham rosa glüht. {owner}: 'Wie romantisch. Dein Gewinsel klingt fast wie ein Liebeslied.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} hält die Belohnung hoch, lässt {pet} winseln, nimmt sie weg: 'Sorry, Baby. Wahre Liebe wartet immer noch 'n bisschen.' Pflege {n}/{CARES_PER_DAY}.",
@@ -447,10 +436,8 @@
     "{owner} lässt {pet} um ein Lächeln betteln: 'Lächeln? Kostet extra. In Herzchen-Währung.' Pflege {n}/{CARES_PER_DAY}.",
     "{pet} fleht um Umarmung. {owner}: 'Umarmung? Klar, aber nur virtuell. Echte sind für Paare, die nicht edgen.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} flüstert: 'Bettel um unsere ewige Liebe – die Liebe, die dich ewig warten lässt.' Pflege {n}/{CARES_PER_DAY}."
-]
   ],
   "stumm": [
- [
     "{owner} befiehlt Schweigen. {pet} beißt sich auf die Lippe. {owner}: 'Pssst. Unsere Liebe schreit ja eh lauter als Worte.' Pflege {n}/{CARES_PER_DAY}.",
     "Kein Wort, kein Stöhnen. Nur der Blick. {owner}: 'Deine Augen flüstern Scheiße, die ich eh nicht hören will.' Pflege {n}/{CARES_PER_DAY}.",
     "Mund virtuell zugeklebt. Stille als Strafe. {owner}: 'Jetzt bringen nur noch meine Finger dich zum Quietschen.' Pflege {n}/{CARES_PER_DAY}.",
@@ -471,7 +458,6 @@
     "{pet} stumm wie ein Fisch. {owner}: 'Dein Schweigen ist tief – weil da unten nix mehr ist.' Pflege {n}/{CARES_PER_DAY}.",
     "Kein Ton erlaubt. {owner}: 'Dein Schweigen ist das Einzige, was mich nicht zum Kotzen bringt.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} flüstert: 'Schweige. Dein Schweigen ist der größte Gefallen, den du mir je tust.' Pflege {n}/{CARES_PER_DAY}."
-]
   ],
   "bestrafen": [
     "{owner} bindet {pet}s Hände fest auf den Rücken und gibt leichte Klapse – 'Zähl mit, du kleine Gefangene – jeder Treffer für deine Unartigkeit.' Pflege {n}/{CARES_PER_DAY}.",
@@ -506,7 +492,6 @@
     "{owner} hält fest und bestraft mit Edge: 'Gutes Mädchen, du kommst nie – weil ich's so will, du kleine Nie-Sub.' Pflege {n}/{CARES_PER_DAY}."
   ],
   "loben": [
-[
     "{owner} 'Gutes Mädchen'. {pet}s Puls rast – weil Lob seltener ist als Mitleid. Pflege {n}/{CARES_PER_DAY}.",
     "Streicheln nach der Peitsche. {pet} dankt zitternd – als wär’s der letzte Sauerstoff. Pflege {n}/{CARES_PER_DAY}.",
     "„Gut gemacht.“ Süßer als Zyankali. Pflege {n}/{CARES_PER_DAY}.",
@@ -532,10 +517,8 @@
     "Wange tätscheln: 'Gutes Mädchen. Hältst still – schade, dass ich’s nie satthabe.' Pflege {n}/{CARES_PER_DAY}.",
     "'Gutes Mädchen.' 'Deine Hingabe? Mein bester Witz.' Pflege {n}/{CARES_PER_DAY}.",
     "Fast-Kuss: 'Gutes Mädchen. Nah dran ist dein Höhepunkt – weiter nie.' Pflege {n}/{CARES_PER_DAY}."
-]
   ],
   "dienen": [
-[
     "{pet} dient auf Knien, bringt, holt, erträgt. {owner}: 'Braves Mädchen. Die Wände hören zu – und lachen über dich.' Pflege {n}/{CARES_PER_DAY}.",
     "Jede Aufgabe Demütigung. {pet} perfektioniert sie – weil mein Lächeln seltener ist als Gnade. Pflege {n}/{CARES_PER_DAY}.",
     "{pet} flüstert am Ende: 'Danke, dass ich dienen durfte.' Ich nicke. Weil sie recht hat – ohne mich ist sie Luft. Pflege {n}/{CARES_PER_DAY}.",
@@ -556,10 +539,8 @@
     "{owner}: 'Gutes Mädchen. Deine Hingabe? Mein Lieblingswitz – abhängig und erbärmlich.' Pflege {n}/{CARES_PER_DAY}.",
     "Ein Dienst wie ein Kapitel: 'Gutes Mädchen. Ich belohne dich – mit Aufmerksamkeit, die dich zerfrisst.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} nickt: 'Gutes Mädchen. Mein Licht im Nebel – flackernd und bald aus.' Pflege {n}/{CARES_PER_DAY}."
-]
   ],
   "demuetigen": [
-[
     "{owner} flüstert leise: 'Du bist nichts ohne mich.' {pet} nickt – weil’s stimmt und weil sie’s hasst, dass es stimmt. Pflege {n}/{CARES_PER_DAY}.",
     "{owner}: 'Du bist nichts ohne mich.' {pet} zittert – Wahrheit schneidet tiefer als jede Klinge. Pflege {n}/{CARES_PER_DAY}.",
     "{pet} bedankt sich winselnd: 'Danke, dass du mich klein machst.' {owner} grinst nur. Weil sie’s verdient. Pflege {n}/{CARES_PER_DAY}.",
@@ -580,10 +561,8 @@
     "{owner}: 'Gutes Mädchen. Mein kleines, demütiges Nichts mit zu viel Gefühl.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner}: 'Gutes Mädchen. Deine Scham macht dich nass – redrum nur für mich.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} lächelt kalt: 'Gutes Mädchen. Float down here – in meiner Hölle, für immer.' Pflege {n}/{CARES_PER_DAY}."
-]
   ],
   "melken": [
-[
     "{owner} bindet {pet}s Hände auf den Rücken und melkt langsam: 'Gutes Mädchen. Tropf nur, wenn ich's sage, du kleine Gefangene.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} hält die Leine straff, melkt quälend: 'Jeder Tropfen gehört mir. Bettle um mehr, Leinen-Schlampe.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} gibt leichte Klapse beim Melken: 'Rot glühen macht dich nasser. Oder lügst du schon wieder?' Pflege {n}/{CARES_PER_DAY}.",
@@ -614,10 +593,8 @@
     "{owner} melkt, Hand am Arsch: 'Klaps und Tropf. Meine Melodie, Rhythmus-Schlampe.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} melkt blind und gefesselt: 'Nur ich. Für immer. Blind-Sub.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} melkt und lacht kalt: 'Dein Tropfen ist mein Sieg. Dein Verlust. Sieg-Sub.' Pflege {n}/{CARES_PER_DAY}."
-]
   ],
   "ohrfeige": [
-[
     "{owner} ohrfeigt hart, Kopf fliegt zur Seite. 'Gutes Mädchen. Rot wie ein frisches Brandmal – nur für mich.' Pflege {n}/{CARES_PER_DAY}.",
     "Links, rechts, links – bis sie taumelt. {owner}: 'Unten bei mir bleibst du immer, egal wie oft dein Kopf fliegt.' Pflege {n}/{CARES_PER_DAY}.",
     "Letzte Ohrfeige bringt Tränen. {owner} grinst: 'Jetzt bist du schön. Glänzende Augen – wie bei einer kaputten Puppe.' Pflege {n}/{CARES_PER_DAY}.",
@@ -638,10 +615,8 @@
     "{pet} zappelt. {owner}: 'Dein Gesicht ist mein Gemälde. Rot und meins – für immer.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner}: 'Klatsch und hall. Deine Wange mein Thron – wo ich mit der Hand regiere.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} lacht kalt: 'Rot und wild. Meine Ohrfeige – Geschenk, das wehtut und dich feucht macht.' Pflege {n}/{CARES_PER_DAY}."
-]
   ],
   "belohnen": [
-[
     "{owner} berührt sie kurz. 'Gutes Mädchen. Meine Finger kosten mehr als dein ganzer Wert.' Pflege {n}/{CARES_PER_DAY}.",
     "Orgasmus nach Tagen. {pet} zerbricht dankbar. {owner}: 'Wie ’ne billige Vase – zerbrich ruhig, ich kauf eh keine.' Pflege {n}/{CARES_PER_DAY}.",
     "'Gut gemacht.' {pet} würde killen dafür. {owner}: 'Rarer als Ehrlichkeit in deinem beschissenen Leben.' Pflege {n}/{CARES_PER_DAY}.",
@@ -662,6 +637,5 @@
     "{pet} zittert. {owner}: 'Deine Belohnung ist mein Arm – dein einziger Käfig, warm und ewig.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner}: 'Nimm und hall – Belohnung ist mein Thron. Ich regier mit Verachtung.' Pflege {n}/{CARES_PER_DAY}.",
     "{owner} lacht: 'Nimm und wild – mein Geschenk: Spott, scharf, ewig. Genieß es, Hure.' Pflege {n}/{CARES_PER_DAY}."
-]
   ]
 }
