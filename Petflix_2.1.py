@@ -360,6 +360,20 @@ SUPERWORDS = [
     "dragonblight",
     "howling fjord"
 ]
+
+SUPERWORDS_FILES = [
+    "texts/superwords_wow_1_de.txt",
+    "texts/superwords_wow_2_de.txt",
+]
+for superwords_path in SUPERWORDS_FILES:
+    if not os.path.exists(superwords_path):
+        continue
+    with open(superwords_path, "r", encoding="utf-8") as f:
+        for line in f:
+            word = line.strip().lower()
+            if word and not word.startswith("#"):
+                SUPERWORDS.append(word)
+SUPERWORDS = list(dict.fromkeys(SUPERWORDS))
 # =========================
 # /steal
 # =========================
