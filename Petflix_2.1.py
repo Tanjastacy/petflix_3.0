@@ -939,6 +939,30 @@ async def migrate_db(db):
     );
     """)
 
+    # Sicherheitsnetz fuer inkonsistente Alt-DBs:
+    # Wenn user_version hoch ist, Spalten aber fehlen, ziehen wir sie hier trotzdem nach.
+    if not await _table_has_column(db, "pets", "pet_skill"):
+        await db.execute("ALTER TABLE pets ADD COLUMN pet_skill TEXT DEFAULT NULL")
+    if not await _table_has_column(db, "pets", "care_bonus_day"):
+        await db.execute("ALTER TABLE pets ADD COLUMN care_bonus_day TEXT DEFAULT NULL")
+    if not await _table_has_column(db, "pets", "pet_xp"):
+        await db.execute("ALTER TABLE pets ADD COLUMN pet_xp INTEGER DEFAULT 0")
+    if not await _table_has_column(db, "pets", "pet_level"):
+        await db.execute("ALTER TABLE pets ADD COLUMN pet_level INTEGER DEFAULT 0")
+    if not await _table_has_column(db, "pets", "acquired_ts"):
+        await db.execute("ALTER TABLE pets ADD COLUMN acquired_ts INTEGER DEFAULT NULL")
+        await db.execute(
+            "UPDATE pets SET acquired_ts=COALESCE(acquired_ts, last_care_ts, CAST(strftime('%s','now') AS INTEGER))"
+        )
+    if not await _table_has_column(db, "settings", "daily_curse_enabled"):
+        await db.execute(
+            f"ALTER TABLE settings ADD COLUMN daily_curse_enabled INTEGER DEFAULT {1 if DAILY_CURSE_ENABLED else 0}"
+        )
+    if not await _table_has_column(db, "settings", "auto_curse_enabled"):
+        await db.execute(
+            f"ALTER TABLE settings ADD COLUMN auto_curse_enabled INTEGER DEFAULT {1 if AUTO_CURSE_ENABLED else 0}"
+        )
+
 async def db_init():
     async with aiosqlite.connect(DB) as db:
         await db.execute("PRAGMA journal_mode=WAL;")
