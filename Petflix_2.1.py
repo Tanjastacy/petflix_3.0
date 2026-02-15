@@ -1319,6 +1319,17 @@ async def claim_superword_once(db, chat_id: int, word: str, user_id: int) -> boo
     now = int(time.time())
     await db.execute(
         """
+        CREATE TABLE IF NOT EXISTS superwords_found(
+          chat_id  INTEGER,
+          word     TEXT,
+          found_by INTEGER,
+          found_ts INTEGER,
+          PRIMARY KEY(chat_id, word)
+        );
+        """
+    )
+    await db.execute(
+        """
         INSERT INTO superwords_found(chat_id, word, found_by, found_ts)
         VALUES(?,?,?,?)
         ON CONFLICT(chat_id, word) DO NOTHING
