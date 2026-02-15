@@ -29,6 +29,8 @@
 ## Security & Configuration Tips
 - Never commit real bot tokens or production database files.
 - Keep secrets in local environment variables or a private `.env` file and update `DB_PATH` for non-local deployments.
+- Database schema/content changes must always happen via code migrations (`migrate_db` path), never by manually editing `.db` files.
+- Never rely on a locally modified `.db` file for deployment behavior (especially AWS); migration code is the single source of truth.
 
 ## Collaboration Defaults (Persistent)
 - Preferred language for communication is German.
@@ -40,3 +42,4 @@
   - touched file paths,
   - what was verified (or what could not be verified).
 - Do not change secrets in `.env` and do not commit database content changes unless explicitly requested.
+- ALWAYS perform DB changes through migrations only; do not create/alter tables manually in SQLite files.
