@@ -928,6 +928,17 @@ async def migrate_db(db):
         await _set_user_version(db, 15)
         current = 15
 
+    # Sicherheitsnetz: Tabelle muss immer existieren, auch bei Alt-DBs mit inkonsistenter user_version.
+    await db.executescript("""
+    CREATE TABLE IF NOT EXISTS superwords_found(
+      chat_id  INTEGER,
+      word     TEXT,
+      found_by INTEGER,
+      found_ts INTEGER,
+      PRIMARY KEY(chat_id, word)
+    );
+    """)
+
 async def db_init():
     async with aiosqlite.connect(DB) as db:
         await db.execute("PRAGMA journal_mode=WAL;")
@@ -1317,17 +1328,6 @@ async def get_cd_left(db, chat_id: int, user_id: int, key: str) -> int:
 
 async def claim_superword_once(db, chat_id: int, word: str, user_id: int) -> bool:
     now = int(time.time())
-    await db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS superwords_found(
-          chat_id  INTEGER,
-          word     TEXT,
-          found_by INTEGER,
-          found_ts INTEGER,
-          PRIMARY KEY(chat_id, word)
-        );
-        """
-    )
     await db.execute(
         """
         INSERT INTO superwords_found(chat_id, word, found_by, found_ts)
