@@ -36,3 +36,8 @@ data/
 # txt
 *.txt
 /*.txt
+
+#db 
+petflix_2.1.db
+petflix_2.1.db-shm
+petflix_2.1.db-wal
