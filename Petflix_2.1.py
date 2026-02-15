@@ -4431,7 +4431,7 @@ def main():
     app.job_queue.run_repeating(love_watchdog_job, interval=60, first=30, name="love_watchdog")
     app.job_queue.run_repeating(runaway_watchdog_job, interval=60, first=30, name="runaway_watchdog")
 
-    print("Petflix 2.1 gestartet.")
+    print("Petflix 2.1 gestartet. build-marker: pull-test-2026-02-15")
     app.run_polling()
 
 if __name__ == "__main__":
