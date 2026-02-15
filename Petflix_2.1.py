@@ -364,6 +364,8 @@ SUPERWORDS = [
 SUPERWORDS_FILES = [
     "texts/superwords_wow_1_de.txt",
     "texts/superwords_wow_2_de.txt",
+    "texts/superwords_series_de.txt",
+    "texts/superwords_series_en.txt",
 ]
 for superwords_path in SUPERWORDS_FILES:
     if not os.path.exists(superwords_path):
@@ -1308,8 +1310,14 @@ async def claim_superword_once(db, chat_id: int, word: str, user_id: int) -> boo
     return bool(row and int(row[0]) > 0)
 
 
+def normalize_superword_text(text: str) -> str:
+    t = (text or "").casefold()
+    t = t.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+    return t
+
+
 def superword_pattern(word: str) -> str:
-    parts = re.findall(r"[a-z0-9]+", (word or "").lower())
+    parts = re.findall(r"[a-z0-9]+", normalize_superword_text(word))
     if not parts:
         return ""
     body = r"[\s\-_]*".join(re.escape(p) for p in parts)
@@ -1787,12 +1795,12 @@ async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE
 
         # Superworte (pro Chat nur einmal pro Wort, global fuer alle User)
         msg_text = msg.text or ""
-        msg_lower = msg_text.lower()
+        msg_norm = normalize_superword_text(msg_text)
         for word in SUPERWORDS:
             pattern = superword_pattern(word)
-            if not pattern or not re.search(pattern, msg_lower):
+            if not pattern or not re.search(pattern, msg_norm):
                 continue
-            superword_key = re.sub(r"[^a-z0-9]+", "", word.lower())
+            superword_key = re.sub(r"[^a-z0-9]+", "", normalize_superword_text(word))
             if not superword_key:
                 continue
             claimed = await claim_superword_once(db, chat.id, superword_key, user.id)
