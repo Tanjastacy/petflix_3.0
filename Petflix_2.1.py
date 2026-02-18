@@ -61,9 +61,9 @@ USER_PRICE_STEP = 50  # 100 -> 150 -> 200 ...
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 MESSAGE_THROTTLE_S = 1
 CARE_COOLDOWN_S = 5  # Sekunden zwischen Pflegeaktionen
-CARES_PER_DAY = 100
-MIN_CARES_PER_24H = 20
-LEVEL_DECAY_XP = 3
+CARES_PER_DAY = 10
+MIN_CARES_PER_24H = 10
+LEVEL_DECAY_XP = 0
 LEVEL_DECAY_INTERVAL_S = 6 * 3600
 CARE_CHAT_CLEANUP_S = 60
 RUNAWAY_HOURS = 24
@@ -406,11 +406,11 @@ STEAL_FAIL_PENALTY_RATIO = 0.20
 # =========================
 # /buy Schutz durch Pflege
 # =========================
-BUY_SUCCESS_MAX = 0.95   # Bei 0/25 Pflege fast sicher kaufbar
-BUY_SUCCESS_MIN = 0.05   # Bei 25/25 Pflege fast nicht kaufbar
+BUY_SUCCESS_MAX = 0.95   # Bei 0/10 Pflege fast sicher kaufbar
+BUY_SUCCESS_MIN = 0.05   # Bei 10/10 Pflege fast nicht kaufbar
 BUY_FAIL_PENALTY_RATIO = 0.20  # Bei Fehlversuch immer 20% Coins weg
-CARE_FIFTYFIFTY_UNTIL = 25
-CARE_HARD_PROTECT_START = 70
+CARE_FIFTYFIFTY_UNTIL = 4
+CARE_HARD_PROTECT_START = 8
 RISK_BONUS_PER_PRICE = 0.20  # Risiko in Hoehe des Preises => +20% Chance
 RISK_MAX_BONUS = 0.35        # Maximal +35% durch Risiko
 
@@ -704,7 +704,7 @@ log = logging.getLogger("Petflix_2.0")
 # DB-Setup 
 # =========================
 
-SCHEMA_VERSION = 14
+SCHEMA_VERSION = 16
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -928,6 +928,16 @@ async def migrate_db(db):
         await _set_user_version(db, 15)
         current = 15
 
+    if current < 16:
+        if not await _table_has_column(db, "pets", "fullcare_streak"):
+            await db.execute("ALTER TABLE pets ADD COLUMN fullcare_streak INTEGER DEFAULT 0")
+        if not await _table_has_column(db, "pets", "fullcare_last_day"):
+            await db.execute("ALTER TABLE pets ADD COLUMN fullcare_last_day TEXT DEFAULT NULL")
+        await db.execute("UPDATE pets SET pet_xp=COALESCE(pet_xp, 0) * 5")
+        await db.execute("UPDATE pets SET pet_level=MIN(100, CAST(COALESCE(pet_xp, 0) / 5 AS INTEGER))")
+        await _set_user_version(db, 16)
+        current = 16
+
     # Sicherheitsnetz: Tabelle muss immer existieren, auch bei Alt-DBs mit inkonsistenter user_version.
     await db.executescript("""
     CREATE TABLE IF NOT EXISTS superwords_found(
@@ -954,6 +964,10 @@ async def migrate_db(db):
         await db.execute(
             "UPDATE pets SET acquired_ts=COALESCE(acquired_ts, last_care_ts, CAST(strftime('%s','now') AS INTEGER))"
         )
+    if not await _table_has_column(db, "pets", "fullcare_streak"):
+        await db.execute("ALTER TABLE pets ADD COLUMN fullcare_streak INTEGER DEFAULT 0")
+    if not await _table_has_column(db, "pets", "fullcare_last_day"):
+        await db.execute("ALTER TABLE pets ADD COLUMN fullcare_last_day TEXT DEFAULT NULL")
     if not await _table_has_column(db, "settings", "daily_curse_enabled"):
         await db.execute(
             f"ALTER TABLE settings ADD COLUMN daily_curse_enabled INTEGER DEFAULT {1 if DAILY_CURSE_ENABLED else 0}"
@@ -1238,6 +1252,7 @@ async def _should_runaway(
     now_ts: int,
     care_24h: int | None = None
 ) -> bool:
+    # Weglauf-Regel: Nur wenn 24h lang gar keine Pflege stattfand.
     if not owner_id:
         return False
     if not acquired_ts:
@@ -1246,7 +1261,7 @@ async def _should_runaway(
         return False
     if care_24h is None:
         care_24h = await _care_count_last_24h(db, chat_id, pet_id, owner_id, now_ts)
-    return care_24h < MIN_CARES_PER_24H
+    return care_24h <= 0
 
 
 async def _apply_runaway_owner_penalty(db, chat_id: int, owner_id: int):
@@ -1293,7 +1308,8 @@ def resolve_next_skill(prev_skill: Optional[str], has_prev_owner: bool) -> tuple
     return prev_skill, False
 
 def pet_level_from_xp(xp: int) -> int:
-    return max(0, min(100, int(xp)))
+    points = max(0, int(xp))
+    return max(0, min(100, points // 5))
 
 def pet_level_title(level: int) -> str:
     lvl = max(0, min(100, int(level)))
@@ -1556,28 +1572,38 @@ async def do_care(update, context, action_key, tame_lines):
         await set_care(db, chat_id, pet.id, now, done, today)
 
         level_up_text = None
-        new_xp = prev_xp + 1
-        new_level = pet_level_from_xp(new_xp)
-        await db.execute(
-            "UPDATE pets SET pet_xp=?, pet_level=? WHERE chat_id=? AND pet_id=?",
-            (new_xp, new_level, chat_id, pet.id)
-        )
-        if new_level > prev_level:
-            level_up_text = (
-                f"Lvl <b>{new_level}</b> ({escape(pet_level_title(new_level), False)}) | "
-                f"{nice_name_html(pet)} | Owner: {mention_html(owner.id, owner.username or None)} | "
-                f"Pflege <b>{done}/{CARES_PER_DAY}</b>"
-            )
-
+        new_xp = prev_xp
+        new_level = prev_level
         bonus_text = None
         if done >= CARES_PER_DAY:
             async with db.execute(
-                "SELECT pet_skill, care_bonus_day FROM pets WHERE chat_id=? AND pet_id=?",
+                "SELECT pet_skill, care_bonus_day, COALESCE(fullcare_streak, 0), fullcare_last_day "
+                "FROM pets WHERE chat_id=? AND pet_id=?",
                 (chat_id, pet.id)
             ) as cur:
                 prow = await cur.fetchone()
             skill_key = prow[0] if prow else None
             care_bonus_day = prow[1] if prow else None
+            prev_streak = int(prow[2]) if prow and prow[2] is not None else 0
+            last_full_day = prow[3] if prow else None
+
+            yesterday = (datetime.date.fromisoformat(today) - datetime.timedelta(days=1)).isoformat()
+            streak = (prev_streak + 1) if last_full_day == yesterday else 1
+            streak_bonus = 1 if streak % 3 == 0 else 0
+
+            gained_points = 1 + streak_bonus
+            new_xp = prev_xp + gained_points
+            new_level = pet_level_from_xp(new_xp)
+            await db.execute(
+                "UPDATE pets SET pet_xp=?, pet_level=?, fullcare_streak=?, fullcare_last_day=? "
+                "WHERE chat_id=? AND pet_id=?",
+                (new_xp, new_level, streak, today, chat_id, pet.id)
+            )
+
+            bonus_lines = [f"Levelpunkte: +{gained_points} fuer {CARES_PER_DAY}/{CARES_PER_DAY} Pflege."]
+            if streak_bonus:
+                bonus_lines.append(f"Streak-Bonus: +1 (Serie: {streak} volle Tage in Folge).")
+
             if skill_key == "goldesel" and care_bonus_day != today:
                 await db.execute(
                     "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
@@ -1587,7 +1613,7 @@ async def do_care(update, context, action_key, tame_lines):
                     "UPDATE pets SET care_bonus_day=? WHERE chat_id=? AND pet_id=?",
                     (today, chat_id, pet.id)
                 )
-                bonus_text = (
+                bonus_lines.append(
                     f"Skill-Bonus <b>Petflix Prime</b>: {mention_html(owner.id, owner.username or None)} "
                     f"bekommt +{FULL_CARE_OWNER_BONUS} Coins fuer {CARES_PER_DAY}/{CARES_PER_DAY} Pflege."
                 )
@@ -1603,7 +1629,15 @@ async def do_care(update, context, action_key, tame_lines):
                 f"Titel aktiv: {mention_html(owner.id, owner.username or None)} ist jetzt "
                 f"<b>{escape(TITLE_BESTIENZAEHMER, False)}</b> fuer {mins} Minuten."
             )
-            bonus_text = f"{bonus_text}\n{title_line}" if bonus_text else title_line
+            bonus_lines.append(title_line)
+            bonus_text = "\n".join(bonus_lines)
+
+        if new_level > prev_level:
+            level_up_text = (
+                f"Lvl <b>{new_level}</b> ({escape(pet_level_title(new_level), False)}) | "
+                f"{nice_name_html(pet)} | Owner: {mention_html(owner.id, owner.username or None)} | "
+                f"Pflege <b>{done}/{CARES_PER_DAY}</b>"
+            )
 
         await set_cd(db, chat_id, owner.id, cd_key, CARE_COOLDOWN_S)
         await db.commit()
@@ -1619,7 +1653,7 @@ async def do_care(update, context, action_key, tame_lines):
     if bonus_text:
         bonus_msg = await msg.reply_text(bonus_text, parse_mode=ParseMode.HTML)
         cleanup_message_ids.append(bonus_msg.message_id)
-    if done % 10 == 0:
+    if done % CARES_PER_DAY == 0:
         progress_text = (
             f"Pflege-Stand: {nice_name_html(owner)} hat {nice_name_html(pet)} "
             f"<b>{done}/{CARES_PER_DAY}</b> gepflegt. "
@@ -4431,7 +4465,10 @@ def main():
     app.job_queue.run_repeating(love_watchdog_job, interval=60, first=30, name="love_watchdog")
     app.job_queue.run_repeating(runaway_watchdog_job, interval=60, first=30, name="runaway_watchdog")
 
-    print("Petflix 2.1 gestartet. build-marker: pull-test-2026-02-15")
+    print(
+        f"Petflix 2.1 gestartet. build-marker: 2026-02-18-care10 | "
+        f"CARES_PER_DAY={CARES_PER_DAY} | RUNAWAY_HOURS={RUNAWAY_HOURS}"
+    )
     app.run_polling()
 
 if __name__ == "__main__":
