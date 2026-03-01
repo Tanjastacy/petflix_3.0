@@ -326,7 +326,7 @@ def create_jobs_watchdogs(deps: dict):
                                 pass
                         await set_cd(db, chat_id, 0, decay_key, LEVEL_DECAY_INTERVAL_S)
 
-                if not await _should_runaway(db, chat_id, pet_id_i, owner_id_i, acquired_ts, now, care_24h=care_24h):
+                if not await _should_runaway(db, chat_id, pet_id_i, owner_id_i, acquired_ts, now):
                     continue
                 await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id_i))
                 await _apply_runaway_owner_penalty(db, chat_id, owner_id_i)

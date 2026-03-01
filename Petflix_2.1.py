@@ -63,10 +63,12 @@ MESSAGE_THROTTLE_S = 1
 CARE_COOLDOWN_S = 5  # Sekunden zwischen Pflegeaktionen
 CARES_PER_DAY = 10
 MIN_CARES_PER_24H = 10
+RUNAWAY_WINDOW_DAYS = 3
+RUNAWAY_MIN_CARES_IN_WINDOW = 10
 LEVEL_DECAY_XP = 0
 LEVEL_DECAY_INTERVAL_S = 6 * 3600
 CARE_CHAT_CLEANUP_S = 60
-RUNAWAY_HOURS = 24
+RUNAWAY_HOURS = RUNAWAY_WINDOW_DAYS * 24
 LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
 TITLE_BESTIENZAEHMER = "Bestienzaehmer 🐉"
@@ -1229,8 +1231,7 @@ async def set_care(db, chat_id, pet_id, last, done, day):
     await db.commit()
 
 
-async def _care_count_last_24h(db, chat_id: int, pet_id: int, owner_id: int, now_ts: int) -> int:
-    since_ts = now_ts - RUNAWAY_HOURS * 3600
+async def _care_count_in_window(db, chat_id: int, pet_id: int, owner_id: int, since_ts: int) -> int:
     async with db.execute(
         """
         SELECT COUNT(*) FROM care_events
@@ -1243,6 +1244,11 @@ async def _care_count_last_24h(db, chat_id: int, pet_id: int, owner_id: int, now
     return max(0, raw_events // 2)
 
 
+async def _care_count_last_24h(db, chat_id: int, pet_id: int, owner_id: int, now_ts: int) -> int:
+    since_ts = now_ts - 24 * 3600
+    return await _care_count_in_window(db, chat_id, pet_id, owner_id, since_ts)
+
+
 async def _should_runaway(
     db,
     chat_id: int,
@@ -1250,18 +1256,20 @@ async def _should_runaway(
     owner_id: int,
     acquired_ts: int | None,
     now_ts: int,
-    care_24h: int | None = None
+    care_window: int | None = None
 ) -> bool:
-    # Weglauf-Regel: Nur wenn 24h lang gar keine Pflege stattfand.
+    # Weglauf-Regel: Erst nach 3 Tagen Besitz und nur wenn im 3-Tage-Fenster
+    # weniger als 10 Pflegen eingetragen wurden.
     if not owner_id:
         return False
     if not acquired_ts:
         return False
     if now_ts - int(acquired_ts) < RUNAWAY_HOURS * 3600:
         return False
-    if care_24h is None:
-        care_24h = await _care_count_last_24h(db, chat_id, pet_id, owner_id, now_ts)
-    return care_24h <= 0
+    if care_window is None:
+        since_ts = now_ts - RUNAWAY_HOURS * 3600
+        care_window = await _care_count_in_window(db, chat_id, pet_id, owner_id, since_ts)
+    return care_window < RUNAWAY_MIN_CARES_IN_WINDOW
 
 
 async def _apply_runaway_owner_penalty(db, chat_id: int, owner_id: int):
@@ -1543,7 +1551,17 @@ async def do_care(update, context, action_key, tame_lines):
         prev_level = int(prog_row[1]) if prog_row else 0
 
         now = int(time.time())
-        if await _should_runaway(db, chat_id, pet.id, owner.id, care["acquired_ts"] if care else None, now):
+        care_window_since = now - RUNAWAY_HOURS * 3600
+        care_window = await _care_count_in_window(db, chat_id, pet.id, owner.id, care_window_since)
+        if await _should_runaway(
+            db,
+            chat_id,
+            pet.id,
+            owner.id,
+            care["acquired_ts"] if care else None,
+            now,
+            care_window=care_window + 1
+        ):
             await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet.id))
             await _apply_runaway_owner_penalty(db, chat_id, owner.id)
             await db.commit()
