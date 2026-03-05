@@ -68,6 +68,7 @@ RUNAWAY_MIN_CARES_IN_WINDOW = 10
 LEVEL_DECAY_XP = 0
 LEVEL_DECAY_INTERVAL_S = 6 * 3600
 CARE_CHAT_CLEANUP_S = 60
+STICKER_CHAT_CLEANUP_S = 60
 RUNAWAY_HOURS = RUNAWAY_WINDOW_DAYS * 24
 LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
@@ -1106,6 +1107,34 @@ async def _delete_messages_job(context: ContextTypes.DEFAULT_TYPE):
             pass
 
 
+async def on_sticker_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = update.effective_message
+    chat = update.effective_chat
+    if not msg or not chat:
+        return
+
+    context.job_queue.run_once(
+        _delete_messages_job,
+        when=STICKER_CHAT_CLEANUP_S,
+        data={"chat_id": chat.id, "message_ids": [msg.message_id]},
+        name=f"sticker_cleanup:{chat.id}:{msg.message_id}",
+    )
+
+
+async def on_single_g_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = update.effective_message
+    chat = update.effective_chat
+    if not msg or not chat:
+        return
+
+    context.job_queue.run_once(
+        _delete_messages_job,
+        when=STICKER_CHAT_CLEANUP_S,
+        data={"chat_id": chat.id, "message_ids": [msg.message_id]},
+        name=f"single_g_cleanup:{chat.id}:{msg.message_id}",
+    )
+
+
 async def _send_or_replace_level_message(
     context: ContextTypes.DEFAULT_TYPE,
     chat_id: int,
@@ -1884,6 +1913,8 @@ async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE
     if not msg or not user or user.is_bot:
         return
     if not getattr(msg, "text", None) or msg.text.startswith("/"):
+        return
+    if (msg.text or "").strip().casefold() == "g":
         return
     if getattr(msg, "forward_date", None):
         return
@@ -4455,11 +4486,26 @@ def main():
     # Handler nicht vergessen
     app.add_handler(CommandHandler("listdbusers", cmd_listdbusers, filters=CHAT_FILTER))
 
+    app.add_handler(
+        MessageHandler(
+            filters.Chat(ALLOWED_CHAT_ID) & filters.Regex(r"(?i)^\s*g\s*$"),
+            on_single_g_message
+        ),
+        group=1
+    )
+
     # Coins-Handler: nur erlaubte Gruppe, nur Text, keine Commands/Forwards
     app.add_handler(
         MessageHandler(
             filters.Chat(ALLOWED_CHAT_ID) & filters.TEXT & ~filters.COMMAND & ~filters.FORWARDED,
             autoload_and_reward
+        ),
+        group=1
+    )
+    app.add_handler(
+        MessageHandler(
+            filters.Chat(ALLOWED_CHAT_ID) & filters.Sticker.ALL,
+            on_sticker_message
         ),
         group=1
     )
