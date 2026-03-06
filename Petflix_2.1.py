@@ -1107,20 +1107,6 @@ async def _delete_messages_job(context: ContextTypes.DEFAULT_TYPE):
             pass
 
 
-async def on_sticker_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = update.effective_message
-    chat = update.effective_chat
-    if not msg or not chat:
-        return
-
-    context.job_queue.run_once(
-        _delete_messages_job,
-        when=STICKER_CHAT_CLEANUP_S,
-        data={"chat_id": chat.id, "message_ids": [msg.message_id]},
-        name=f"sticker_cleanup:{chat.id}:{msg.message_id}",
-    )
-
-
 async def on_single_g_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
     chat = update.effective_chat
@@ -4502,14 +4488,6 @@ def main():
         ),
         group=1
     )
-    app.add_handler(
-        MessageHandler(
-            filters.Chat(ALLOWED_CHAT_ID) & filters.Sticker.ALL,
-            on_sticker_message
-        ),
-        group=1
-    )
-
     # Befehle in falschen Chats abfangen
     app.add_handler(
         MessageHandler(filters.COMMAND & ~filters.Chat(ALLOWED_CHAT_ID), deny_other_chats),
