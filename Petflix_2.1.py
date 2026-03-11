@@ -1166,6 +1166,9 @@ async def apply_moraltax_if_needed(db, chat_id: int, user_id: int, text: str) ->
     if not text:
         return None, None
 
+    if user_id == ADMIN_ID:
+        return None, None
+
     t = text.lower()
     enabled, amount = await get_moraltax_settings(db, chat_id)
     if not enabled or amount <= 0:
