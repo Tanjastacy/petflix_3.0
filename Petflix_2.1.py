@@ -49,6 +49,11 @@ DOM_FEMALE_DENY_LINES = [
     "Netter Versuch. Heute nicht."
 ]
 
+ADMIN_MORAL_TAX_REPLIES = [
+    (r"(?i)\bbitte\b", "Sehr gerne, Master."),
+    (r"(?i)\bdanke\b", "Immer, Master."),
+]
+
 # =========================
 # Konfiguration
 # =========================
@@ -1167,6 +1172,10 @@ async def apply_moraltax_if_needed(db, chat_id: int, user_id: int, text: str) ->
         return None, None
 
     if user_id == ADMIN_ID:
+        t = text.lower()
+        for pattern, reply in ADMIN_MORAL_TAX_REPLIES:
+            if re.search(pattern, t):
+                return None, reply
         return None, None
 
     t = text.lower()
