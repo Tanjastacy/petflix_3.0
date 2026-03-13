@@ -3920,10 +3920,12 @@ async def _attempt_pet_buy(update: Update, context: ContextTypes.DEFAULT_TYPE, r
 
     target_id = None
     target_username = None
+    target_is_bot = False
     if msg.reply_to_message and msg.reply_to_message.from_user:
         target = msg.reply_to_message.from_user
         target_id = target.id
         target_username = target.username
+        target_is_bot = bool(getattr(target, "is_bot", False))
     elif context.args:
         args = [a.strip() for a in context.args if a and a.strip()]
         target_token = None
@@ -3966,6 +3968,10 @@ async def _attempt_pet_buy(update: Update, context: ContextTypes.DEFAULT_TYPE, r
 
         if target_id == buyer_id:
             await msg.reply_text("Dich selbst kaufen? Entspann dich.")
+            return
+
+        if target_is_bot:
+            await msg.reply_text("Netter Versuch. Mich kaufst du nicht, du kleine Fehlentscheidung.")
             return
 
         if target_username is None and msg.reply_to_message:
