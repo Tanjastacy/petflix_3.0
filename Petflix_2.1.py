@@ -2762,6 +2762,7 @@ async def register_commands(application: Application):
         BotCommand("backupnow", "Admin: Backup jetzt"),
         BotCommand("backups", "Admin: Backupliste"),
         BotCommand("restorebackup", "Admin: Backup wiederherstellen"),
+        BotCommand("sendalluser", "Admin: players-Tabelle per DM"),
 
     ]
     await application.bot.set_my_commands(commands)
@@ -4264,6 +4265,75 @@ async def cmd_listdbusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for i in range(0, len(text), MAX_CHUNK):
         await update.effective_message.reply_text(text[i:i+MAX_CHUNK], parse_mode=ParseMode.HTML)
 
+async def cmd_sendalluser(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("Nur der Owner darf das.")
+
+    admin_chat_id = update.effective_user.id
+
+    async with aiosqlite.connect(DB) as db:
+        async with db.execute("PRAGMA table_info(players)") as cur:
+            columns = await cur.fetchall()
+
+        if not columns:
+            return await update.effective_message.reply_text("Tabelle players nicht gefunden.")
+
+        async with db.execute("SELECT rowid, * FROM players ORDER BY rowid") as cur:
+            rows = await cur.fetchall()
+
+    column_names = ["rowid", *[str(col[1]) for col in columns]]
+    schema_lines = ["<b>players schema</b>"]
+    for cid, name, col_type, notnull, default_value, pk in columns:
+        schema_lines.append(
+            f"<code>{cid}</code> | <code>{escape(str(name))}</code> | "
+            f"{escape(str(col_type or ''))} | notnull={int(notnull)} | "
+            f"default={escape(str(default_value)) if default_value is not None else 'NULL'} | pk={int(pk)}"
+        )
+
+    try:
+        await context.bot.send_message(
+            chat_id=admin_chat_id,
+            text="\n".join(schema_lines),
+            parse_mode=ParseMode.HTML
+        )
+    except Exception as e:
+        return await update.effective_message.reply_text(
+            f"Konnte dir keine Privatnachricht schicken: {e}"
+        )
+
+    if not rows:
+        await context.bot.send_message(
+            chat_id=admin_chat_id,
+            text="<b>players daten</b>\nKeine Eintraege vorhanden.",
+            parse_mode=ParseMode.HTML
+        )
+        return await update.effective_message.reply_text("Players-Tabelle per DM geschickt.")
+
+    lines = [
+        "<b>players daten</b>",
+        f"Spalten: <code>{escape(', '.join(column_names))}</code>",
+        ""
+    ]
+    for row in rows:
+        parts = []
+        for name, value in zip(column_names, row):
+            rendered = "NULL" if value is None else str(value)
+            parts.append(f"{name}={rendered}")
+        lines.append("<code>" + escape(" | ".join(parts)) + "</code>")
+
+    chunk = ""
+    for line in lines:
+        addition = line if not chunk else "\n" + line
+        if len(chunk) + len(addition) > MAX_CHUNK:
+            await context.bot.send_message(chat_id=admin_chat_id, text=chunk, parse_mode=ParseMode.HTML)
+            chunk = line
+        else:
+            chunk += addition
+    if chunk:
+        await context.bot.send_message(chat_id=admin_chat_id, text=chunk, parse_mode=ParseMode.HTML)
+
+    await update.effective_message.reply_text("Players-Tabelle per Privatnachricht geschickt.")
+
 
 
 async def cmd_forcepurge(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -4463,6 +4533,7 @@ def main():
     # Admin: manuell purgen
     app.add_handler(CommandHandler("purgeuser", cmd_purgeuser,   filters=CHAT_FILTER))
     app.add_handler(CommandHandler("forcepurge", cmd_forcepurge, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("sendalluser", cmd_sendalluser, filters=CHAT_FILTER))
     
     #Auto Bot commands (falls mal ein User das machen darf)
     # app.add_handler(CommandHandler("verfluchen",  cmd_verfluchen,  filters=CHAT_FILTER))
