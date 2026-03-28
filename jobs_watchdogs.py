@@ -20,7 +20,7 @@ def create_jobs_watchdogs(deps: dict):
     _apply_hass_penalty = deps["_apply_hass_penalty"]
     _finish_hass = deps["_finish_hass"]
     _finish_love = deps["_finish_love"]
-    LOVE_PENALTY = deps["LOVE_PENALTY"]
+    LOVE_PENALTY_PERCENT = deps["LOVE_PENALTY_PERCENT"]
     LOVE_REMIND_1_S = deps["LOVE_REMIND_1_S"]
     LOVE_REMIND_2_S = deps["LOVE_REMIND_2_S"]
     _care_count_last_24h = deps["_care_count_last_24h"]
@@ -198,14 +198,22 @@ def create_jobs_watchdogs(deps: dict):
                 remind_stage = int(remind_stage or 0)
 
                 if expires_ts <= now:
+                    async with db.execute(
+                        "SELECT coins FROM players WHERE chat_id=? AND user_id=?",
+                        (chat_id, user_id)
+                    ) as cur_player:
+                        player_row = await cur_player.fetchone()
+                    current_coins = int((player_row[0] if player_row else 0) or 0)
+                    penalty = max(0, current_coins * LOVE_PENALTY_PERCENT // 100)
                     await db.execute(
                         "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
-                        (LOVE_PENALTY, chat_id, user_id)
+                        (penalty, chat_id, user_id)
                     )
                     await _finish_love(db, chat_id, user_id)
                     msg = (
-                        f"{mention_html(user_id, username or None)} hatte nicht genug Eier fuer ein bisschen Liebe.\n"
-                        "Jetzt weiss jeder: Unter der harten Schale steckt nichts. Nur Leere und kalte Finger."
+                        f"{mention_html(user_id, username or None)} hat die Fresse aufgerissen und dann wie der letzte peinliche Lappen komplett verkackt.\n"
+                        f"Strafe: -{penalty} Coins ({LOVE_PENALTY_PERCENT}% des aktuellen Kontostands).\n"
+                        "Gross labern, nichts liefern. Der ganze Chat sieht jetzt schwarz auf weiss, dass ausser heisser Luft, Rueckgrat aus Pappe und erbarmungsloser Fremdschaam wirklich gar nichts da ist."
                     )
                     try:
                         await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
@@ -217,7 +225,10 @@ def create_jobs_watchdogs(deps: dict):
                     remind_stage = 2
                     left = max(0, expires_ts - now)
                     m = left // 60
-                    msg = f"{mention_html(user_id, username or None)} letzte Erinnerung: noch {m}m fuer dein Liebesgestaendniss."
+                    msg = (
+                        f"{mention_html(user_id, username or None)} letzte Warnung, du peinlicher Ausfall: noch {m}m fuer dein Liebesgestaendniss.\n"
+                        "Wenn du jetzt wieder nichts lieferst, reisst es dir gleich brutal die Haelfte deiner Coins weg und der ganze Chat sieht, was fuer ein Totalausfall du bist."
+                    )
                     try:
                         await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
                     except Exception:
@@ -232,7 +243,10 @@ def create_jobs_watchdogs(deps: dict):
                     remind_stage = 1
                     left = max(0, expires_ts - now)
                     m = left // 60
-                    msg = f"{mention_html(user_id, username or None)} Erinnerung: noch {m}m fuer dein Liebesgestaendniss."
+                    msg = (
+                        f"{mention_html(user_id, username or None)} beweg endlich deinen Arsch: noch {m}m fuer dein Liebesgestaendniss.\n"
+                        "Bis jetzt kommt von dir nur grosse Fresse und null Leistung. Wenn das so bleibt, wird dir die Challenge die Coins aus der Tasche treten."
+                    )
                     try:
                         await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
                     except Exception:
@@ -247,7 +261,10 @@ def create_jobs_watchdogs(deps: dict):
                     remind_stage = 2
                     left = max(0, expires_ts - now)
                     m = left // 60
-                    msg = f"{mention_html(user_id, username or None)} letzte Erinnerung: noch {m}m fuer dein Liebesgestaendniss."
+                    msg = (
+                        f"{mention_html(user_id, username or None)} letzte Warnung, du peinlicher Ausfall: noch {m}m fuer dein Liebesgestaendniss.\n"
+                        "Wenn du jetzt wieder nichts lieferst, reisst es dir gleich brutal die Haelfte deiner Coins weg und der ganze Chat sieht, was fuer ein Totalausfall du bist."
+                    )
                     try:
                         await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
                     except Exception:

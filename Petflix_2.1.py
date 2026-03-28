@@ -562,8 +562,8 @@ HASS_PENALTY = 200
 # /liebes (Liebesgestaendniss)
 # =========================
 LOVE_CHALLENGE_HOURS = 2
-LOVE_REWARD = 600
-LOVE_PENALTY = 300
+LOVE_REWARD = 5000
+LOVE_PENALTY_PERCENT = 50
 LOVE_MIN_WORDS = 60
 LOVE_MIN_NICKNAMES = 0
 LOVE_MIN_EMOJIS = 5
@@ -2257,13 +2257,59 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Ausgeloest von: {caller_tag}\n"
             f"Ziel: {target}\n"
             f"Zeit: <b>{LOVE_CHALLENGE_HOURS}h</b> (Deadline: <b>{until}</b>)\n\n"
-            "Schreib einen suessen, uebertriebenen Liebesbrief in den Chat:\n"
+            "Jetzt gibt's kein Rumgeeier mehr: Du lieferst einen uebertriebenen Liebesbrief in den Chat oder gehst komplett unter.\n"
             f"- Mindestens {LOVE_MIN_WORDS} Woerter\n"
             f"- Mindestens {LOVE_MIN_EMOJIS} Emojis (beliebig)\n"
             f"- Mindestens {LOVE_MIN_SENTENCES} Satz/Saetze (Satzzeichen optional)\n\n"
-            "Der Bot erinnert dich zwischendurch.\n"
-            f"Schaffst du's: <b>+{LOVE_REWARD} Coins</b> + ein Monat lang 'mein Liebesgestaendniss'.\n"
-            f"Versagst du: <b>-{LOVE_PENALTY} Coins</b>."
+            "Der Bot wird dich zwischendurch jagen, falls du wieder nur dumm rumsitzt.\n"
+            f"Ziehst du's durch: <b>+{LOVE_REWARD} Coins</b> + ein Monat lang 'mein Liebesgestaendniss'.\n"
+            f"Verkackst du's: <b>-{LOVE_PENALTY_PERCENT}% deiner Coins</b> und der Chat sieht, was fuer ein peinlicher Totalausfall du bist."
+        ),
+        parse_mode=ParseMode.HTML
+    )
+
+
+async def cmd_resetsuperwords(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not _is_admin_here(update):
+        return await update.effective_message.reply_text("🚫 Nur der Bot-Admin darf das.")
+
+    chat_id = update.effective_chat.id
+    async with aiosqlite.connect(DB) as db:
+        async with db.execute(
+            "SELECT COUNT(*) FROM superwords_found WHERE chat_id=?",
+            (chat_id,)
+        ) as cur:
+            row = await cur.fetchone()
+        cleared = int((row[0] if row else 0) or 0)
+        await db.execute("DELETE FROM superwords_found WHERE chat_id=?", (chat_id,))
+        await db.commit()
+
+    await update.effective_message.reply_text(
+        f"✨ Superworte wurden zurueckgesetzt. {cleared} bereits gefundene Superworte zaehlen jetzt wieder neu."
+    )
+
+
+async def cmd_superwordsstatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_allowed_chat(update):
+        return
+
+    chat_id = update.effective_chat.id
+    total = len(SUPERWORDS)
+    async with aiosqlite.connect(DB) as db:
+        async with db.execute(
+            "SELECT COUNT(*) FROM superwords_found WHERE chat_id=?",
+            (chat_id,)
+        ) as cur:
+            row = await cur.fetchone()
+        found = int((row[0] if row else 0) or 0)
+
+    remaining = max(0, total - found)
+    await update.effective_message.reply_text(
+        (
+            "✨ <b>Superwort-Status</b>\n"
+            f"Gesamt: <b>{total}</b>\n"
+            f"Bereits gefunden: <b>{found}</b>\n"
+            f"Noch offen: <b>{remaining}</b>"
         ),
         parse_mode=ParseMode.HTML
     )
@@ -2410,7 +2456,7 @@ _JOBS_WATCHDOGS = create_jobs_watchdogs({
     "_apply_hass_penalty": _apply_hass_penalty,
     "_finish_hass": _finish_hass,
     "_finish_love": _finish_love,
-    "LOVE_PENALTY": LOVE_PENALTY,
+    "LOVE_PENALTY_PERCENT": LOVE_PENALTY_PERCENT,
     "LOVE_REMIND_1_S": LOVE_REMIND_1_S,
     "LOVE_REMIND_2_S": LOVE_REMIND_2_S,
     "_care_count_last_24h": _care_count_last_24h,
@@ -2757,6 +2803,8 @@ async def register_commands(application: Application):
         BotCommand("hass", "Startet Hass-Status (2h, 3 mal /selbst)"),
         BotCommand("selbst", "Nur für betroffenen User: zählt 1/3 Strafen"),
         BotCommand("liebes", "Liebesgestaendniss-Challenge"),
+        BotCommand("resetsuperwords", "Admin: Superworte zuruecksetzen"),
+        BotCommand("superwordsstatus", "Status der Superworte"),
         BotCommand("settings", "Admin: Runtime-Settings"),
         BotCommand("admin", "Admin: Uebersicht"),
         BotCommand("backupnow", "Admin: Backup jetzt"),
@@ -4548,6 +4596,8 @@ def main():
     app.add_handler(CommandHandler("hass",   cmd_hass,   filters=CHAT_FILTER))
     app.add_handler(CommandHandler("selbst", cmd_selbst, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("liebes", cmd_liebes, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("resetsuperwords", cmd_resetsuperwords, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("superwordsstatus", cmd_superwordsstatus, filters=CHAT_FILTER))
 
     # Callback für Gender-Zuweisung
     app.add_handler(CallbackQueryHandler(on_gender_callback, pattern=r"^gender\|"))
