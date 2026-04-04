@@ -555,6 +555,290 @@ BOX_ABYSS_TITLES = [
     "Menschenfresser",
     "Endgegner",
 ]
+BOX_STANDARD_COIN_TEXTS = [
+    "Schlachtgeld: <b>+{amount} Coins</b>.",
+    "Beifang: <b>+{amount} Coins</b>.",
+    "Blutfund: <b>+{amount} Coins</b>.",
+    "Kleiner Treffer: <b>+{amount} Coins</b>.",
+]
+BOX_STANDARD_EMPTY_TEXTS = [
+    "Fehltritt. Nur Staub.",
+    "Leerlauf. Gar nichts drin.",
+    "Niete. Die Kiste hat dich ausgelacht.",
+    "Totale Leere. Nicht mal Mitleid.",
+]
+BOX_STANDARD_LOSS_TEXTS = [
+    "Nackenschlag: <b>-{amount} Coins</b> extra.",
+    "Kassensturz: <b>-{amount} Coins</b> extra.",
+    "Abzug: <b>-{amount} Coins</b> extra.",
+    "Dummer Griff: <b>-{amount} Coins</b> extra.",
+]
+BOX_STANDARD_SHIELD_TEXTS = [
+    "Panzerhaut: <b>Fluchschild fuer 6h</b>.",
+    "Abwehrreflex: <b>Fluchschild fuer 6h</b>.",
+    "Killerinstinkt: <b>Fluchschild fuer 6h</b>.",
+]
+BOX_STANDARD_XP_TEXTS = [
+    "Trainingsschub: <b>+{amount} Pet-XP</b>.",
+    "Futter fuer dein Vieh: <b>+{amount} Pet-XP</b>.",
+    "Aufputscher: <b>+{amount} Pet-XP</b>.",
+]
+BOX_STANDARD_FALLBACK_TEXTS = [
+    "Kein Haustier. Trostpflaster: <b>+{amount} Coins</b>.",
+    "Kein Pet am Start. Ersatz: <b>+{amount} Coins</b>.",
+]
+BOX_STANDARD_TITLE_TEXTS = [
+    "Titel gerissen: <b>{title}</b> fuer {duration}.",
+    "Neuer Rang: <b>{title}</b> fuer {duration}.",
+    "Ab jetzt heisst du <b>{title}</b> fuer {duration}.",
+]
+
+BOX_ABYSS_COIN_TEXTS = [
+    "Schlachtbeute: <b>+{amount} Coins</b>.",
+    "Massakerlohn: <b>+{amount} Coins</b>.",
+    "Schwarzkasse: <b>+{amount} Coins</b>.",
+    "Dicker Treffer: <b>+{amount} Coins</b>.",
+]
+BOX_ABYSS_EMPTY_TEXTS = [
+    "Fehltritt im Abgrund. Nichts drin.",
+    "Totenzone. Kein Loot, nur Hohn.",
+    "Leere Kiste. Hart verkauft, schlecht geliefert.",
+    "Abgrund-Niete. Du hast fuer Schmerz bezahlt.",
+]
+BOX_ABYSS_LOSS_TEXTS = [
+    "Kopfschuss aufs Konto: <b>-{amount} Coins</b> extra.",
+    "Blutsteuer: <b>-{amount} Coins</b> extra.",
+    "Schwarzer Schnitt: <b>-{amount} Coins</b> extra.",
+    "Abgrundbiss: <b>-{amount} Coins</b> extra.",
+]
+BOX_ABYSS_SHIELD_TEXTS = [
+    "Hartschale: <b>Fluchschild fuer 12h</b>.",
+    "Totmannschutz: <b>Fluchschild fuer 12h</b>.",
+    "Schadenssperre: <b>Fluchschild fuer 12h</b>.",
+]
+BOX_ABYSS_XP_TEXTS = [
+    "Kampfstoff: <b>+{amount} Pet-XP</b>.",
+    "Bestienfutter: <b>+{amount} Pet-XP</b>.",
+    "Zuchtstoff: <b>+{amount} Pet-XP</b>.",
+]
+BOX_ABYSS_FALLBACK_TEXTS = [
+    "Kein Haustier. Abfindung: <b>+{amount} Coins</b>.",
+    "Kein Pet da. Ersatzblutgeld: <b>+{amount} Coins</b>.",
+]
+BOX_ABYSS_TITLE_TEXTS = [
+    "Titel freigeschaltet: <b>{title}</b> fuer {duration}.",
+    "Rang brutalisiert: <b>{title}</b> fuer {duration}.",
+    "Der Chat riecht jetzt nach <b>{title}</b> fuer {duration}.",
+]
+BOX_ABYSS_JACKPOT_TEXTS = [
+    "Massakertreffer: <b>+{amount} Coins</b> und <b>{title}</b> fuer {duration}.",
+    "Abgrund-Jackpot: <b>+{amount} Coins</b> und <b>{title}</b> fuer {duration}.",
+    "Volltreffer: <b>+{amount} Coins</b> plus <b>{title}</b> fuer {duration}.",
+]
+BOX_STANDARD_FLAVOR_TEXTS = [
+    "Fehlgriff am Deckel, aber der Inhalt lebt noch.",
+    "Die Kiste knackt wie ein billiges Genick.",
+    "Kurzer Ruck, kalter Blick, weiter.",
+    "Der Verschluss gibt nach wie schlechte Ausreden.",
+    "Staub hoch, Puls runter, Griff rein.",
+    "Da drin riecht es nach Schrott und Glueck.",
+    "Ein kleiner Schnitt am Finger. Gutes Omen.",
+    "Die Kiste klingt leer. Meistens luegt sowas.",
+    "Etwas scheppert. Hoffentlich kein billiger Fluch.",
+    "Schwarzmarktware. Sieht man, fuehlt man, kauft man trotzdem.",
+    "Der Deckel springt auf wie eine schlechte Entscheidung.",
+    "Billig verpackt, hart verkauft.",
+    "Das Ding fuehlt sich an wie Aerger in Holzform.",
+    "Ein dumpfer Schlag aus dem Inneren. Nett.",
+    "Die Naehte sehen aus, als haetten sie schon verloren.",
+    "Das Schloss war schwach. Du hoffentlich nicht.",
+    "Einmal auf, kein Zurueck.",
+    "Kurzes Zittern in der Hand. Dann auf damit.",
+    "Mehr Krach als Stil. Passt.",
+    "Die Kiste hat Charakter. Schlechten, aber genug davon.",
+    "Der Rand ist scharf. Wenigstens etwas Ehrliches.",
+    "Innen drin wartet nie Respekt, nur Ergebnis.",
+    "Sieht harmlos aus. Also Vorsicht.",
+    "Der Deckel kratzt wie Kreide ueber Knochen.",
+    "Noch warm. Irgendwer war vor dir dran.",
+    "Die Farbe blaettert. Der Hass nicht.",
+    "Kellerware. Direkt, billig, gemein.",
+    "Das Holz aechtzt wie ein mueder Zeuge.",
+    "Kurz Luft holen. Dann rein ins Elend.",
+    "Kein Glanz, keine Gnade.",
+    "Das Teil klappert wie lockere Zaehne.",
+    "Du hebst an. Die Kiste grinst zurueck.",
+    "Drinnen wartet entweder Beute oder Hohn.",
+    "Schwarzer Rand, schlechter Ruf, gutes Timing.",
+    "Ein fauler Geruch. Perfekter Anfang.",
+    "Da ist Bewegung drin. Oder nur Einbildung.",
+    "Das Ding fuehlt sich an wie ein Fehltritt mit Preisetikett.",
+    "Billig gebaut, teuer zu bereuen.",
+    "Kurz vorm Oeffnen ist immer alles noch moeglich.",
+    "Ein Splitter bleibt haengen. Souvenir.",
+    "Die Kiste knirscht wie ein Kiefer unter Druck.",
+    "Unfreundliche Verpackung. Ehrliches Konzept.",
+    "Du oeffnest sie wie eine Wunde.",
+    "Einmal schief gelacht, einmal falsch gekauft.",
+    "Die Box ist klein. Der Schaden nicht immer.",
+    "Das Schloss war ein Witz. Hoffentlich bleibt's dabei.",
+    "Keine Ahnung, was drin ist. Genau darum geht's.",
+    "Im Keller findet man selten Vernunft.",
+    "Der Deckel hebt sich mit schlechter Laune.",
+    "Da drin wartet entweder Mitleid oder ein Tritt.",
+    "Die Kiste klingt, als wuerde sie etwas verheimlichen.",
+    "Kein Geschmack, aber Wirkung.",
+    "Kurz still. Dann knallt der Deckel hoch.",
+    "Das Teil sieht aus wie gelagertes Pech.",
+    "Ein Griff zu tief, ein Fehler zu spaet.",
+    "Mehr Risiko passt kaum in so wenig Holz.",
+    "Die Naegel halten noch. Dein Kontostand vielleicht nicht.",
+    "Innen riecht es nach Metall und Fehlentscheidungen.",
+    "Das ist keine Box. Das ist Absicht.",
+    "Der Deckel geht hoch wie ein Messerarm.",
+    "Kleiner Einkauf, grosses Echo.",
+    "Billig vom Markt, brutal im Nachgang.",
+    "Da drin liegt selten Zuneigung.",
+    "Die Kiste fuehlt sich an wie Hohn zum Mitnehmen.",
+    "Holz splittert, Laune auch.",
+    "Kurz geklopft. Nichts hat zurueckgeklopft. Schade.",
+    "Das Ding ist so still, das wird boese enden.",
+    "Eine Kiste voller Vielleicht und Pech.",
+    "Der Rand ist stumpf. Der Ausgang nicht.",
+    "Es wirkt leicht. Das beunruhigt.",
+    "Einmal drehen, einmal atmen, einmal bereuen.",
+    "Schmutzige Ware aus sauber schlechten Haenden.",
+    "Das Teil kostet Nerven extra.",
+    "Sieht aus wie Restposten aus der Hoelle.",
+    "Der Deckel laesst sich leichter oeffnen als dein Glueck.",
+    "Da drin ist alles erlaubt ausser Fairness.",
+    "Ein Knistern, dann Stille. Immer verdaechtig.",
+    "Der Griff fuehlt sich an wie kalter Spott.",
+    "Nichts an dieser Kiste will nett sein.",
+    "Schwarzmarkt-Pappe fuer Kellerseelen.",
+    "Ein kurzer Zug und die Box gibt klein bei.",
+    "Du oeffnest das Ding wie ein Urteil.",
+    "Wenig Stil, viel Potenzial fuer Schaden.",
+    "Wenn Holz drohen koennte, klang es genau so.",
+    "Einmal geschnauft, dann aufgerissen.",
+    "Die Kiste traegt schon beim Zuschauen Schuld.",
+    "Da drin ist kein Frieden eingelagert.",
+    "Sieht billig aus. Wird trotzdem wehtun.",
+    "Der Deckel federt nach wie eine Ohrfeige.",
+    "Der Inhalt wartet nie auf Erlaubnis.",
+    "Schmutziger Fundcontainer mit Ambitionen.",
+    "Etwas locker, etwas falsch, genau richtig.",
+    "Ein Griff ins Unsaubere.",
+    "Der Verschluss springt wie ein letzter Nerv.",
+    "Noch ist es nur eine Kiste. Noch.",
+    "Das Ding verkauft keine Hoffnung, nur Chancen.",
+    "Der Karton waere netter gewesen.",
+    "Kellerkauf. Schnell, dumm, verlockend.",
+    "Einmal geoeffnet, einmal markiert.",
+    "Kleines Paket, grosses Potenzial fuer Aerger.",
+]
+BOX_ABYSS_FLAVOR_TEXTS = [
+    "Der Deckel klebt, als waere Blut dran gewesen.",
+    "Hier riecht alles nach Keller und Endstation.",
+    "Die Kiste vibriert wie ein schlechter Instinkt.",
+    "Schwer in der Hand, noch schwerer im Nachgang.",
+    "Der Verschluss klingt wie ein Nachladen.",
+    "Das Holz sieht aus, als haette es Dinge gesehen.",
+    "Ein tiefer Kratzer ueber den Deckel. Fast persoenlich.",
+    "Die Box oeffnet sich wie ein offener Brustkorb.",
+    "Kurz still. Dann spricht der Abgrund.",
+    "Das Teil fuehlt sich an wie vorgemerktes Unheil.",
+    "Da drin ist nichts Harmloses eingesperrt.",
+    "Ein kalter Luftzug aus der Kiste. Unnötig deutlich.",
+    "Der Deckel hebt sich wie ein Fallbeil.",
+    "Abyss-Ware. Teuer, dreckig, direkt.",
+    "Das Ding sieht aus wie verpackter Mordtrieb.",
+    "Der Rand ist dunkel. Zu dunkel fuer Zufall.",
+    "Hier drin wohnt kein Trost.",
+    "Die Kiste ist schwer wie ein Urteil.",
+    "Ein dumpfer Schlag aus dem Inneren. Gut so.",
+    "Das Teil wurde gebaut, um Konsequenzen zu liefern.",
+    "Schon der Griff fuehlt sich strafbar an.",
+    "Nichts an dieser Box glaubt an ein Happy End.",
+    "Du reissst den Deckel auf wie eine Wunde, die wieder arbeitet.",
+    "Einmal offen, einmal tiefer drin.",
+    "Das Holz knackt wie Rippen unter Zeitdruck.",
+    "Kurz das Gefuehl, beobachtet zu werden.",
+    "Die Kiste gibt nach. Der Rest eher nicht.",
+    "Innen wartet nie Nettigkeit, nur Material.",
+    "Ein schwarzer Spalt, dann mehr davon.",
+    "Das Ding atmet fast. Unschoen.",
+    "Der Verschluss springt wie ein letzter Widerstand.",
+    "Abyss bedeutet selten sanft. Eigentlich nie.",
+    "Das Teil sieht aus wie beschlagnahmte Gewalt.",
+    "Ein Ruck und der Abend kippt.",
+    "Die Kiste hat die Ausstrahlung eines Kofferraums bei Nacht.",
+    "Da drin lagert nur, was sonst keiner anfassen will.",
+    "Einmal geoeffnet, einmal tiefer in der Scheisse.",
+    "Selbst der Staub sieht aggressiv aus.",
+    "Das Holz fuehlt sich an wie getrocknete Drohung.",
+    "Du oeffnest nicht. Du loest aus.",
+    "Ein Schatten im Inneren. Oder nur Wunschdenken.",
+    "Der Deckel geht hoch wie eine Ansage.",
+    "Die Box hat die Laune eines Schlachthofs.",
+    "Kurz das Gefuehl, sie lieber wieder zu schliessen. Zu spaet.",
+    "Hier drin lagert kein Gewinn, hier drin wartet Einfluss.",
+    "Das Ding klingt wie Ketten in einer Treppe nach unten.",
+    "Abyss-Kisten kommen nie allein, nur mit Folgen.",
+    "Etwas kratzt von innen an deinem Humor.",
+    "Die Verpackung ist ehrlicher als die meisten Menschen.",
+    "Der Karton waere schon tot. Diese Kiste nicht.",
+    "Ein tiefer Atemzug und rein ins Problem.",
+    "Das Teil fuehlt sich an wie ein Vertrag mit Zacken.",
+    "Einmal falsch gegriffen, schon persoenlich geworden.",
+    "Hier kauft man keine Hoffnung, nur Schlagweite.",
+    "Der Abgrund ist klein verpackt und trotzdem zu viel.",
+    "Die Kiste ist dicht. Der Druck nicht.",
+    "Jemand hat das Ding mit Absicht boese gemacht.",
+    "Innen wartet keine Ueberraschung, sondern eine Haltung.",
+    "Das Schloss haengt dran wie ein Zahn kurz vorm Ziehen.",
+    "Du knickst den Deckel hoch wie eine Tat.",
+    "Abyss-Ware schmeckt immer nach uebertrieben.",
+    "Das Teil wirkt, als wuerde es Namen sammeln.",
+    "Kein Licht drin, nur Wirkung.",
+    "Der Deckel faellt nach hinten wie ein Leichensackverschluss.",
+    "Etwas Schweres liegt im Ton dieser Kiste.",
+    "Der Griff ist kalt genug fuer eine letzte Warnung.",
+    "Du wolltest Spannung. Hier ist sie.",
+    "Die Box riecht nach Eisen und dummer Gier.",
+    "Das Teil steht fuer schlechte Manieren und gute Wirkung.",
+    "Einmal auf und der Raum fuehlt sich falsch an.",
+    "Abyss heisst: Man bezahlt schon fuer den Fehler.",
+    "Das Ding sieht aus, als waere Mitleid ab Werk entfernt.",
+    "Der Inhalt hat keinen Grund, fair zu sein.",
+    "Du oeffnest die Kiste wie einen Bericht ueber Gewalt.",
+    "Innen ist nur Material fuer starke Nerven.",
+    "Die Kanten fuehlen sich an wie eine Warnung mit Griff.",
+    "Das Schloss war schwach. Der Ausgang selten.",
+    "Jeder Zentimeter an dieser Kiste beleidigt Vernunft.",
+    "Der Deckel arbeitet hoch wie eine schlechte Erinnerung.",
+    "Zu teuer fuer Vernunft, perfekt fuer den Rest.",
+    "Das Ding wurde nicht fuer Feiglinge gebaut.",
+    "Ab hier wird nichts mehr freundlich formuliert.",
+    "Die Kiste gibt dir genau eine Sache nie: Sicherheit.",
+    "Ein dunkler Hohlraum mit Ambitionen.",
+    "Das Holz knurrt fast beim Oeffnen.",
+    "Hier drin wird nicht geliefert, hier drin wird verpasst.",
+    "Die Box hat die Energie eines nassen Messers.",
+    "Der Abgrund passt erschreckend gut in beide Haende.",
+    "Schwarze Ware fuer schwarze Laune.",
+    "Ein Ruck am Deckel und das Schicksal hat wieder Dienst.",
+    "Das Teil klingt, als wuerde es sich ueber dich freuen.",
+    "Kein Samt, kein Gold, nur Konsequenz.",
+    "Abyss bedeutet: Alles eine Nummer haerter als noetig.",
+    "Der Deckel oeffnet sich wie ein Geständnis unter Zwang.",
+    "Dieses Ding ist verpackte Ruecksichtslosigkeit.",
+    "Der Inhalt hat bestimmt schlechte Absichten.",
+    "Ein Griff tiefer und die Stimmung kippt mit.",
+    "Das hier ist kein Kauf, das ist ein Test.",
+    "Abyss-Kram kommt selten leise.",
+    "Das Ding wurde fuer Leute gebaut, die Schmerz mit Stil moegen.",
+]
 
 FLUCH_LINES = [
     "{user}, dein Fluch: Dein Spiegelbild bindet dich nachts ans Bett. Der Dämon flüstert 'Bleib liegen'.",
@@ -2370,8 +2654,6 @@ async def cmd_boxen(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def _open_loot_box(
     update: Update,
     cost: int,
-    cooldown_s: int,
-    cd_key: str,
     box_name: str,
     title_pool: list[str],
     title_duration_s: int,
@@ -2386,11 +2668,6 @@ async def _open_loot_box(
 
     async with aiosqlite.connect(DB) as db:
         await ensure_player(db, chat_id, user.id, user.username or user.full_name or "")
-        left = await get_cd_left(db, chat_id, user.id, cd_key)
-        if left > 0:
-            return await msg.reply_text(
-                f"{box_name} gerade gesperrt. Wieder in {_format_duration_compact(left)}."
-            )
 
         async with db.execute(
             "SELECT coins FROM players WHERE chat_id=? AND user_id=?",
@@ -2411,6 +2688,7 @@ async def _open_loot_box(
         roll = random.random()
         title = None
         body = ""
+        flavor = random.choice(BOX_ABYSS_FLAVOR_TEXTS if abyss else BOX_STANDARD_FLAVOR_TEXTS)
 
         if abyss:
             if roll < 0.32:
@@ -2419,19 +2697,19 @@ async def _open_loot_box(
                     "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
                     (gain, chat_id, user.id)
                 )
-                body = f"Fund: <b>+{gain} Coins</b>. Nicht gut genug fuer den Abgrund, aber besser als leer auszugehen."
+                body = random.choice(BOX_ABYSS_COIN_TEXTS).format(amount=gain)
             elif roll < 0.52:
-                body = "Niete. Nur Dunkelheit, Staub und das Gefuehl, gerade freiwillig Geld verbrannt zu haben."
+                body = random.choice(BOX_ABYSS_EMPTY_TEXTS)
             elif roll < 0.66:
                 extra_loss = random.randint(2000, 6000)
                 await db.execute(
                     "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
                     (extra_loss, chat_id, user.id)
                 )
-                body = f"Abyss-Falle: <b>-{extra_loss} Coins</b> extra. Die Kiste hat dich sauber filetiert."
+                body = random.choice(BOX_ABYSS_LOSS_TEXTS).format(amount=extra_loss)
             elif roll < 0.78:
                 await set_cd(db, chat_id, user.id, CURSE_SHIELD_KEY, 12 * 3600)
-                body = "Abyss-Schutz: <b>Fluchschild fuer 12h</b>. Der naechste normale Fluch prallt an dir ab."
+                body = random.choice(BOX_ABYSS_SHIELD_TEXTS)
             elif roll < 0.88:
                 pet_id = await _get_latest_owned_pet_id(db, chat_id, user.id)
                 if pet_id:
@@ -2446,20 +2724,20 @@ async def _open_loot_box(
                         "UPDATE pets SET pet_xp=?, pet_level=? WHERE chat_id=? AND pet_id=?",
                         (new_xp, pet_level_from_xp(new_xp), chat_id, pet_id)
                     )
-                    body = f"Beute: <b>+{xp_gain} Pet-XP</b> fuer dein zuletzt gepflegtes Haustier."
+                    body = random.choice(BOX_ABYSS_XP_TEXTS).format(amount=xp_gain)
                 else:
                     fallback = random.randint(2500, 5000)
                     await db.execute(
                         "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
                         (fallback, chat_id, user.id)
                     )
-                    body = f"Kein Haustier gefunden. Ersatz: <b>+{fallback} Coins</b>."
+                    body = random.choice(BOX_ABYSS_FALLBACK_TEXTS).format(amount=fallback)
             elif roll < 0.95:
                 title = random.choice(title_pool)
                 await set_temp_title(db, chat_id, user.id, title, title_duration_s)
-                body = (
-                    f"Titel freigeschaltet: <b>{escape(title)}</b> "
-                    f"fuer {_format_duration_compact(title_duration_s)}."
+                body = random.choice(BOX_ABYSS_TITLE_TEXTS).format(
+                    title=escape(title),
+                    duration=_format_duration_compact(title_duration_s),
                 )
             else:
                 gain = random.randint(18000, 35000)
@@ -2469,9 +2747,10 @@ async def _open_loot_box(
                 )
                 title = random.choice(title_pool)
                 await set_temp_title(db, chat_id, user.id, title, title_duration_s)
-                body = (
-                    f"Abgrund-Jackpot: <b>+{gain} Coins</b> und Titel <b>{escape(title)}</b> "
-                    f"fuer {_format_duration_compact(title_duration_s)}."
+                body = random.choice(BOX_ABYSS_JACKPOT_TEXTS).format(
+                    amount=gain,
+                    title=escape(title),
+                    duration=_format_duration_compact(title_duration_s),
                 )
         else:
             if roll < 0.34:
@@ -2480,19 +2759,19 @@ async def _open_loot_box(
                     "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
                     (gain, chat_id, user.id)
                 )
-                body = f"Fund: <b>+{gain} Coins</b>. Nicht stark, aber immerhin kein Totalabsturz."
+                body = random.choice(BOX_STANDARD_COIN_TEXTS).format(amount=gain)
             elif roll < 0.58:
-                body = "Niete. Leere, Staub und der Geruch von verschwendeten Coins."
+                body = random.choice(BOX_STANDARD_EMPTY_TEXTS)
             elif roll < 0.74:
                 extra_loss = random.randint(300, 1200)
                 await db.execute(
                     "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
                     (extra_loss, chat_id, user.id)
                 )
-                body = f"Falle: <b>-{extra_loss} Coins</b> extra. Der Schwarzmarkt hat dir noch in die Tasche gegriffen."
+                body = random.choice(BOX_STANDARD_LOSS_TEXTS).format(amount=extra_loss)
             elif roll < 0.86:
                 await set_cd(db, chat_id, user.id, CURSE_SHIELD_KEY, 6 * 3600)
-                body = "Fund: <b>Fluchschild fuer 6h</b>. Ein normaler Fluch wird an dir zerbrechen."
+                body = random.choice(BOX_STANDARD_SHIELD_TEXTS)
             elif roll < 0.96:
                 pet_id = await _get_latest_owned_pet_id(db, chat_id, user.id)
                 if pet_id:
@@ -2507,23 +2786,22 @@ async def _open_loot_box(
                         "UPDATE pets SET pet_xp=?, pet_level=? WHERE chat_id=? AND pet_id=?",
                         (new_xp, pet_level_from_xp(new_xp), chat_id, pet_id)
                     )
-                    body = f"Beute: <b>+{xp_gain} Pet-XP</b> fuer dein zuletzt gepflegtes Haustier."
+                    body = random.choice(BOX_STANDARD_XP_TEXTS).format(amount=xp_gain)
                 else:
                     fallback = random.randint(400, 1000)
                     await db.execute(
                         "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
                         (fallback, chat_id, user.id)
                     )
-                    body = f"Kein Haustier gefunden. Ersatz: <b>+{fallback} Coins</b>."
+                    body = random.choice(BOX_STANDARD_FALLBACK_TEXTS).format(amount=fallback)
             else:
                 title = random.choice(title_pool)
                 await set_temp_title(db, chat_id, user.id, title, title_duration_s)
-                body = (
-                    f"Titel freigeschaltet: <b>{escape(title)}</b> "
-                    f"fuer {_format_duration_compact(title_duration_s)}."
+                body = random.choice(BOX_STANDARD_TITLE_TEXTS).format(
+                    title=escape(title),
+                    duration=_format_duration_compact(title_duration_s),
                 )
 
-        await set_cd(db, chat_id, user.id, cd_key, cooldown_s)
         async with db.execute(
             "SELECT coins FROM players WHERE chat_id=? AND user_id=?",
             (chat_id, user.id)
@@ -2534,7 +2812,7 @@ async def _open_loot_box(
 
     header = f"<b>{escape(box_name)}</b> fuer <b>{cost}</b> Coins geoeffnet."
     footer = f"<b>Neuer Kontostand:</b> {new_balance} Coins"
-    await msg.reply_text(f"{header}\n{body}\n{footer}", parse_mode=ParseMode.HTML)
+    await msg.reply_text(f"{header}\n{flavor}\n{body}\n{footer}", parse_mode=ParseMode.HTML)
 
 
 async def cmd_buybox(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2548,8 +2826,6 @@ async def cmd_buybox(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await _open_loot_box(
             update,
             cost=BOX_STANDARD_COST,
-            cooldown_s=BOX_STANDARD_COOLDOWN_S,
-            cd_key="box_standard",
             box_name="Kellerkiste",
             title_pool=BOX_STANDARD_TITLES,
             title_duration_s=BOX_TITLE_DURATION_S,
@@ -2559,8 +2835,6 @@ async def cmd_buybox(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await _open_loot_box(
             update,
             cost=BOX_ABYSS_COST,
-            cooldown_s=BOX_ABYSS_COOLDOWN_S,
-            cd_key="box_abyss",
             box_name="Abyss-Kiste",
             title_pool=BOX_ABYSS_TITLES,
             title_duration_s=BOX_ABYSS_TITLE_DURATION_S,
