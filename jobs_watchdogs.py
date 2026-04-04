@@ -17,8 +17,10 @@ def create_jobs_watchdogs(deps: dict):
     DAILY_CURSE_PENALTY = deps["DAILY_CURSE_PENALTY"]
     DAILY_PRIMETIME_COINS = deps["DAILY_PRIMETIME_COINS"]
     mention_html = deps["mention_html"]
+    CURSE_SHIELD_KEY = deps["CURSE_SHIELD_KEY"]
     FLUCH_LINES = deps["FLUCH_LINES"]
     render_curse_text = deps["render_curse_text"]
+    _format_duration_compact = deps["_format_duration_compact"]
     _apply_hass_penalty = deps["_apply_hass_penalty"]
     _finish_hass = deps["_finish_hass"]
     _finish_love = deps["_finish_love"]
@@ -78,6 +80,20 @@ def create_jobs_watchdogs(deps: dict):
 
             uid, uname = await _pick_recent_active_user(db, chat_id, cutoff_ts, exclude_ids=set())
             if not uid:
+                return
+
+            shield_left = await get_cd_left(db, chat_id, uid, CURSE_SHIELD_KEY)
+            if shield_left > 0:
+                await db.commit()
+                user_mention = mention_html(uid, uname)
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=(
+                        f"Stündlicher Fluch geblockt!\n{user_mention} war geschützt und bleibt unversehrt.\n"
+                        f"<b>Fluchschild aktiv:</b> {_format_duration_compact(shield_left)}"
+                    ),
+                    parse_mode=ParseMode.HTML
+                )
                 return
 
             await db.execute(

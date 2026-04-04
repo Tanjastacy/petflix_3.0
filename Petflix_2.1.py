@@ -533,6 +533,28 @@ BLACKJACK_OUTCOMES = [
 AUTO_CURSE_ENABLED = False
 AUTO_CURSE_CHANCE_PER_MESSAGE = 0.3  # 2% pro normaler Nachricht
 AUTO_CURSE_COOLDOWN_S = 30 * 60       # 30 Minuten globaler Cooldown im Chat
+CURSE_SHIELD_KEY = "curse_shield"
+
+BOX_STANDARD_COST = 2500
+BOX_STANDARD_COOLDOWN_S = 45 * 60
+BOX_ABYSS_COST = 15000
+BOX_ABYSS_COOLDOWN_S = 3 * 3600
+BOX_TITLE_DURATION_S = 24 * 3600
+BOX_ABYSS_TITLE_DURATION_S = 48 * 3600
+BOX_STANDARD_TITLES = [
+    "Knochenbrecher",
+    "Kehlenschneider",
+    "Kellerkiller",
+    "Blutjäger",
+    "Leichenschänder",
+]
+BOX_ABYSS_TITLES = [
+    "Massakermacher",
+    "Schädelspalter",
+    "Totengräberkönig",
+    "Menschenfresser",
+    "Endgegner",
+]
 
 FLUCH_LINES = [
     "{user}, dein Fluch: Dein Spiegelbild bindet dich nachts ans Bett. Der Dämon flüstert 'Bleib liegen'.",
@@ -708,6 +730,17 @@ FLUCH_LINES.extend([
 def render_curse_text(user_mention: str) -> str:
     line = random.choice(FLUCH_LINES).format(user=user_mention)
     return f"{line}\n<b>Strafe:</b> -{DAILY_CURSE_PENALTY} Coins"
+
+
+def _format_duration_compact(seconds: int) -> str:
+    seconds = max(0, int(seconds))
+    hours, rem = divmod(seconds, 3600)
+    minutes, _ = divmod(rem, 60)
+    if hours and minutes:
+        return f"{hours}h {minutes}m"
+    if hours:
+        return f"{hours}h"
+    return f"{minutes}m"
 
 
 # =========================
@@ -1627,6 +1660,18 @@ async def claim_superword_once(db, chat_id: int, word: str, user_id: int) -> boo
     return bool(row and int(row[0]) > 0)
 
 
+async def _get_latest_owned_pet_id(db, chat_id: int, owner_id: int):
+    async with db.execute("""
+        SELECT pet_id
+        FROM pets
+        WHERE chat_id=? AND owner_id=?
+        ORDER BY COALESCE(last_care_ts, 0) DESC, pet_id ASC
+        LIMIT 1
+    """, (chat_id, owner_id)) as cur:
+        row = await cur.fetchone()
+    return int(row[0]) if row else None
+
+
 def normalize_superword_text(text: str) -> str:
     t = (text or "").casefold()
     t = t.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
@@ -2118,6 +2163,21 @@ async def maybe_auto_curse(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not uid:
             return
 
+        shield_left = await get_cd_left(db, chat_id, uid, CURSE_SHIELD_KEY)
+        if shield_left > 0:
+            user = mention_html(uid, uname)
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=(
+                    f"Auto-Fluch geblockt!\n{user} war geschuetzt und bleibt unversehrt.\n"
+                    f"<b>Fluchschild aktiv:</b> {_format_duration_compact(shield_left)}"
+                ),
+                parse_mode=ParseMode.HTML
+            )
+            await set_cd(db, chat_id, 0, "autocurse", AUTO_CURSE_COOLDOWN_S)
+            await db.commit()
+            return
+
         user = mention_html(uid, uname)
         curse_text = render_curse_text(user)
         await db.execute(
@@ -2271,6 +2331,14 @@ async def cmd_verfluchen(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return await update.effective_message.reply_text("Keine Opfer verfuegbar. Postet mehr, dann kann ich euch schlimmer behandeln.")
             tid, tname = uid, uname
 
+        shield_left = await get_cd_left(db, chat_id, tid, CURSE_SHIELD_KEY)
+        if shield_left > 0:
+            user = mention_html(tid, tname)
+            return await update.effective_message.reply_text(
+                f"{user} war geschuetzt.\n<b>Fluchschild aktiv:</b> {_format_duration_compact(shield_left)}",
+                parse_mode=ParseMode.HTML
+            )
+
         await db.execute(
             "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
             (DAILY_CURSE_PENALTY, chat_id, tid)
@@ -2280,6 +2348,228 @@ async def cmd_verfluchen(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = mention_html(tid, tname)
     curse_text = render_curse_text(user)
     await update.effective_message.reply_text(curse_text, parse_mode=ParseMode.HTML)
+
+
+# =========================
+# Boxen / Coin-Sink
+# =========================
+async def cmd_boxen(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = (
+        "<b>Boxen</b>\n\n"
+        f"1. Kellerkiste - <b>{BOX_STANDARD_COST}</b> Coins\n"
+        "Coins, Pet-XP, Fluchschild oder ein brutaler Titel.\n"
+        "Kaufen: <code>/buybox keller</code>\n\n"
+        f"2. Abyss-Kiste - <b>{BOX_ABYSS_COST}</b> Coins\n"
+        "Groessere Drops, groessere Treffer, groessere Schmerzen.\n"
+        "Kaufen: <code>/buybox abyss</code>\n\n"
+        "Wer zu lang auf seinen Coins sitzt, fault mit ihnen zusammen."
+    )
+    await update.effective_message.reply_text(text, parse_mode=ParseMode.HTML)
+
+
+async def _open_loot_box(
+    update: Update,
+    cost: int,
+    cooldown_s: int,
+    cd_key: str,
+    box_name: str,
+    title_pool: list[str],
+    title_duration_s: int,
+    abyss: bool = False,
+):
+    if not is_group(update):
+        return
+
+    chat_id = update.effective_chat.id
+    user = update.effective_user
+    msg = update.effective_message
+
+    async with aiosqlite.connect(DB) as db:
+        await ensure_player(db, chat_id, user.id, user.username or user.full_name or "")
+        left = await get_cd_left(db, chat_id, user.id, cd_key)
+        if left > 0:
+            return await msg.reply_text(
+                f"{box_name} gerade gesperrt. Wieder in {_format_duration_compact(left)}."
+            )
+
+        async with db.execute(
+            "SELECT coins FROM players WHERE chat_id=? AND user_id=?",
+            (chat_id, user.id)
+        ) as cur:
+            row = await cur.fetchone()
+        coins = int(row[0]) if row else 0
+        if coins < cost:
+            return await msg.reply_text(
+                f"Zu teuer. {box_name} kostet {cost} Coins. Dein Guthaben: {coins}."
+            )
+
+        await db.execute(
+            "UPDATE players SET coins = coins - ? WHERE chat_id=? AND user_id=?",
+            (cost, chat_id, user.id)
+        )
+
+        roll = random.random()
+        title = None
+        body = ""
+
+        if abyss:
+            if roll < 0.32:
+                gain = random.randint(6000, 14000)
+                await db.execute(
+                    "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
+                    (gain, chat_id, user.id)
+                )
+                body = f"Fund: <b>+{gain} Coins</b>. Nicht gut genug fuer den Abgrund, aber besser als leer auszugehen."
+            elif roll < 0.52:
+                body = "Niete. Nur Dunkelheit, Staub und das Gefuehl, gerade freiwillig Geld verbrannt zu haben."
+            elif roll < 0.66:
+                extra_loss = random.randint(2000, 6000)
+                await db.execute(
+                    "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
+                    (extra_loss, chat_id, user.id)
+                )
+                body = f"Abyss-Falle: <b>-{extra_loss} Coins</b> extra. Die Kiste hat dich sauber filetiert."
+            elif roll < 0.78:
+                await set_cd(db, chat_id, user.id, CURSE_SHIELD_KEY, 12 * 3600)
+                body = "Abyss-Schutz: <b>Fluchschild fuer 12h</b>. Der naechste normale Fluch prallt an dir ab."
+            elif roll < 0.88:
+                pet_id = await _get_latest_owned_pet_id(db, chat_id, user.id)
+                if pet_id:
+                    xp_gain = random.randint(45, 100)
+                    async with db.execute(
+                        "SELECT COALESCE(pet_xp, 0) FROM pets WHERE chat_id=? AND pet_id=?",
+                        (chat_id, pet_id)
+                    ) as cur:
+                        pet_row = await cur.fetchone()
+                    new_xp = int((pet_row[0] if pet_row else 0) or 0) + xp_gain
+                    await db.execute(
+                        "UPDATE pets SET pet_xp=?, pet_level=? WHERE chat_id=? AND pet_id=?",
+                        (new_xp, pet_level_from_xp(new_xp), chat_id, pet_id)
+                    )
+                    body = f"Beute: <b>+{xp_gain} Pet-XP</b> fuer dein zuletzt gepflegtes Haustier."
+                else:
+                    fallback = random.randint(2500, 5000)
+                    await db.execute(
+                        "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
+                        (fallback, chat_id, user.id)
+                    )
+                    body = f"Kein Haustier gefunden. Ersatz: <b>+{fallback} Coins</b>."
+            elif roll < 0.95:
+                title = random.choice(title_pool)
+                await set_temp_title(db, chat_id, user.id, title, title_duration_s)
+                body = (
+                    f"Titel freigeschaltet: <b>{escape(title)}</b> "
+                    f"fuer {_format_duration_compact(title_duration_s)}."
+                )
+            else:
+                gain = random.randint(18000, 35000)
+                await db.execute(
+                    "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
+                    (gain, chat_id, user.id)
+                )
+                title = random.choice(title_pool)
+                await set_temp_title(db, chat_id, user.id, title, title_duration_s)
+                body = (
+                    f"Abgrund-Jackpot: <b>+{gain} Coins</b> und Titel <b>{escape(title)}</b> "
+                    f"fuer {_format_duration_compact(title_duration_s)}."
+                )
+        else:
+            if roll < 0.34:
+                gain = random.randint(800, 2200)
+                await db.execute(
+                    "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
+                    (gain, chat_id, user.id)
+                )
+                body = f"Fund: <b>+{gain} Coins</b>. Nicht stark, aber immerhin kein Totalabsturz."
+            elif roll < 0.58:
+                body = "Niete. Leere, Staub und der Geruch von verschwendeten Coins."
+            elif roll < 0.74:
+                extra_loss = random.randint(300, 1200)
+                await db.execute(
+                    "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
+                    (extra_loss, chat_id, user.id)
+                )
+                body = f"Falle: <b>-{extra_loss} Coins</b> extra. Der Schwarzmarkt hat dir noch in die Tasche gegriffen."
+            elif roll < 0.86:
+                await set_cd(db, chat_id, user.id, CURSE_SHIELD_KEY, 6 * 3600)
+                body = "Fund: <b>Fluchschild fuer 6h</b>. Ein normaler Fluch wird an dir zerbrechen."
+            elif roll < 0.96:
+                pet_id = await _get_latest_owned_pet_id(db, chat_id, user.id)
+                if pet_id:
+                    xp_gain = random.randint(18, 40)
+                    async with db.execute(
+                        "SELECT COALESCE(pet_xp, 0) FROM pets WHERE chat_id=? AND pet_id=?",
+                        (chat_id, pet_id)
+                    ) as cur:
+                        pet_row = await cur.fetchone()
+                    new_xp = int((pet_row[0] if pet_row else 0) or 0) + xp_gain
+                    await db.execute(
+                        "UPDATE pets SET pet_xp=?, pet_level=? WHERE chat_id=? AND pet_id=?",
+                        (new_xp, pet_level_from_xp(new_xp), chat_id, pet_id)
+                    )
+                    body = f"Beute: <b>+{xp_gain} Pet-XP</b> fuer dein zuletzt gepflegtes Haustier."
+                else:
+                    fallback = random.randint(400, 1000)
+                    await db.execute(
+                        "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
+                        (fallback, chat_id, user.id)
+                    )
+                    body = f"Kein Haustier gefunden. Ersatz: <b>+{fallback} Coins</b>."
+            else:
+                title = random.choice(title_pool)
+                await set_temp_title(db, chat_id, user.id, title, title_duration_s)
+                body = (
+                    f"Titel freigeschaltet: <b>{escape(title)}</b> "
+                    f"fuer {_format_duration_compact(title_duration_s)}."
+                )
+
+        await set_cd(db, chat_id, user.id, cd_key, cooldown_s)
+        async with db.execute(
+            "SELECT coins FROM players WHERE chat_id=? AND user_id=?",
+            (chat_id, user.id)
+        ) as cur:
+            row = await cur.fetchone()
+        new_balance = int(row[0]) if row else 0
+        await db.commit()
+
+    header = f"<b>{escape(box_name)}</b> fuer <b>{cost}</b> Coins geoeffnet."
+    footer = f"<b>Neuer Kontostand:</b> {new_balance} Coins"
+    await msg.reply_text(f"{header}\n{body}\n{footer}", parse_mode=ParseMode.HTML)
+
+
+async def cmd_buybox(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        return await update.effective_message.reply_text(
+            "Nutzung: /buybox keller oder /buybox abyss"
+        )
+
+    choice = (context.args[0] or "").strip().casefold()
+    if choice in {"keller", "box", "kellerkiste", "1"}:
+        return await _open_loot_box(
+            update,
+            cost=BOX_STANDARD_COST,
+            cooldown_s=BOX_STANDARD_COOLDOWN_S,
+            cd_key="box_standard",
+            box_name="Kellerkiste",
+            title_pool=BOX_STANDARD_TITLES,
+            title_duration_s=BOX_TITLE_DURATION_S,
+            abyss=False,
+        )
+    if choice in {"abyss", "abyssbox", "abysskiste", "2"}:
+        return await _open_loot_box(
+            update,
+            cost=BOX_ABYSS_COST,
+            cooldown_s=BOX_ABYSS_COOLDOWN_S,
+            cd_key="box_abyss",
+            box_name="Abyss-Kiste",
+            title_pool=BOX_ABYSS_TITLES,
+            title_duration_s=BOX_ABYSS_TITLE_DURATION_S,
+            abyss=True,
+        )
+
+    return await update.effective_message.reply_text(
+        "Unbekannte Box. Nutze /buybox keller oder /buybox abyss."
+    )
 
 
 # =========================
@@ -2700,8 +2990,10 @@ _JOBS_WATCHDOGS = create_jobs_watchdogs({
     "DAILY_CURSE_PENALTY": DAILY_CURSE_PENALTY,
     "DAILY_PRIMETIME_COINS": DAILY_PRIMETIME_COINS,
     "mention_html": mention_html,
+    "CURSE_SHIELD_KEY": CURSE_SHIELD_KEY,
     "FLUCH_LINES": FLUCH_LINES,
     "render_curse_text": render_curse_text,
+    "_format_duration_compact": _format_duration_compact,
     "_apply_hass_penalty": _apply_hass_penalty,
     "_finish_hass": _finish_hass,
     "_finish_love": _finish_love,
@@ -3013,6 +3305,8 @@ async def register_commands(application: Application):
         BotCommand("ownerlist", "Zeigt alle Besitzverhältnisse + Wert"),
         BotCommand("prices", "Zeigt Kaufpreise aller User"),
         BotCommand("top", "Top 10 Spieler nach Coins"),
+        BotCommand("boxen", "Kurze Übersicht der Boxen"),
+        BotCommand("buybox", "Kauft eine Box nach Namen"),
 
         # Pflege & Fun
         BotCommand("pet", "Streicheln"),
@@ -4766,6 +5060,8 @@ def main():
     app.add_handler(CommandHandler("balance",  cmd_balance,  filters=CHAT_FILTER))
     app.add_handler(CommandHandler(["treat", "leckerli"], cmd_gift, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("daily",    cmd_daily,    filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("boxen",    cmd_boxen,    filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("buybox",   cmd_buybox,   filters=CHAT_FILTER))
     app.add_handler(CommandHandler("id",       cmd_id,       filters=CHAT_FILTER))
 
     # Kernspiel
