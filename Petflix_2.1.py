@@ -2675,9 +2675,10 @@ async def _open_loot_box(
         ) as cur:
             row = await cur.fetchone()
         coins = int(row[0]) if row else 0
-        if coins < cost:
+        before_balance = coins
+        if before_balance < cost:
             return await msg.reply_text(
-                f"Zu teuer. {box_name} kostet {cost} Coins. Dein Guthaben: {coins}."
+                f"Zu teuer. {box_name} kostet {cost} Coins. Dein Guthaben: {before_balance}."
             )
 
         await db.execute(
@@ -2811,7 +2812,10 @@ async def _open_loot_box(
         await db.commit()
 
     header = f"<b>{escape(box_name)}</b> fuer <b>{cost}</b> Coins geoeffnet."
-    footer = f"<b>Neuer Kontostand:</b> {new_balance} Coins"
+    footer = (
+        f"<b>Vorher:</b> {before_balance} Coins\n"
+        f"<b>Nachher:</b> {new_balance} Coins"
+    )
     await msg.reply_text(f"{header}\n{flavor}\n{body}\n{footer}", parse_mode=ParseMode.HTML)
 
 
