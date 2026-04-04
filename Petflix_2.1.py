@@ -397,14 +397,23 @@ SUPERWORDS_FILES = [
     "texts/superwords_series_de.txt",
     "texts/superwords_series_en.txt",
 ]
-for superwords_path in SUPERWORDS_FILES:
-    if not os.path.exists(superwords_path):
-        continue
-    with open(superwords_path, "r", encoding="utf-8-sig") as f:
+SUPERWORDS_CLEAN_FILE = "texts/superwords_all_clean.txt"
+if os.path.exists(SUPERWORDS_CLEAN_FILE):
+    SUPERWORDS = []
+    with open(SUPERWORDS_CLEAN_FILE, "r", encoding="utf-8-sig") as f:
         for line in f:
             word = line.strip()
             if word and not word.startswith("#"):
                 SUPERWORDS.append(word)
+else:
+    for superwords_path in SUPERWORDS_FILES:
+        if not os.path.exists(superwords_path):
+            continue
+        with open(superwords_path, "r", encoding="utf-8-sig") as f:
+            for line in f:
+                word = line.strip()
+                if word and not word.startswith("#"):
+                    SUPERWORDS.append(word)
 SUPERWORDS = list(dict.fromkeys(_add_umlaut_variants(SUPERWORDS)))
 # =========================
 # /steal
@@ -1123,6 +1132,11 @@ async def migrate_db(db):
       PRIMARY KEY(chat_id, word)
     );
     """)
+
+    if current < 18:
+        await db.execute("DELETE FROM superwords_found")
+        await _set_user_version(db, 18)
+        current = 18
 
     # Sicherheitsnetz fuer inkonsistente Alt-DBs:
     # Wenn user_version hoch ist, Spalten aber fehlen, ziehen wir sie hier trotzdem nach.
