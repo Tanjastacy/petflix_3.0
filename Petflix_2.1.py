@@ -575,7 +575,8 @@ FLUCH_LINES = [
 # =========================
 HASS_DURATION_S = 2 * 3600
 HASS_REQUIRED = 3
-HASS_PENALTY = 200
+HASS_PENALTY = 5000
+HASS_REWARD = 5000
 
 # =========================
 # /liebes (Liebesgestaendniss)
@@ -2187,6 +2188,7 @@ async def cmd_hass(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Ziel: {target}\n"
             f"Challenge: <b>{HASS_REQUIRED}× /selbst</b> in 2 Stunden\n"
             f"Deadline: <b>{until}</b>\n"
+            f"Belohnung bei Erfolg: <b>+{HASS_REWARD} Coins</b>\n"
             f"Strafe bei Versagen: <b>−{HASS_PENALTY} Coins</b>\n"
             f"Mehrere Hass-Ziele laufen parallel.",
             parse_mode=ParseMode.HTML
@@ -2246,10 +2248,14 @@ async def cmd_selbst(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if new_done >= req:
         async with aiosqlite.connect(DB) as db:
+            await db.execute(
+                "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
+                (HASS_REWARD, chat_id, uid)
+            )
             await _finish_hass(db, chat_id, uid)
             await db.commit()
         await update.effective_message.reply_text(
-            f"✅ {mention_html(uid, user.username or None)} hat’s geschafft. Hass-Status beendet. Widerlich effizient.",
+            f"✅ {mention_html(uid, user.username or None)} hat’s geschafft. Hass-Status beendet. +{HASS_REWARD} Coins.",
             parse_mode=ParseMode.HTML
         )
 
