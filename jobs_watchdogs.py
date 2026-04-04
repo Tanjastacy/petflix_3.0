@@ -6,9 +6,9 @@ def create_jobs_watchdogs(deps: dict):
     ALLOWED_CHAT_ID = deps["ALLOWED_CHAT_ID"]
     today_ymd = deps["today_ymd"]
     _today_bounds_unix = deps["_today_bounds_unix"]
+    _pick_recent_active_user = deps["_pick_recent_active_user"]
     get_cd_left = deps["get_cd_left"]
     set_cd = deps["set_cd"]
-    _secs_until_tomorrow = deps["_secs_until_tomorrow"]
     _pick_random_player = deps["_pick_random_player"]
     _mention_from_uid_username = deps["_mention_from_uid_username"]
     _SAVAGE_LINES = deps["_SAVAGE_LINES"]
@@ -66,36 +66,30 @@ def create_jobs_watchdogs(deps: dict):
 
     async def daily_curse_job(context):
         chat_id = ALLOWED_CHAT_ID
-        today = today_ymd()
-        cd_key = f"dailycurse:{today}"
+        now = int(time.time())
+        cutoff_ts = now - (24 * 3600)
 
         async with aiosqlite.connect(deps["DB"]) as db:
             runtime = await get_runtime_settings(db, chat_id)
             if not runtime["daily_curse_enabled"]:
                 await db.commit()
                 return
-            left = await get_cd_left(db, chat_id, 0, cd_key)
-            if left > 0:
-                return
 
-            uid, uname = await _pick_random_player(chat_id)
+            uid, uname = await _pick_recent_active_user(db, chat_id, cutoff_ts, exclude_ids=set())
             if not uid:
-                await set_cd(db, chat_id, 0, cd_key, _secs_until_tomorrow())
-                await db.commit()
                 return
 
             await db.execute(
                 "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
                 (DAILY_CURSE_PENALTY, chat_id, uid)
             )
-            await set_cd(db, chat_id, 0, cd_key, _secs_until_tomorrow())
             await db.commit()
 
         user_mention = mention_html(uid, uname)
         line = random.choice(FLUCH_LINES).format(user=user_mention)
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"Taeglicher Fluch!\n{line}\n<b>Strafe:</b> -{DAILY_CURSE_PENALTY} Coins",
+            text=f"Stuendlicher Fluch!\n{line}\n<b>Strafe:</b> -{DAILY_CURSE_PENALTY} Coins",
             parse_mode=ParseMode.HTML
         )
 

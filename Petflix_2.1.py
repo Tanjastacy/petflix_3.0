@@ -521,7 +521,7 @@ BLACKJACK_OUTCOMES = [
 # Fluch
 # =========================
 
-AUTO_CURSE_ENABLED = True
+AUTO_CURSE_ENABLED = False
 AUTO_CURSE_CHANCE_PER_MESSAGE = 0.3  # 2% pro normaler Nachricht
 AUTO_CURSE_COOLDOWN_S = 30 * 60       # 30 Minuten globaler Cooldown im Chat
 
@@ -568,6 +568,109 @@ FLUCH_LINES = [
     "Du siehst immer die Toten. Sie flÃ¼stern 'Du gehÃ¶rst ihm'.",
     "Du wachst auf und alles ist Nebel. DrauÃŸen Monster, drinnen nur ich."
 ]
+
+FLUCH_LINES.extend([
+    "{user}, dein Fluch heute: Jede ruhige Minute klingt ploetzlich nach deinem eigenen Versagen. Laut. Nah. Ohne Pause.",
+    "{user}, du ziehst heute Unglueck an wie andere Leute Parfum. Nur dass deins nach Keller und Panik riecht.",
+    "{user}, jede Tuerspaltbreite heute ein Fehler. Dahinter wartet nichts Gutes und es kennt deinen Namen.",
+    "{user}, dein Schatten geht heute nicht hinter dir. Er geht vor dir und lacht, wenn du stolperst.",
+    "{user}, du hast heute das Charisma eines nassen Kellertuchs. Und selbst das waere noch schmeichelhaft.",
+    "{user}, dein Spiegel zeigt dir heute exakt, was alle anderen schon laengst denken: peinlich, verflucht, verloren.",
+    "{user}, heute findet dich jedes Pech. Schnell. Praezise. Mit Genuss.",
+    "{user}, selbst deine Ausreden kriechen heute auf Knien vor mir an. Erbaermlicher wird's nicht.",
+    "{user}, dein Tag fuehlt sich heute an wie ein Horrorfilm mit dir als billigster Nebenrolle.",
+    "{user}, dein Fluch ist simpel: Egal was du anfasst, es wirkt danach noch trauriger als vorher.",
+    "{user}, du bringst heute selbst Neonlicht dazu, muede auszusehen.",
+    "{user}, irgendwo quietscht heute eine Tuer nur fuer dich. Dahinter steht dein schlechtester Tag in Reinform.",
+    "{user}, jede Nachricht von dir klingt heute wie ein Hilferuf aus einem sehr kleinen, sehr kalten Raum.",
+    "{user}, du bist heute offiziell das schlechteste Omen im ganzen Chat.",
+    "{user}, dein Pech traegt heute Stiefel und tritt jede Hoffnung langsam tiefer in den Boden.",
+    "{user}, heute reagiert sogar dein Glueck mit Abwesenheitsnotiz.",
+    "{user}, du wirkst heute wie die Pointe eines besonders boesen Witzes.",
+    "{user}, jede Lampe flackert heute kurz, nur um dir zu sagen: Nein, besser wird's nicht.",
+    "{user}, dein Fluch heute ist Dauerblamage mit Premium-Abo.",
+    "{user}, selbst der Nebel will heute Abstand von dir. So schlimm ist die Lage.",
+    "{user}, heute fuehlt sich jeder Schritt an, als haette das Universum persoenlich was gegen dich.",
+    "{user}, du bist heute der Grund, warum Geister lieber tagsueber schlafen.",
+    "{user}, dein Name klingt heute wie eine Warnung. Und alle sollten drauf hoeren.",
+    "{user}, jede Minute heute ein kleiner Absturz. Ganz ohne Rettungssystem.",
+    "{user}, dein Fluch hat heute Taktgefuehl. Er trifft genau dann, wenn's maximal peinlich wird.",
+    "{user}, du stolperst heute nicht ueber Dinge. Die Dinge stolpern ueber dich und verlieren dabei Respekt.",
+    "{user}, heute bist du atmosphaerisch irgendwo zwischen Stromausfall und Fehlentscheidung.",
+    "{user}, dein Gesichtsausdruck heute: jemand, der schon beim Start verloren hat.",
+    "{user}, jede Fensterscheibe spiegelt heute nur Enttaeuschung zurueck.",
+    "{user}, dein Fluch heute ist ein leises Kichern direkt hinter dir. Konstant. Nah. Gemein.",
+    "{user}, du bist heute so verhext, dass selbst Kalender dir ausweichen wuerden.",
+    "{user}, heute ist alles gegen dich. Sogar die Dinge, die dich gar nicht kennen.",
+    "{user}, dein Tag klingt heute wie nasse Schritte im Flur. Nur dass niemand da sein sollte.",
+    "{user}, heute bist du genau das, wovor gute Entscheidungen warnen.",
+    "{user}, dein Fluch heute ist fein dosierte Scham in jeder einzelnen Stunde.",
+    "{user}, sogar der Wind klingt heute, als wuerde er dich auslachen.",
+    "{user}, dein Pech hat heute Stil. Dunkel, kalt und extra nachtragend.",
+    "{user}, heute merkt man dir jede falsche Abbiegung in deinem Leben gleichzeitig an.",
+    "{user}, dein Fluch heute ist kein Knall. Eher langsames Einsinken. Viel schlimmer.",
+    "{user}, heute wirkt selbst dein Schweigen verdaechtig und peinlich.",
+    "{user}, du bist heute die Art von Problem, bei der sogar Spiegel wegsehen.",
+    "{user}, dein Tag ist heute auf Horror kalibriert und du bist das Testobjekt.",
+    "{user}, heute klebt dir Fehlglueck an den Schuhen wie frischer Beton.",
+    "{user}, dein Fluch heute: Null Timing, null Wuerde, null Pause.",
+    "{user}, jedes offene Fenster heute fuehlt sich an wie eine schlechte Idee mit Zugluft.",
+    "{user}, heute bist du emotional da, wo Kellerwasser nach Starkregen ist.",
+    "{user}, dein Schatten flackert heute wie schlechte Absichten. Passend eigentlich.",
+    "{user}, du bist heute nicht im Eimer. Du BIST der Eimer.",
+    "{user}, dein Fluch heute ist die sichere Gewissheit, dass es gleich noch peinlicher wird.",
+    "{user}, heute riecht jede Stille nach drohendem Kontrollverlust.",
+    "{user}, du bist heute so verflucht, dass selbst Zufall nach Plan aussieht.",
+    "{user}, dein Tag wurde heute offenbar von boesem Humor geschrieben.",
+    "{user}, heute ist jede Kleinigkeit bereit, dir die letzte Nervenfaser rauszureissen.",
+    "{user}, dein Fluch heute: schlechtes Karma mit Ausdauer.",
+    "{user}, sogar dein Echo klingt heute enttaeuscht von dir.",
+    "{user}, heute ist dein Glueck irgendwo abgeschlossen und der Schluessel absichtlich weg.",
+    "{user}, dein Fluch ist heute ein permanentes Gefuehl von 'gleich kippt was um'.",
+    "{user}, du ziehst heute Ungnade an wie Magnetstaub.",
+    "{user}, heute ist jeder Blick in den Spiegel ein kleiner Bosskampf.",
+    "{user}, dein Schatten hat heute die bessere Laune. Das sollte dir zu denken geben.",
+    "{user}, dein Tag steht heute unter dem Motto: haette schlimmer kommen koennen. Kam's aber nicht.",
+    "{user}, heute sind sogar deine guten Ideen nur anders verpackte Katastrophen.",
+    "{user}, dein Fluch heute ist hochkonzentrierte Bloesse ohne Exit.",
+    "{user}, du bist heute das menschliche Geraeusch einer schiefen Kellertreppe.",
+    "{user}, jeder Versuch von dir, cool zu wirken, wird heute direkt vom Universum gecancelt.",
+    "{user}, dein Name steht heute intern bei den Daemonen unter 'gleich nochmal treten'.",
+    "{user}, heute fuehlt sich jeder Raum mit dir sofort unwohler an.",
+    "{user}, dein Fluch heute ist eine exakte Kopie deiner drei peinlichsten Momente. Endlosschleife inklusive.",
+    "{user}, heute kannst du dich drehen wie du willst. Das Unheil steht schon richtig.",
+    "{user}, du bist heute atmosphaerisch eine Mischung aus Flurlicht und schlechtem Gewissen.",
+    "{user}, dein Tag wurde heute mit extra viel Nein gewuerzt.",
+    "{user}, heute wartet hinter jeder Ecke eine weitere kleine Demuetigung auf dich.",
+    "{user}, dein Fluch heute ist nicht laut. Nur konsequent. Und boese genug.",
+    "{user}, selbst tote Geraeusche im Haus klingen heute genervt von dir.",
+    "{user}, dein Unglueck ist heute punctual, motiviert und in Bestform.",
+    "{user}, heute verliert sogar dein Stolz beim Warmmachen.",
+    "{user}, dein Fluch heute ist Schieflage auf allen Ebenen. Sozial, kosmisch, karmisch.",
+    "{user}, du wirkst heute wie jemand, den selbst Geister nur widerwillig heimsuchen.",
+    "{user}, heute ist jeder Lichtschalter nur eine andere Art von Enttaeuschung.",
+    "{user}, dein Tag hat heute Ketten um und zieht dich absichtlich langsamer nach unten.",
+    "{user}, dein Fluch heute ist eine sehr persoenliche Form von Pech.",
+    "{user}, du bist heute der eine Name, den man bei Mitternacht besser nicht sagt.",
+    "{user}, jede Uhr tickt heute fuer dich ein bisschen haesslicher.",
+    "{user}, dein Fluch heute ist premium. Teuer, praezise, schaedlich.",
+    "{user}, heute fuehlt sich jeder Fehler von dir an wie Absicht. Gegen dich.",
+    "{user}, dein Tag klingt heute wie Schritte im Dachboden, obwohl da niemand sein duerfte.",
+    "{user}, heute zerfaellt selbst deine Restwuerde in kleinen, peinlichen Portionen.",
+    "{user}, dein Fluch heute ist ein enger Raum, schlechtes Licht und kein Ausweg.",
+    "{user}, du bist heute so verhext, dass selbst schlechte Vorzeichen nervoes werden.",
+    "{user}, jede Hoffnung in deiner Naehe hat heute vorsichtshalber gekuendigt.",
+    "{user}, dein Fluch heute ist ein gruendliches, kaltes 'selber schuld' aus dem Off.",
+    "{user}, heute ist dein Timing so tot, dass es schon im Keller wohnt.",
+    "{user}, du bist heute die Art von Stimmung, bei der selbst Regen sagt: mir reicht's.",
+    "{user}, dein Fluch heute ist einfache Mathematik: du plus Pech gleich Unterhaltung fuer andere.",
+    "{user}, heute ist jeder Versuch von dir aufrecht zu wirken nur dekoratives Scheitern.",
+    "{user}, dein Schatten hat heute das letzte Wort und es ist nicht freundlich.",
+    "{user}, dein Tag wurde heute mit Absicht dunkler eingestellt.",
+    "{user}, heute passt einfach alles gegen dich zusammen. Fast schon beeindruckend.",
+    "{user}, dein Fluch heute ist ein sehr langsamer Absturz mit guter Akustik.",
+    "{user}, du bist heute der Grund, warum man Kellertueren doppelt abschliesst.",
+])
 
 
 # =========================
@@ -2537,6 +2640,7 @@ _JOBS_WATCHDOGS = create_jobs_watchdogs({
     "ALLOWED_CHAT_ID": ALLOWED_CHAT_ID,
     "today_ymd": today_ymd,
     "_today_bounds_unix": _today_bounds_unix,
+    "_pick_recent_active_user": _pick_recent_active_user,
     "get_cd_left": get_cd_left,
     "set_cd": set_cd,
     "_secs_until_tomorrow": _secs_until_tomorrow,
@@ -4731,8 +4835,7 @@ def main():
     # TÃ¤gliches Gift um 10:00 planen
     gift_time = dtime(hour=10, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
     app.job_queue.run_daily(daily_gift_job, time=gift_time, name="daily_gift_10am")
-    curse_time = dtime(hour=20, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
-    app.job_queue.run_daily(daily_curse_job, time=curse_time, name="daily_curse_8pm")
+    app.job_queue.run_repeating(daily_curse_job, interval=3600, first=3600, name="hourly_curse")
     primetime_time = dtime(hour=20, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
     app.job_queue.run_daily(daily_primetime_job, time=primetime_time, name="daily_primetime_8pm")
     backup_time = dtime(hour=3, minute=30, tzinfo=ZoneInfo(PETFLIX_TZ))
