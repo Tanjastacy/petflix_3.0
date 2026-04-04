@@ -229,7 +229,7 @@ def create_jobs_watchdogs(deps: dict):
                     left = max(0, expires_ts - now)
                     m = left // 60
                     msg = (
-                        f"{mention_html(user_id, username or None)} letzte Warnung, du peinlicher Ausfall: noch {m}m fuer dein Liebesgestaendniss.\n"
+                        f"{mention_html(user_id, username or None)} letzte Warnung, du peinlicher Ausfall: noch {m}m fuer dein Liebesgestaendnis.\n"
                         "Wenn du jetzt wieder nichts lieferst, reisst es dir gleich brutal die Haelfte deiner Coins weg und der ganze Chat sieht, was fuer ein Totalausfall du bist."
                     )
                     try:
@@ -247,7 +247,7 @@ def create_jobs_watchdogs(deps: dict):
                     left = max(0, expires_ts - now)
                     m = left // 60
                     msg = (
-                        f"{mention_html(user_id, username or None)} beweg endlich deinen Arsch: noch {m}m fuer dein Liebesgestaendniss.\n"
+                        f"{mention_html(user_id, username or None)} beweg endlich deinen Arsch: noch {m}m fuer dein Liebesgestaendnis.\n"
                         "Bis jetzt kommt von dir nur grosse Fresse und null Leistung. Wenn das so bleibt, wird dir die Challenge die Coins aus der Tasche treten."
                     )
                     try:
@@ -265,7 +265,7 @@ def create_jobs_watchdogs(deps: dict):
                     left = max(0, expires_ts - now)
                     m = left // 60
                     msg = (
-                        f"{mention_html(user_id, username or None)} letzte Warnung, du peinlicher Ausfall: noch {m}m fuer dein Liebesgestaendniss.\n"
+                        f"{mention_html(user_id, username or None)} letzte Warnung, du peinlicher Ausfall: noch {m}m fuer dein Liebesgestaendnis.\n"
                         "Wenn du jetzt wieder nichts lieferst, reisst es dir gleich brutal die Haelfte deiner Coins weg und der ganze Chat sieht, was fuer ein Totalausfall du bist."
                     )
                     try:
