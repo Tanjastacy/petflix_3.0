@@ -163,7 +163,6 @@ def create_runtime_features(deps: dict):
         key_map = {
             "moraltax": "moraltax_enabled",
             "dailycurse": "daily_curse_enabled",
-            "autocurse": "auto_curse_enabled",
         }
         async with aiosqlite.connect(DB) as db:
             if len(context.args) >= 2:
@@ -174,7 +173,7 @@ def create_runtime_features(deps: dict):
                     await db.commit()
                 else:
                     return await update.effective_message.reply_text(
-                        "Nutzung: /settings <moraltax|dailycurse|autocurse> <on|off> oder /settings status"
+                        "Nutzung: /settings <moraltax|dailycurse> <on|off> oder /settings status"
                     )
             runtime = await get_runtime_settings(db, chat_id)
             await db.commit()
@@ -182,7 +181,6 @@ def create_runtime_features(deps: dict):
             "<b>Settings</b>\n"
             f"- Moraltax: {'on' if runtime['moraltax_enabled'] else 'off'} (amount={runtime['moraltax_amount']})\n"
             f"- Daily Curse: {'on' if runtime['daily_curse_enabled'] else 'off'}\n"
-            f"- Auto Curse: {'on' if runtime['auto_curse_enabled'] else 'off'}\n"
             "Beispiel: /settings dailycurse on"
         )
         await update.effective_message.reply_text(text, parse_mode=ParseMode.HTML)

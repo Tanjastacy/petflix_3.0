@@ -2822,7 +2822,7 @@ async def _open_loot_box(
 async def cmd_buybox(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         return await update.effective_message.reply_text(
-            "Nutzung: /buybox keller oder /buybox abyss"
+            "Nutzung: /buybox <keller|abyss>"
         )
 
     choice = (context.args[0] or "").strip().casefold()
@@ -2846,7 +2846,7 @@ async def cmd_buybox(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     return await update.effective_message.reply_text(
-        "Unbekannte Box. Nutze /buybox keller oder /buybox abyss."
+        "Unbekannte Box. Nutze /buybox <keller|abyss>."
     )
 
 
@@ -3584,7 +3584,7 @@ async def register_commands(application: Application):
         BotCommand("prices", "Zeigt Kaufpreise aller User"),
         BotCommand("top", "Top 10 Spieler nach Coins"),
         BotCommand("boxen", "Kurze Übersicht der Boxen"),
-        BotCommand("buybox", "Kauft eine Box nach Namen"),
+        BotCommand("buybox", "Kauft eine Box: keller oder abyss"),
 
         # Pflege & Fun
         BotCommand("pet", "Streicheln"),
