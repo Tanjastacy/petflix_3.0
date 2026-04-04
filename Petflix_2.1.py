@@ -79,16 +79,16 @@ STICKER_CHAT_CLEANUP_S = 30
 RUNAWAY_HOURS = RUNAWAY_WINDOW_DAYS * 24
 LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
-TITLE_BESTIENZAEHMER = "Bestienzaehmer ðŸ‰"
+TITLE_BESTIENZAEHMER = "Bestienzaehmer 🐉"
 TITLE_DURATION_S = 2 * 3600
 DAILY_GIFT_COINS = 15
-DAILY_CURSE_PENALTY = 20
+DAILY_CURSE_PENALTY = 150
 DAILY_PRIMETIME_COINS = 50000
-DAILY_CURSE_ENABLED = False
+DAILY_CURSE_ENABLED = True
 MORAL_TAX_DEFAULT = 5
 REWARD_AMOUNT = 1 
 # =========================
-# AusreiÃŸer
+# Ausreisser
 # =========================
 RUNAWAY_LINES = [
     "{pet} reisst aus und laeuft von {owner} weg. Eine Leine weniger.",
@@ -107,7 +107,7 @@ SUPERWORDS = [
     "krieg der sterne",
     "stand by me",
     "teen wolf",
-    "zurÃ¼ck in die zukunft",
+    "zurueck in die zukunft",
     "ghostbusters",
     "top gun",
     "stirb langsam",
@@ -379,12 +379,12 @@ def _add_umlaut_variants(words: list[str]) -> list[str]:
             continue
         out.append(w)
         variant = (
-            w.replace("ae", "Ã¤")
-             .replace("oe", "Ã¶")
-             .replace("ue", "Ã¼")
-             .replace("Ae", "Ã„")
-             .replace("Oe", "Ã–")
-             .replace("Ue", "Ãœ")
+            w.replace("ae", "ä")
+             .replace("oe", "ö")
+             .replace("ue", "ü")
+             .replace("Ae", "Ä")
+             .replace("Oe", "Ö")
+             .replace("Ue", "Ü")
         )
         if variant != w:
             out.append(variant)
@@ -521,7 +521,7 @@ BLACKJACK_OUTCOMES = [
 # Fluch
 # =========================
 
-AUTO_CURSE_ENABLED = False
+AUTO_CURSE_ENABLED = True
 AUTO_CURSE_CHANCE_PER_MESSAGE = 0.3  # 2% pro normaler Nachricht
 AUTO_CURSE_COOLDOWN_S = 30 * 60       # 30 Minuten globaler Cooldown im Chat
 
@@ -595,13 +595,13 @@ LOVE_COUNT_ANY_EMOJI = True
 LOVE_REMIND_1_S = 60 * 60
 LOVE_REMIND_2_S = 105 * 60
 LOVE_NICKNAMES = [
-    "schatz", "maus", "engel", "baerchen", "bÃ¤rchen", "sonnenschein",
-    "liebling", "hase", "baby", "suesser", "suesse", "sÃ¼ÃŸer", "sÃ¼ÃŸe",
+    "schatz", "maus", "engel", "baerchen", "baerchen", "sonnenschein",
+    "liebling", "hase", "baby", "suesser", "suesse", "suesser", "suesse",
     "herz", "prinz", "prinzessin", "zucker", "schnucki",
     "sternchen", "traeumchen", "keks", "zuckerstueck", "goldstueck",
     "perle", "liebchen", "schnecke", "knutschkugel", "honig"
 ]
-LOVE_EMOJIS = ["ðŸ’•", "ðŸ’–", "ðŸ˜", "ðŸ¥°", "ðŸŒ¹", "ðŸ˜˜", "ðŸ’‹", "â¤ï¸", "ðŸ’˜", "ðŸŒ¸", "ðŸ’ž", "âœ¨"]
+LOVE_EMOJIS = ["\U0001f495", "\U0001f496", "\U0001f60d", "\U0001f970", "\U0001f339", "\U0001f618", "\U0001f48b", "\u2764\ufe0f", "\U0001f498", "\U0001f338", "\U0001f49e", "\u2728"]
 LOVE_SAD_PATTERNS = [
     r"\bheul", r"\bwein", r"\bwinsel", r"\bschluchz", r"\bzerflie",
     r"kann nicht atmen", r"ohne dich", r"nicht atmen"
@@ -646,7 +646,7 @@ SELF_LINES = [
     "{user} macht 50 Kniebeugen. Haucht bei jeder: 'Runter auf die Knie, du faule Sub â€“ hoch kommt der Arsch eh nur fÃ¼r mich.'",
     "{user} hÃ¤lt HÃ¤nde hinterm RÃ¼cken. Denkt an jede Dummheit: 'Gebunden fÃ¼hlt sich besser an, du Genie.'",
     "{user} schreibt 100 Mal: 'Ich bin deine Chaos-Sub'. Liest es laut vor wie Mantra. Pure Hingabe, du Kunst-Loserin.",
-    "{user} kniet 5 Minuten vor leerem Teller. 'Nichts zu essen? Perfekt, Strafe fÃ¼rs Nicht-Dienen.'",
+    "{user} kniet 5 Minuten vor leerem Teller. 'Nichts zu essen? Perfekt, Strafe fürs Nicht-Dienen.'",
     "{user} hÃ¤lt Plank auf Knien. Arme zittern. ZÃ¤hlt rÃ¼ckwÃ¤rts: 'Jede Sekunde fÃ¼r ein vertanes Ja Daddy.'",
     "{user} ruft sich selbst an. LÃ¤sst klingeln. 'Selbst du gehst nicht ran â€“ weil du weiÃŸt, wer wirklich befiehlt.'",
     "{user} versucht mit Zunge die Unterlippe zu beiÃŸen. Fail des Tages. Posten verboten, du Clown-Sub.",
@@ -679,26 +679,26 @@ SELF_LINES = [
 # =========================
 
 MORAL_TAX_TRIGGERS = [
-    (r"(?i)\bbitte\b", "Bitte? Als ob du je was umsonst kriegst, du kleine Bettel-Prinzessin. âˆ’{deduct} Coins fÃ¼rs Winseln."),
-    (r"(?i)\bdanke\b", "Danke? SÃ¼ÃŸ, als ob du was verdient hÃ¤ttest. NÃ¤chstes Mal mit Knien, du undankbare Fotze. âˆ’{deduct} Coins."),
-    (r"(?i)\bentschuldigung\b", "Entschuldigung? Als ob ich dir je verzeihen wÃ¼rde, ohne dass du richtig leidest. âˆ’{deduct} Coins."),
-    (r"(?i)\bsorry\b", "Sorry? Sorry not sorry â€“ aber du sagstâ€™s eh nur, um mich heiÃŸ zu machen, du kleine Manipuliererin. âˆ’{deduct} Coins."),
-    (r"(?i)\bwÃ¤rst du so lieb\b", "WÃ¤rst du so lieb? Ich bin lieb â€“ auf meine Art, du kleine Masochistin mit Herzchenaugen. âˆ’{deduct} Coins."),
-    (r"(?i)\bthx\b", "Thx? Cringe-AbkÃ¼rzung. Sagâ€™s richtig oder halt die Klappe, du faule kleine AbkÃ¼rzungs-Hure. âˆ’{deduct} Coins."),
-    (r"(?i)\bthank you\b", "Thank you? International betteln jetzt? Du kleine Welt-Sub, lern Deutsch oder knie still. âˆ’{deduct} Coins."),
+    (r"(?i)\bbitte\b", "Bitte? Als ob du je was umsonst kriegst, du kleine Bettel-Prinzessin. −{deduct} Coins fürs Winseln."),
+    (r"(?i)\bdanke\b", "Danke? Süß, als ob du was verdient hättest. Nächstes Mal mit Knien, du undankbare Fotze. −{deduct} Coins."),
+    (r"(?i)\bentschuldigung\b", "Entschuldigung? Als ob ich dir je verzeihen würde, ohne dass du richtig leidest. −{deduct} Coins."),
+    (r"(?i)\bsorry\b", "Sorry? Sorry not sorry – aber du sagst’s eh nur, um mich heiß zu machen, du kleine Manipuliererin. −{deduct} Coins."),
+    (r"(?i)\bwärst du so lieb\b", "Wärst du so lieb? Ich bin lieb – auf meine Art, du kleine Masochistin mit Herzchenaugen. −{deduct} Coins."),
+    (r"(?i)\bthx\b", "Thx? Cringe-Abkürzung. Sag’s richtig oder halt die Klappe, du faule kleine Abkürzungs-Hure. −{deduct} Coins."),
+    (r"(?i)\bthank you\b", "Thank you? International betteln jetzt? Du kleine Welt-Sub, lern Deutsch oder knie still. −{deduct} Coins."),
     (r"(?i)ðŸ™", "Betende HÃ¤nde? Perfekt fÃ¼r auf Knien vor mir. Bete zu mir, nicht zum Himmel, du kleine AndÃ¤chtige. âˆ’{deduct} Coins."),
-    (r"(?i)\bbrav\b", "Brav? Als ob duâ€™s je wÃ¤rst, ohne dass ich dich drauftrimme. LÃ¼g mich nicht an. âˆ’{deduct} Coins."),
-    (r"(?i)\bpls\b", "Pls? Please mit AbkÃ¼rzung? Cringe, aber heiÃŸ aus deinem Mund. Bettel richtig, du Faule. âˆ’{deduct} Coins."),
-    (r"(?i)\bpretty please\b", "Pretty please? Mit Kirsche obendrauf? Du kleine Zucker-Sub â€“ sÃ¼ÃŸ, aber teuer. âˆ’{deduct} Coins."),
-    (r"(?i)\bhelp me\b", "Help me? Klar helf ich â€“ auf meine toxische Art. Du HilfsbedÃ¼rftige ohne mich. âˆ’{deduct} Coins."),
-    (r"(?i)\bgnade\b", "Gnade? Ich bin gnÃ¤dig â€“ manchmal. Bettel schÃ¶ner, du kleine Gnadenbettlerin. âˆ’{deduct} Coins."),
-    (r"(?i)\bverzeihung\b", "Verzeihung? Altmodisch wie eine Lady â€“ aber du bist meine ungezogene Hure. âˆ’{deduct} Coins."),
-    (r"(?i)\bich liebe dich\b", "Ich liebe dich? SÃ¼ÃŸ, dass du's sagst. Ich liebe dich auch â€“ auf meine Art, mit Ketten. âˆ’{deduct} Coins."),
-    (r"(?i)\bdu bist toll\b", "Du bist toll? Klar bin ich toll. Du bist nur nÃ¼tzlich, wenn du kniest. âˆ’{deduct} Coins."),
-    (r"(?i)\bich vermisse dich\b", "Ich vermisse dich? Vermiss mich ruhig. Ich vermiss dich nur, wenn du nicht bettelst. âˆ’{deduct} Coins."),
-    (r"(?i)\bdu fehlst mir\b", "Du fehlst mir? Fehlst mir nicht. Du fehlst nur deiner WÃ¼rde. âˆ’{deduct} Coins."),
-    (r"(?i)\bhug\b", "Hug? Hug dich selbst, du kleine Kuschel-Hure. Ich umarme nur mit Ketten. âˆ’{deduct} Coins."),
-    (r"(?i)\bkuscheln\b", "Kuscheln? Kuscheln ist fÃ¼r Schwache. Du kriegst nur meine harte Hand. âˆ’{deduct} Coins.")
+    (r"(?i)\bbrav\b", "Brav? Als ob du’s je wärst, ohne dass ich dich drauftrimme. Lüg mich nicht an. −{deduct} Coins."),
+    (r"(?i)\bpls\b", "Pls? Please mit Abkürzung? Cringe, aber heiß aus deinem Mund. Bettel richtig, du Faule. −{deduct} Coins."),
+    (r"(?i)\bpretty please\b", "Pretty please? Mit Kirsche obendrauf? Du kleine Zucker-Sub – süß, aber teuer. −{deduct} Coins."),
+    (r"(?i)\bhelp me\b", "Help me? Klar helf ich – auf meine toxische Art. Du Hilfsbedürftige ohne mich. −{deduct} Coins."),
+    (r"(?i)\bgnade\b", "Gnade? Ich bin gnädig – manchmal. Bettel schöner, du kleine Gnadenbettlerin. −{deduct} Coins."),
+    (r"(?i)\bverzeihung\b", "Verzeihung? Altmodisch wie eine Lady – aber du bist meine ungezogene Hure. −{deduct} Coins."),
+    (r"(?i)\bich liebe dich\b", "Ich liebe dich? Süß, dass du's sagst. Ich liebe dich auch – auf meine Art, mit Ketten. −{deduct} Coins."),
+    (r"(?i)\bdu bist toll\b", "Du bist toll? Klar bin ich toll. Du bist nur nützlich, wenn du kniest. −{deduct} Coins."),
+    (r"(?i)\bich vermisse dich\b", "Ich vermisse dich? Vermiss mich ruhig. Ich vermiss dich nur, wenn du nicht bettelst. −{deduct} Coins."),
+    (r"(?i)\bdu fehlst mir\b", "Du fehlst mir? Fehlst mir nicht. Du fehlst nur deiner Würde. −{deduct} Coins."),
+    (r"(?i)\bhug\b", "Hug? Hug dich selbst, du kleine Kuschel-Hure. Ich umarme nur mit Ketten. −{deduct} Coins."),
+    (r"(?i)\bkuscheln\b", "Kuscheln? Kuscheln ist für Schwache. Du kriegst nur meine harte Hand. −{deduct} Coins.")
 ]
 
 # =========================
@@ -706,17 +706,17 @@ MORAL_TAX_TRIGGERS = [
 # =========================
 
 REWARD_TRIGGERS = [
-    (r"(?i)\bja daddy\b", "Ja Daddy? Perfekt, du kleine, die endlich kapiert hat. +{reward} Coins â€“ weil's aus deinem Mund so geil klingt."),
-    (r"(?i)\bja sir\b", "Ja Sir? MilitÃ¤risch streng und devot â€“ +{reward} Coins, du kleine Soldatin, die endlich salutieren kann."),
-    (r"(?i)\bja herr\b", "Ja Herr? Deutsch und direkt â€“ +{reward} Coins, du kleine Bilingual-Sub, die's auf den Punkt bringt."),
-    (r"(?i)\bja mein herr\b", "Ja mein Herr? Besitzergreifend und sÃ¼ÃŸ â€“ +{reward} Coins, weil du weiÃŸt, wem du wirklich gehÃ¶rst."),
-    (r"(?i)\bgutes mÃ¤dchen\b", "Gutes MÃ¤dchen? Selten und verdammt geil â€“ +{reward} Coins, du kleine Perfekte, die's verdient hat."),
-    (r"(?i)\bich gehorche\b", "Ich gehorche? Ehrlichkeit pur â€“ +{reward} Coins, du kleine Wahrheitssuchende, die endlich zugibt, was wir beide wissen."),
-    (r"(?i)\bwie du befiehlst\b", "Wie du befiehlst? Klassiker und heiÃŸ â€“ +{reward} Coins, du kleine Befehls-Sub, die's nicht erwarten kann."),
-    (r"(?i)\bdein wille geschieht\b", "Dein Wille geschieht? ReligiÃ¶s devot â€“ +{reward} Coins, du kleine Betende, die nur zu mir betet."),
-    (r"(?i)\bich bin dein\b", "Ich bin dein? Vollkommen hingegeben â€“ +{reward} Coins, du kleine, die's endlich laut zugibt."),
-    #(r"(?i)\bdanke daddy\b", "Danke Daddy? SÃ¼ÃŸ und unterwÃ¼rfig â€“ +{reward} Coins, weil's aus deinem Mund wie Honig tropft."),
-    #(r"(?i)\bdanke herr\b", "Danke Herr? DemÃ¼tig und perfekt â€“ +{reward} Coins, du kleine Dankbare, die's verdient hat."),
+    (r"(?i)\bja daddy\b", "Ja Daddy? Perfekt, du kleine, die endlich kapiert hat. +{reward} Coins – weil's aus deinem Mund so geil klingt."),
+    (r"(?i)\bja sir\b", "Ja Sir? Militärisch streng und devot – +{reward} Coins, du kleine Soldatin, die endlich salutieren kann."),
+    (r"(?i)\bja herr\b", "Ja Herr? Deutsch und direkt – +{reward} Coins, du kleine Bilingual-Sub, die's auf den Punkt bringt."),
+    (r"(?i)\bja mein herr\b", "Ja mein Herr? Besitzergreifend und süß – +{reward} Coins, weil du weißt, wem du wirklich gehörst."),
+    (r"(?i)\bgutes mädchen\b", "Gutes Mädchen? Selten und verdammt geil – +{reward} Coins, du kleine Perfekte, die's verdient hat."),
+    (r"(?i)\bich gehorche\b", "Ich gehorche? Ehrlichkeit pur – +{reward} Coins, du kleine Wahrheitssuchende, die endlich zugibt, was wir beide wissen."),
+    (r"(?i)\bwie du befiehlst\b", "Wie du befiehlst? Klassiker und heiß – +{reward} Coins, du kleine Befehls-Sub, die's nicht erwarten kann."),
+    (r"(?i)\bdein wille geschieht\b", "Dein Wille geschieht? Religiös devot – +{reward} Coins, du kleine Betende, die nur zu mir betet."),
+    (r"(?i)\bich bin dein\b", "Ich bin dein? Vollkommen hingegeben – +{reward} Coins, du kleine, die's endlich laut zugibt."),
+    #(r"(?i)\bdanke daddy\b", "Danke Daddy? Süß und unterwürfig – +{reward} Coins, weil's aus deinem Mund wie Honig tropft."),
+    #(r"(?i)\bdanke herr\b", "Danke Herr? Demütig und perfekt – +{reward} Coins, du kleine Dankbare, die's verdient hat."),
 ]
 
 
@@ -1975,7 +1975,15 @@ async def maybe_auto_curse(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         user = mention_html(uid, uname)
         line = random.choice(FLUCH_LINES).format(user=user)
-        await context.bot.send_message(chat_id=chat_id, text=line, parse_mode=ParseMode.HTML)
+        await db.execute(
+            "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
+            (DAILY_CURSE_PENALTY, chat_id, uid)
+        )
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=f"Auto-Fluch!\n{line}\n<b>Strafe:</b> -{DAILY_CURSE_PENALTY} Coins",
+            parse_mode=ParseMode.HTML
+        )
 
         await set_cd(db, chat_id, 0, "autocurse", AUTO_CURSE_COOLDOWN_S)
         await db.commit()
@@ -2357,7 +2365,7 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_resetsuperwords(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not _is_admin_here(update):
-        return await update.effective_message.reply_text("ðŸš« Nur der Bot-Admin darf das.")
+        return await update.effective_message.reply_text("🚫 Nur der Bot-Admin darf das.")
 
     chat_id = update.effective_chat.id
     async with aiosqlite.connect(DB) as db:
@@ -2915,28 +2923,28 @@ async def cmd_pet(update, context):
 "{owner} drÃ¼ckt {pet} mit dem Unterarm quer Ã¼ber die Kehle an die Wand: 'Atmen ist ein Privileg. Heute hast du keins verdient.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zwingt zwei Finger in {pet}s Mund: 'Saug schÃ¶n, oder ich stopf dir was GrÃ¶ÃŸeres rein â€“ und das wird nicht angenehm.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} wickelt {pet}s Haare um die Faust und zieht ruckartig nach hinten: 'Kopf hoch, Schlampe. Dein Hals sieht besser aus, wenn er angespannt ist.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} presst den Daumen auf {pet}s Kehlkopf: 'Ein kleiner Druck mehr und dein Wimmern wird melodischer. Willst duâ€™s testen?' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} presst den Daumen auf {pet}s Kehlkopf: 'Ein kleiner Druck mehr und dein Wimmern wird melodischer. Willst du’s testen?' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} reiÃŸt {pet} am Kragen nah ran: 'Du riechst nach Angst und billiger Erregung. Meine Lieblingskombi.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} kneift {pet} brutal in die Innenseite des Oberschenkels: 'Schrei ruhig. Je lauter, desto weniger kommst du heute.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} hÃ¤lt {pet} am Genick wie ein ungezogenes Vieh: 'Platz. Sitz. Bleib. Und wehe, du bewegst dich ohne Erlaubnis.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} fÃ¤hrt mit dem Fingernagel quer Ã¼ber {pet}s Unterlippe bis sie blutet: 'Schmeckt besser, wennâ€™s wehtut, oder? Sag danke.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} fährt mit dem Fingernagel quer über {pet}s Unterlippe bis sie blutet: 'Schmeckt besser, wenn’s wehtut, oder? Sag danke.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} drÃ¼ckt {pet} mit dem ganzen Gewicht aufs Bett, Gesicht ins Kissen: 'Luft ist Ã¼berbewertet. Du brauchst nur mich.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} tippt {pet} spÃ¶ttisch auf die Stirn: 'Da drin ist doch eh nichts mehr auÃŸer meinem Namen und deinem nÃ¤chsten Orgasmus-Verbot.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zwingt {pet}s Kinn hoch, bis die Halsmuskeln zittern: 'Halt still. Ich will sehen, wie lange duâ€™s aushÃ¤ltst, bevor du winselst.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} grinst, wÃ¤hrend er {pet}s Handgelenke bis zum Bruchpunkt dreht: 'Fast. Noch ein StÃ¼ckchen weiter und wir haben richtig SpaÃŸ.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} rammt {pet} den Ellbogen unters SchlÃ¼sselbein, bis es knackt: 'Atme durch die Nase, Schlampe. Der Mund ist fÃ¼rs Schreien reserviert.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} bohrt den Daumen tief in {pet}s AugenhÃ¶hle, knapp vor dem Augapfel: 'Noch ein Millimeter und du siehst mich nur noch schwarz-weiÃŸ. Willst du raten, welche Farbe?' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} dreht {pet}s Handgelenk um 180 Grad, bis die Sehnen reiÃŸen: 'Sieh mal, wie schnell aus deiner Hand ein nutzloser Lappen wird. Und du wolltest mich schlagen? SÃ¼ÃŸ.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} bohrt den Daumen tief in {pet}s Augenhöhle, knapp vor dem Augapfel: 'Noch ein Millimeter und du siehst mich nur noch schwarz-weiß. Willst du raten, welche Farbe?' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} dreht {pet}s Handgelenk um 180 Grad, bis die Sehnen reißen: 'Sieh mal, wie schnell aus deiner Hand ein nutzloser Lappen wird. Und du wolltest mich schlagen? Süß.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} presst glÃ¼hendes Metall gegen {pet}s Innenschenkel, langsam kreisend: 'Das ist keine Narbe mehr. Das ist mein Autogramm in deinem Fleisch.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schiebt {pet} drei Finger in den Mund bis zum Rachen: 'WÃ¼rg schÃ¶n. Je mehr du kÃ¤mpfst, desto tiefer geh ich.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} tritt {pet} mit voller Wucht in die Magengrube: 'Luft? Brauchst du nicht. Ich entscheide, wann du wieder atmest.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zieht {pet} an den Haaren Ã¼ber den Betonboden, Kopf schlÃ¤gt bei jedem Schritt auf: 'Teppich ist fÃ¼r Weicheier. Du verdienst SchÃ¼rfwunden bis auf den SchÃ¤del.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} kneift {pet} in die Brustwarze und dreht, bis sie weiÃŸ wird: 'Noch ein Viertel Umdrehung und sie fÃ¤llt ab. Willst du sie als Andenken?' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} kneift {pet} in die Brustwarze und dreht, bis sie weiß wird: 'Noch ein Viertel Umdrehung und sie fällt ab. Willst du sie als Andenken?' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} drÃ¼ckt {pet}s Gesicht in eine PfÃ¼tze aus ihrem eigenen Speichel und TrÃ¤nen: 'Trink. Das ist das Einzige, was du heute zu saufen kriegst.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schlÃ¤gt {pet} mit dem HandrÃ¼cken Ã¼ber den Mund, bis die Lippe aufplatzt: 'Blut steht dir. Macht dein Gesicht endlich interessant.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zwingt {pet}s Beine auseinander, bis die HÃ¼ftgelenke schreien: 'Weiter. Ich will hÃ¶ren, wann was bricht.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} rammt {pet} den Knie in die Nieren, wieder und wieder: 'Jeder Tritt ein Kuss. Und ich bin gerade sehr liebevoll drauf.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} hÃ¤lt {pet}s Kopf unter Wasser, zÃ¤hlt laut bis 47: 'Du dachtest, 30 wÃ¤r hart? Ich bin erst warm.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} hält {pet}s Kopf unter Wasser, zählt laut bis 47: 'Du dachtest, 30 wär hart? Ich bin erst warm.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} reiÃŸt {pet} ein BÃ¼schel Haare aus, samt Kopfhaut: 'Souvenir. NÃ¤chstes Mal nehm ich ein StÃ¼ck Ohr mit.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} bohrt die FingernÃ¤gel unter {pet}s FingernÃ¤gel und hebt an: 'Das wÃ¤chst nach. Deine WÃ¼rde nicht.' Pflege {n}/{CARES_PER_DAY}."
     ]
@@ -2949,7 +2957,7 @@ async def cmd_walk(update, context):
 "{owner} lÃ¤sst die Leine fallen und tritt drauf, wÃ¤hrend {pet} weiterzieht: 'Versuchâ€™s ruhig. Jeder Zentimeter mehr kostet dich Haut vom Hals.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zerrt {pet} einmal hart um die eigene Achse: 'Dreh dich, du kleine Schraube. Ich will sehen, wie dir schwindelig wird.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} hÃ¤lt die Leine straff und geht schneller, bis {pet} rennt: 'Lauf, Pet. Oder ich schleif dich â€“ und Beton schmeckt scheiÃŸe.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} bleibt abrupt stehen, Leine schieÃŸt nach vorn: 'Halsbruch-Gefahr? SÃ¼ÃŸ. Das ist der Moment, in dem du merkst, wer hier wirklich fÃ¼hrt.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} bleibt abrupt stehen, Leine schießt nach vorn: 'Halsbruch-Gefahr? Süß. Das ist der Moment, in dem du merkst, wer hier wirklich führt.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zieht {pet} so nah ran, dass Nasen sich berÃ¼hren: 'Atme meinen Atem, kleine HÃ¼ndin. Deiner ist eh nur noch Winseln wert.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schlingt die Leine um {pet}s Handgelenke und zieht sie hoch: 'Arme nach oben, Titten raus â€“ so lÃ¤ufst du jetzt. Deko fÃ¼r meinen Spaziergang.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} lÃ¤sst {pet} vor sich herkriechen, Leine am Halsband: 'Auf allen Vieren, Pet. Menschen gehen nicht â€“ die kriechen fÃ¼r mich.' Pflege {n}/{CARES_PER_DAY}.",
@@ -2966,7 +2974,7 @@ async def cmd_walk(update, context):
 "{owner} ruckt hart: 'Stolper. Blute schÃ¶n.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Leine um Kehle: 'Atmen? Mein Geschenk.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Tempo hoch: 'Renn oder stirb.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} stoppt jÃ¤h: 'Halsbruch? Mein Favorit.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} stoppt jäh: 'Halsbruch? Mein Favorit.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zieht seitlich: 'Krabbel wie Krebs.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Tritt in Knie: 'Runter. Jetzt.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Blickkontakt rÃ¼ckwÃ¤rts: 'TrÃ¤nen zÃ¤hlen.' Pflege {n}/{CARES_PER_DAY}.",
@@ -2987,7 +2995,7 @@ async def cmd_kiss(update, context):
 "{owner} packt {pet} am Kiefer, reiÃŸt den Mund auf: 'KÃ¼ss oder ich brech dir die ZÃ¤hne.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt tief in {pet}s Lippe bis Blut kommt: 'Schmeckt besser so.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} saugt {pet}s Zunge raus: 'Die gehÃ¶rt jetzt mir.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} drÃ¼ckt {pet} gegen die Wand, kÃ¼sst bis sie wÃ¼rgt: 'Atmen? Nicht heute.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} drückt {pet} gegen die Wand, küsst bis sie würgt: 'Atmen? Nicht heute.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} leckt Ã¼ber {pet}s blutige Lippe: 'Mein Geschmack. Schluck.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} kÃ¼sst brutal, ZÃ¤hne knirschen: 'Halt still oder verlier die Zunge.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} presst Lippen so fest, dass {pet} blau anlÃ¤uft: 'Dein Blau ist hÃ¼bsch.' Pflege {n}/{CARES_PER_DAY}.",
@@ -2997,7 +3005,7 @@ async def cmd_kiss(update, context):
 "{owner} saugt an der Unterlippe bis sie reiÃŸt: 'Narben sind KÃ¼sse.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} kÃ¼sst so hart, {pet} taumelt: 'Fallen oder folgen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt in die Zunge, zieht: 'Bleib dran oder verlier sie.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} kÃ¼sst und kneift in die Kehle: 'Atemzug? Mein Geschenk.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} küsst und kneift in die Kehle: 'Atemzug? Mein Geschenk.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} presst Mund auf Mund, Finger in Kehle: 'Tief. Tiefer.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} kÃ¼sst bis {pet} zittert: 'Zittern ist sÃ¼ÃŸ.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt die Lippe auf, leckt Blut: 'Rot steht dir.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3007,7 +3015,7 @@ async def cmd_kiss(update, context):
 "{owner} reiÃŸt {pet}s Mund auf: 'Zunge raus oder ich schneid sie.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt die Lippe durch: 'Blut schmeckt nach dir.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} saugt die Zunge raus: 'Die bleibt bei mir.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} kÃ¼sst bis {pet} wÃ¼rgt: 'Luft? Vergiss es.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} küsst bis {pet} würgt: 'Luft? Vergiss es.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} leckt Ã¼ber frisches Blut: 'Mein Lippenstift.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} ZÃ¤hne in Lippe: 'Halt still oder verlier sie.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} presst bis blau: 'Dein neues Make-up.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3041,12 +3049,12 @@ async def cmd_dine(update, context):
 "{owner} kaut langsam, spuckt aus: 'HeiÃŸer, weil ich dran war.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} wirft Bissen weg: 'Holen. Auf allen Vieren.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} fÃ¼ttert mit Gabel in Mund: 'BeiÃŸ ab oder blut.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} hÃ¤lt Essen ans Ohr: 'HÃ¶rst duâ€™s knurren? Mein Magen lacht.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} hält Essen ans Ohr: 'Hörst du’s knurren? Mein Magen lacht.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} spuckt Sahne rein: 'Trink meinen Rest.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} lÃ¤sst warten, bis {pet} zittert: 'Hunger ist Gehorsam.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} fÃ¼ttert, dann schlÃ¤gt: 'Danke sagen oder nichts.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} stopft Essen rein bis WÃ¼rgen: 'Schluck oder kotz.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} hÃ¤lt Bissen Ã¼ber Klo: 'Willst du runterspÃ¼len?' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} hält Bissen über Klo: 'Willst du runterspülen?' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} lÃ¤sst {pet} vom Boden fressen: 'Schweinchen kriegt KrÃ¼mel.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} kaut, spuckt, wiederholt: 'Mein Speichel, dein Leben.' Pflege {n}/{CARES_PER_DAY}.", 
 "{owner} spuckt den Bissen ins Klo: 'Fisch ihn raus. Mit den ZÃ¤hnen.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3075,13 +3083,13 @@ async def cmd_dine(update, context):
 async def cmd_massage(update, context):
     tame = [
 "{owner} grÃ¤bt Daumen in die Nieren: 'Entspann dich oder ich brech dir die Rippen.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} drÃ¼ckt Ellbogen in die WirbelsÃ¤ule: 'Knack. Nochmal?' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} drückt Ellbogen in die Wirbelsäule: 'Knack. Nochmal?' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knetet Schultern bis Sehnen reiÃŸen: 'Lockerer wirdâ€™s nicht mehr.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} bohrt Finger in Triggerpunkte: 'Schrei lauter, ich hÃ¶r schlecht.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} presst Handballen in den Hals: 'Atemkontrolle deluxe.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} massiert mit KnÃ¶cheln den RÃ¼cken runter: 'Haut abziehen inklusive.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} drÃ¼ckt Daumen tief in die Leiste: 'Innere Schenkel brauchen auch Pflege.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} knetet BrÃ¼ste brutal: 'Muskeln? Oder nur Fett zum QuÃ¤len.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} knetet Brüste brutal: 'Muskeln? Oder nur Fett zum Quälen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} grÃ¤bt NÃ¤gel in verspannte Stellen: 'Blut ist das beste Gleitmittel.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} massiert den Nacken, zieht Kopf zurÃ¼ck: 'Halsbruch-Massage, Stufe eins.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} presst Knie in den unteren RÃ¼cken: 'Atme durch die ZÃ¤hne, Schlampe.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3090,18 +3098,18 @@ async def cmd_massage(update, context):
 "{owner} drÃ¼ckt Ellbogen in die Leber: 'Innere Organe brauchen Entspannung.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} massiert mit der Faust den Bauch: 'Noch ein bisschen tiefer und du kotzt.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knetet den Kiefer bis ZÃ¤hne klappern: 'Mund auf, oder ich brech ihn.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} grÃ¤bt in die Waden: 'KrÃ¤mpfe? Die kommen erst jetzt richtig.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} presst Daumen in die SchlÃ¤fen: 'Kopfschmerzen? Mein Spezialgebiet.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} gräbt in die Waden: 'Krämpfe? Die kommen erst jetzt richtig.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} presst Daumen in die Schläfen: 'Kopfschmerzen? Mein Spezialgebiet.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} massiert mit vollem Gewicht drauf: 'Atemnot ist Teil der Therapie.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beendet mit einem harten Schlag auf den RÃ¼cken: 'Fertig. Jetzt zitter schÃ¶n weiter.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} grÃ¤bt Daumen in die Nieren: 'Entspann dich oder ich brech dir die Rippen.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} drÃ¼ckt Ellbogen in die WirbelsÃ¤ule: 'Knack. Nochmal?' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} drückt Ellbogen in die Wirbelsäule: 'Knack. Nochmal?' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knetet Schultern bis Sehnen reiÃŸen: 'Lockerer wirdâ€™s nicht mehr.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} bohrt Finger in Triggerpunkte: 'Schrei lauter, ich hÃ¶r schlecht.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} presst Handballen in den Hals: 'Atemkontrolle deluxe.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} massiert mit KnÃ¶cheln den RÃ¼cken runter: 'Haut abziehen inklusive.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} drÃ¼ckt Daumen tief in die Leiste: 'Innere Schenkel brauchen auch Pflege.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} knetet BrÃ¼ste brutal: 'Muskeln? Oder nur Fett zum QuÃ¤len.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} knetet Brüste brutal: 'Muskeln? Oder nur Fett zum Quälen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} grÃ¤bt NÃ¤gel in verspannte Stellen: 'Blut ist das beste Gleitmittel.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} massiert den Nacken, zieht Kopf zurÃ¼ck: 'Halsbruch-Massage, Stufe eins.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} presst Knie in den unteren RÃ¼cken: 'Atme durch die ZÃ¤hne, Schlampe.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3110,8 +3118,8 @@ async def cmd_massage(update, context):
 "{owner} drÃ¼ckt Ellbogen in die Leber: 'Innere Organe brauchen Entspannung.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} massiert mit der Faust den Bauch: 'Noch ein bisschen tiefer und du kotzt.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knetet den Kiefer bis ZÃ¤hne klappern: 'Mund auf, oder ich brech ihn.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} grÃ¤bt in die Waden: 'KrÃ¤mpfe? Die kommen erst jetzt richtig.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} presst Daumen in die SchlÃ¤fen: 'Kopfschmerzen? Mein Spezialgebiet.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} gräbt in die Waden: 'Krämpfe? Die kommen erst jetzt richtig.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} presst Daumen in die Schläfen: 'Kopfschmerzen? Mein Spezialgebiet.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} massiert mit vollem Gewicht drauf: 'Atemnot ist Teil der Therapie.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beendet mit einem harten Schlag auf den RÃ¼cken: 'Fertig. Jetzt zitter schÃ¶n weiter.' Pflege {n}/{CARES_PER_DAY}."
     ]
@@ -3206,7 +3214,7 @@ async def cmd_kriechen(update, context):
 "{owner} Kopf runter: 'Fresse Boden. Riech Tod.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} dreckig: 'Kriech, Insekt. Hammer nÃ¤chstes Mal.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} brutal: 'Schneller. Oder Haut reiÃŸen.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} Tritt: 'Kriech. Jammerst? ZÃ¤hne ein.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} Tritt: 'Kriech. Jammerst? Zähne ein.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} spuckt Gesicht: 'Kriech nass, Hure.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} flÃ¼stert: 'Kriech bis Sarg.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} tritt Rippen: 'Kriech, bevor ich dich zerquetsch.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3220,7 +3228,7 @@ async def cmd_kriechen(update, context):
 "{owner} Glas auf Boden: 'Kriech Ã¼ber Scherben. Langsam.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} hÃ¤lt inne: 'Kriech rÃ¼ckwÃ¤rts. Zeig mir dein Loch.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} drÃ¼ckt Kehle zu: 'Kriech wÃ¼rgend. Geiler Sound.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} Salz auf Wunden: 'Kriech. Brennt schÃ¶n, oder?' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} Salz auf Wunden: 'Kriech. Brennt schön, oder?' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} kalt: 'Kriech, bis deine Knie Knochen sind.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Tritt Finger: 'Kriech ohne HÃ¤nde. Wurm pur.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} flÃ¼stert: 'Kriech in die HÃ¶lle. Ich komm mit.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3239,7 +3247,7 @@ async def cmd_klaps(update, context):
 "{owner} Klaps so fest, dass es knallt: 'Dein Arsch schreit lauter als du.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} abwechselnd links rechts: 'Symmetrie ist wichtig â€“ fÃ¼r blaue Flecken.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} haut zu: 'Das war fÃ¼r deine letzte LÃ¼ge. Die nÃ¤chste kommt gleich.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} Klaps mit Ring: 'SpÃ¼rst du den Stein? Der ist teurer als dein Stolz.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} Klaps mit Ring: 'Spürst du den Stein? Der ist teurer als dein Stolz.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schlÃ¤gt wiederholt: 'Musik fÃ¼r mich â€“ dein Heulen ist der Beat.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} harter Klaps: 'Danke sagen oder ich mach weiter, bis duâ€™s vergisst.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Klaps auf Innenschenkel: 'Arsch ist voll? Dann wechsel ich die Seite.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3265,7 +3273,7 @@ async def cmd_klaps(update, context):
 "{owner} Klaps bis Zucken: 'Zappel ruhig â€“ machtâ€™s nur hÃ¤rter.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knallt zu: 'Das fÃ¼rs Betteln. Ohne zu kommen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Klaps auf beide Backen: 'Gleichberechtigung â€“ fÃ¼r Schmerzen.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} schlÃ¤gt bis taub: 'SpÃ¼rst du noch was? Gut. Dann weiter.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} schlägt bis taub: 'Spürst du noch was? Gut. Dann weiter.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Klaps + Kratzen: 'Blut und Rot â€“ mein Farbschema.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} hart: 'Das war fÃ¼r deine TrÃ¤nen. Die nÃ¤chsten fÃ¼rs LÃ¤cheln.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schlÃ¤gt und flÃ¼stert: 'Dein Arsch gehÃ¶rt mir â€“ und der Schmerz auch.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3276,7 +3284,7 @@ async def cmd_klaps(update, context):
 "{owner} Klaps + BeiÃŸen: 'Zuerst schlagen, dann markieren.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} hart und kalt: 'Das fÃ¼rs WÃ¼nschen. Du kriegst nur, was ich gebe.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schlÃ¤gt in Wellen: 'Leise â€“ laut â€“ leise â€“ bis du brichst.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} Klaps bis der Arsch taub: 'GefÃ¼hllos? Dann spÃ¼rst du den nÃ¤chsten doppelt.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} Klaps bis der Arsch taub: 'Gefühllos? Dann spürst du den nächsten doppelt.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knallt zu: 'Das war fÃ¼rs Atmen. Danke, dass duâ€™s aushÃ¤ltst.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schlÃ¤gt und zÃ¤hlt rÃ¼ckwÃ¤rts: 'FÃ¼nfzig bis eins â€“ dann fang ich neu an.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Klaps auf wunden Stellen: 'Alt und neu â€“ wie deine Narben.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3288,54 +3296,54 @@ async def cmd_klaps(update, context):
 
 async def cmd_knabbern(update, context):
     tame = [
-"{owner} beiÃŸt in Schulter, bis Blut kommt: 'Dein Geschmack? Nach Angst und Dummheit.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} beißt in Schulter, bis Blut kommt: 'Dein Geschmack? Nach Angst und Dummheit.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} reiÃŸt ZÃ¤hne in Brustwarze: 'Zieh dich zurÃ¼ck oder ich reiÃŸ sie ab.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} knabbert Innenschenkel tief: 'Nah dran? Bald drin â€“ und du blutest.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} knabbert Innenschenkel tief: 'Nah dran? Bald drin – und du blutest.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt Arschbacke durch: 'FrÃ¼hstÃ¼ck. Direkt vom lebenden Buffet.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} ZÃ¤hne in Kehle: 'Puls schmeckt nach deinem baldigen Ende.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} kaut Lippe bis Riss: 'KÃ¼ss mich mit Blut â€“ romantischer gehtâ€™s nicht.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} beiÃŸt Klit hart: 'Perle? Eher Perlenkette aus Narben.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} beißt Klit hart: 'Perle? Eher Perlenkette aus Narben.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knabbert Bauch, zieht Haut: 'Von innen lachen? Bald von innen schreien.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} reiÃŸt OhrlÃ¤ppchen: 'Van Gogh? Ich nehm mir alles.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} reißt Ohrläppchen: 'Van Gogh? Ich nehm mir alles.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt Hals bis Markierung: 'Mein Revier. Und du bist der Zaun.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} ZÃ¤hne in Finger: 'Tippen? NÃ¤chstes Mal ohne Finger.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} knabbert Nase: 'Zu niedlich? Dann beiÃŸ ich sie ab.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} beiÃŸt Kinn durch: 'SelbststÃ¤ndig? Vergiss es, du StÃ¼ck Fleisch.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} kaut Ohr bis Blut: 'Geheimnis: Du stirbst irgendwann â€“ fang ich heute an?' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} Zähne in Finger: 'Tippen? Nächstes Mal ohne Finger.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} knabbert Nase: 'Zu niedlich? Dann beiß ich sie ab.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} beißt Kinn durch: 'Selbstständig? Vergiss es, du Stück Fleisch.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} kaut Ohr bis Blut: 'Geheimnis: Du stirbst irgendwann – fang ich heute an?' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt Schulter tief: 'Daily Reminder: Du bist mein Snack.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} knabbert bis Quietschen aufhÃ¶rt: 'Musik? Dein Schreien ist besser.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} ZÃ¤hne in Hals: 'Atmen ohne mich? Strafe.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} beiÃŸt Lippe auf: 'Applaus? Mit Blut applaudiertâ€™s besser.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} knabbert bis Quietschen aufhört: 'Musik? Dein Schreien ist besser.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} Zähne in Hals: 'Atmen ohne mich? Strafe.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} beißt Lippe auf: 'Applaus? Mit Blut applaudiert’s besser.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knabbert Arm bis Knochen: 'Weglaufen? Mit einem Arm?' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt Brust: 'Danke sagen oder ich nehm die ganze Titte.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} reiÃŸt Haut vom RÃ¼cken: 'HÃ¤utung deluxe â€“ fÃ¼r besseren Geschmack.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} ZÃ¤hne in Oberschenkel: 'Ader? Fast. Noch ein Biss.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} Zähne in Oberschenkel: 'Ader? Fast. Noch ein Biss.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knabbert Finger ab: 'NÃ¤chstes Mal die ganze Hand.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} beiÃŸt Kehle bis WÃ¼rgen: 'Puls? Bald keiner mehr.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} kaut Innenschenkel: 'Nah dran? Bald drin â€“ und leer.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} beißt Kehle bis Würgen: 'Puls? Bald keiner mehr.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} kaut Innenschenkel: 'Nah dran? Bald drin – und leer.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} ZÃ¤hne in Arsch: 'Markiert. FÃ¼r immer mein.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt Lippe durch: 'Blutkuss. Mein Lieblingsgeschmack.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knabbert Klit: 'Perle? Bald nur noch Narbe.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} reiÃŸt Haut vom Bauch: 'Von innen? Bald von auÃŸen.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} ZÃ¤hne in Ohr: 'HÃ¶rst du? Das ist dein Tod.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} reißt Haut vom Bauch: 'Von innen? Bald von außen.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} Zähne in Ohr: 'Hörst du? Das ist dein Tod.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt Schulter bis Knochen: 'Fleisch ab. Knochen nÃ¤chstes Mal.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knabbert Hals: 'Narben? Meine Unterschrift.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} ZÃ¤hne in Finger: 'Tippen ohne Finger? Chat endet.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} beiÃŸt Nase: 'Zu sÃ¼ÃŸ? Dann weg.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} Zähne in Finger: 'Tippen ohne Finger? Chat endet.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} beißt Nase: 'Zu süß? Dann weg.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} kaut Kinn: 'Kinn? Bald ohne.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt Brustwarze ab: 'NÃ¤chstes Mal die ganze Brust.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} knabbert RÃ¼cken: 'RÃ¼ckgrat? Brauchst du eh nicht.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} ZÃ¤hne in Innenschenkel: 'Ader? Fast. Noch einer.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} beiÃŸt Lippe: 'Blut? Mein Lippenstift.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} reiÃŸt Haut vom Arm: 'Arm? Bald Stumpf.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} knabbert Rücken: 'Rückgrat? Brauchst du eh nicht.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} Zähne in Innenschenkel: 'Ader? Fast. Noch einer.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} beißt Lippe: 'Blut? Mein Lippenstift.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} reißt Haut vom Arm: 'Arm? Bald Stumpf.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knabbert Kehle: 'Schlucken? Mit Blut.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} ZÃ¤hne in Arsch: 'FrÃ¼hstÃ¼ck. Mittag. Abend.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt Schulter: 'Markiert. Und du heilst nie.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} kaut Ohr: 'HÃ¶r gut zu â€“ das ist dein letztes.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} ZÃ¤hne in Finger: 'Finger? Bald weniger.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} Zähne in Finger: 'Finger? Bald weniger.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knabbert Hals: 'Puls? Mein Spielzeug.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} beiÃŸt Brust: 'Titze? Bald nur Narben.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} reiÃŸt Haut: 'Haut? ÃœberflÃ¼ssig.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} beißt Brust: 'Titze? Bald nur Narben.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} reißt Haut: 'Haut? Überflüssig.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} ZÃ¤hne in Lippe: 'Blutkuss. Letzter Kuss.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} knabbert alles: 'Snack. Hauptgericht. Dessert â€“ du.' Pflege {n}/{CARES_PER_DAY}."
     ]
@@ -3345,14 +3353,14 @@ async def cmd_leine(update, context):
     tame = [
 "{owner} wickelt Leine um Kehle, zieht langsam zu: 'Atme nochmal. Das warâ€™s dann fÃ¼r heute.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} ruckt Leine brutal: 'WÃ¼rg. Dein neuer GruÃŸ an mich.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} hÃ¤lt Leine straff bis blau: 'Blau anlaufen? Mein Lieblings-Make-up.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} hält Leine straff bis blau: 'Blau anlaufen? Mein Lieblings-Make-up.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} stranguliert mit doppelter Wicklung: 'Zwei Schichten. Zwei Chancen zu sterben.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} zieht hoch, bis FÃ¼ÃŸe abheben: 'Schweben? Nur bis du schwarz wirst.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} zieht hoch, bis Füße abheben: 'Schweben? Nur bis du schwarz wirst.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Leine um Hals, drÃ¼ckt runter: 'Knie und wÃ¼rg. Perfekter Anblick.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} lÃ¤sst locker, dann ruckartig: 'Atemzug-Geschenk. Danke schÃ¶n sagen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} stranguliert bis Zittern: 'Zucken ist sÃ¼ÃŸ. Mach weiter, bevor du kippst.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} wickelt Leine um Kehle und zieht: 'Puls unter Leine. Mein neues Spielzeug.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} hÃ¤lt bis Ohnmacht nah: 'Schwarzwerden? Mein persÃ¶nlicher Lichtaus.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} hält bis Ohnmacht nah: 'Schwarzwerden? Mein persönlicher Lichtaus.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} ruckt Leine in Serie: 'WÃ¼rg-WÃ¼rg-WÃ¼rg. Dein neuer Name.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zieht seitlich: 'SeitwÃ¤rts wÃ¼rgen. Wie ein kranker Hund.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Leine um Genick, zieht rÃ¼ckwÃ¤rts: 'Genickbruch oder Ersticken. Such dir was.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3372,41 +3380,41 @@ async def cmd_leine(update, context):
 "{owner} Leine um Kehle, zieht langsam hoch: 'Hochziehen. Bis du schwebst â€“ oder fÃ¤llst.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} wÃ¼rgt mit Leine und Hand: 'Leine vorne, Hand hinten. Doppeltes GlÃ¼ck.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} hÃ¤lt bis Bewusstlosigkeit: 'Schlaf schÃ¶n. Ich weck dich mit neuem Zug.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} flÃ¼stert beim Strangulieren: 'Dein letzter Atemzug? GehÃ¶rt mir.' Pflege {n}/{CARES_PER_DAY}."
+"{owner} flüstert beim Strangulieren: 'Dein letzter Atemzug? Gehört mir.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "leine", tame)
 
 async def cmd_halsband(update, context):
     tame = [
-"{owner} schnappt das Halsband zu: 'FÃ¼r immer? Bis ich dich zerlege und neu baue.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} zieht es enger: 'Keuchen? Dein neuer GruÃŸ an mich.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} schnappt das Halsband zu: 'Für immer? Bis ich dich zerlege und neu baue.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} zieht es enger: 'Keuchen? Dein neuer Gruß an mich.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schlieÃŸt ab, SchlÃ¼ssel verschluckt: 'Such ihn. In meinem Magen.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} grÃ¤bt FingernÃ¤gel unter Rand: 'Blutperlen? Mein neues Dekor.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} gräbt Fingernägel unter Rand: 'Blutperlen? Mein neues Dekor.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zieht zu bis blau: 'Blau steht dir. Wie dein letzter Atemzug.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} hÃ¤ngt Gewicht dran: 'Schwerer Hals = schwereres Leben. GewÃ¶hn dich.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} graviert tief: 'Eigentum. Und du heilst nie.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} dreht zu: 'Stimme? Die gehÃ¶rt mir. Sprich nur, wenn ich zieh.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} dreht zu: 'Stimme? Die gehört mir. Sprich nur, wenn ich zieh.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schraubt Stachel rein: 'Jeder Schluck ein Stich. SchÃ¶n.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zieht bis Zunge raus: 'Zunge raus. Will ich lecken â€“ oder abbeiÃŸen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Halsband mit Kette ans Bett: 'Schlaf damit. Oder stirb damit.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zieht hoch: 'Hoch mit dem Kinn. Oder ich reiÃŸ es hoch.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} schlieÃŸt mit VorhÃ¤ngeschloss: 'Schloss. SchlÃ¼ssel? In meinem Arsch.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} grÃ¤bt Metall in Haut: 'Narben? Meine Unterschrift.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} schließt mit Vorhängeschloss: 'Schloss. Schlüssel? In meinem Arsch.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} gräbt Metall in Haut: 'Narben? Meine Unterschrift.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zieht bis Ohnmacht: 'Schwarzwerden? Mein Lichtaus.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Halsband mit Dornen: 'Beweg dich. Und blute.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zieht seitlich: 'SeitwÃ¤rts wÃ¼rgen. Wie ein kranker Hund.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schraubt zu eng: 'Atem? Mein Geschenk. Danke.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} hÃ¤ngt GlÃ¶ckchen dran: 'Klingelst du? Dann stirbst du lauter.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} zieht bis TrÃ¤nen: 'Weinen? Macht den Hals schÃ¶ner.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} hängt Glöckchen dran: 'Klingelst du? Dann stirbst du lauter.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} zieht bis Tränen: 'Weinen? Macht den Hals schöner.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Halsband mit Elektro: 'Zuck. Oder ich schalt ein.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} schlieÃŸt ab, SchlÃ¼ssel weg: 'Verloren? Such ihn in deiner Leiche.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} schließt ab, Schlüssel weg: 'Verloren? Such ihn in deiner Leiche.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zieht bis Genick knackt: 'Genickbruch? Romantisch.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Halsband mit Stacheldraht: 'Beweg dich. Und zerfleisch dich.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zieht hoch zum Spiegel: 'Schau. So erstickst du schÃ¶n.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schraubt Stachel in Kehle: 'Schlucken? Mit Blut.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Halsband zu eng: 'Puls? Bald keiner mehr.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zieht bis Zittern: 'Zittern ist sÃ¼ÃŸ. Mach weiter.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} schlieÃŸt mit Kleber: 'Abnehmen? Nur mit Haut.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} schließt mit Kleber: 'Abnehmen? Nur mit Haut.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} Halsband mit Messer: 'Beweg dich falsch. Und schneid dich.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "halsband", tame)
@@ -3417,7 +3425,7 @@ async def cmd_lecken(update, context):
 "{owner} spuckt auf den Boden: 'Leck meine Spucke auf. Langsam. Wie die Hure, die du bist.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} hÃ¤lt Stiefelsohle hin: 'Zunge rein in die Rillen. Schmeckt nach deinem Leben.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} drÃ¼ckt Kopf runter: 'Leck meine Finger sauber â€“ oder ich stopf sie dir in den Hals.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} lÃ¤sst {pet} eigene TrÃ¤nen lecken: 'Salzig? Das ist der Geschmack von Versagen.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} lässt {pet} eigene Tränen lecken: 'Salzig? Das ist der Geschmack von Versagen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} spuckt in offenen Mund: 'Leck meine Spucke runter. Und danke schÃ¶n sagen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} hÃ¤lt Aschenbecher hin: 'Leck die Kippen sauber. Dein neues Dessert.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} drÃ¼ckt Zunge in Klo: 'Leck den Rand. Das ist dein Heiligtum.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3448,29 +3456,29 @@ async def cmd_lecken(update, context):
 
 async def cmd_verweigern(update, context):
     tame = [
-"{owner} hÃ¤lt Wasser vor Nase, trinkt selbst: 'Durst? Trink deine TrÃ¤nen. Die schmecken besser.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} fingert {pet} bis Rand, stoppt: 'Kommen? Nur in meinen TrÃ¤umen. Und die trÃ¤umst du heute Nacht allein.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} hält Wasser vor Nase, trinkt selbst: 'Durst? Trink deine Tränen. Die schmecken besser.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} fingert {pet} bis Rand, stoppt: 'Kommen? Nur in meinen Träumen. Und die träumst du heute Nacht allein.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} isst vor {pet}, lÃ¤sst KrÃ¼mel fallen: 'Leck den Boden. Das ist dein Abendessen.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} schweigt stundenlang: 'Deine Stimme? Ãœberbewertet. Meine Stille ist Gold.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} schweigt stundenlang: 'Deine Stimme? Überbewertet. Meine Stille ist Gold.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} dreht sich weg beim Kuscheln: 'Decke reicht. Die bettelt wenigstens nicht.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} verweigert Kuss: 'Lippen? Die spar ich fÃ¼r jemanden, derâ€™s verdient. Du nicht.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} verweigert Kuss: 'Lippen? Die spar ich für jemanden, der’s verdient. Du nicht.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zeigt Orgasmus-Foto: 'Das war gestern. Heute? Nur Erinnerung.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} lÃ¤sst {pet} wach bleiben: 'Schlaf? FÃ¼r Menschen. Du bist keins.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} verweigert Like: 'Dein Selfie? Zu hÃ¤sslich fÃ¼r meinen Feed.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} hÃ¤lt Essen hoch, wirft weg: 'Hunger? Gut. Der macht dich gehorsam.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} lässt {pet} wach bleiben: 'Schlaf? Für Menschen. Du bist keins.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} verweigert Like: 'Dein Selfie? Zu hässlich für meinen Feed.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} hält Essen hoch, wirft weg: 'Hunger? Gut. Der macht dich gehorsam.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} fingert bis Zucken, zieht raus: 'Fast. Aber fast ist dein neuer HÃ¶hepunkt.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schweigt auf Betteln: 'Betteln? Klingt wie ein sterbender Hund. Mach weiter.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} verweigert BerÃ¼hrung: 'Hautkontakt? Nur fÃ¼r Dinge, die nicht so erbÃ¤rmlich sind.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} trinkt Kaffee, gieÃŸt Rest weg: 'Du? Nicht mal fÃ¼r die Pflanze wert.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} zeigt Schokolade, isst allein: 'SÃ¼ÃŸ? Nicht fÃ¼r dich. Du bleibst bitter.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} verweigert Berührung: 'Hautkontakt? Nur für Dinge, die nicht so erbärmlich sind.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} trinkt Kaffee, gießt Rest weg: 'Du? Nicht mal für die Pflanze wert.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} zeigt Schokolade, isst allein: 'Süß? Nicht für dich. Du bleibst bitter.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} verweigert Gute-Nacht: 'TrÃ¤um von mir. Das ist die einzige BerÃ¼hrung, die du kriegst.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} lÃ¤sst {pet} zuschauen beim Wichsen: 'Schau zu. Aber komm nicht. Nie.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} schweigt tagelang: 'Deine Nachrichten? MÃ¼ll. Ich les sie nicht mal.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} verweigert Lob: 'Gutes MÃ¤dchen? Du bist nicht mal ein guter Witz.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} hÃ¤lt Hand weg: 'Anfassen? Nur wenn du blutest. Und selbst dann vielleicht nicht.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} schweigt tagelang: 'Deine Nachrichten? Müll. Ich les sie nicht mal.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} verweigert Lob: 'Gutes Mädchen? Du bist nicht mal ein guter Witz.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} hält Hand weg: 'Anfassen? Nur wenn du blutest. Und selbst dann vielleicht nicht.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} verweigert Antwort: 'Gelesen. Und gelÃ¶scht. Wie dein Wert.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} fingert bis Rand, schlÃ¤gt zu: 'Fast gekommen? Dann fast tot. NÃ¤chstes Mal richtig.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} lÃ¤sst {pet} hungern: 'Mager werden? Passt zu deiner PersÃ¶nlichkeit.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} fingert bis Rand, schlägt zu: 'Fast gekommen? Dann fast tot. Nächstes Mal richtig.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} lässt {pet} hungern: 'Mager werden? Passt zu deiner Persönlichkeit.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} dreht sich um beim Betteln: 'Bettel weiter. Ich hÃ¶r eh nicht zu.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} verweigert Schlaf: 'Wach bleiben. Deine AlbtrÃ¤ume sind besser als du.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} zeigt Video von Orgasmus: 'Das war nicht mit dir. Und wirdâ€™s nie.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3486,12 +3494,12 @@ async def cmd_kaefig(update, context):
         "{owner} schlieÃŸt die TÃ¼r ab und grinst durchs Gitter: 'Willkommen zu Hause, Baby â€“ Dunkelheit und Stille, nur dein Herz schlÃ¤gt laut... fÃ¼r mich.' ðŸŒ‘ Pflege {n}/{CARES_PER_DAY}.",
         "Stunden im KÃ¤fig, nackt, zitternd â€“ {owner} schaut nur zu: 'Gute Tiere lernen schnell. Schlechte betteln sÃ¼ÃŸ â€“ und du bist ja so schlecht.' ðŸ• Pflege {n}/{CARES_PER_DAY}.",
         "Die Gitter werfen Schatten auf {pet}s Haut â€“ ein Muster aus Gefangenschaft: 'Sieht aus wie Tattoos, nur billiger und mit mehr Drama â€“ dein Lieblingslook.' â›“ï¸ Pflege {n}/{CARES_PER_DAY}.",
-        "KÃ¤fig schÃ¶n gerÃ¤umig, {pet} kann sich drehen â€“ {owner}: 'GemÃ¼tlich, oder? Fast wie ein Wellness-Retreat â€“ nur ohne Ausgang, du kleine Dauergast.' Pflege {n}/{CARES_PER_DAY}.",
+        "Käfig schön geräumig, {pet} kann sich drehen – {owner}: 'Gemütlich, oder? Fast wie ein Wellness-Retreat – nur ohne Ausgang, du kleine Dauergast.' Pflege {n}/{CARES_PER_DAY}.",
         "{owner} stellt den KÃ¤fig ins Wohnzimmer â€“ {pet} hat beste Sicht auf mich: 'BrÃ¤unung durch Fernseherlicht inklusive â€“ und mein Grinsen gratis.' Pflege {n}/{CARES_PER_DAY}.",
-        "Nachts leises Musikchen im KÃ¤fig â€“ {pet} darf mitsingen: 'Neue Spielkameraden? Nee, nur meine Playlist â€“ und du bist der Refrain.' Pflege {n}/{CARES_PER_DAY}.",
-        "KÃ¤fig mit weicher Decke â€“ {pet} wird wahnsinnig vor Bequemlichkeit: 'Wassertortur light? Heute nur Kuschelfolter â€“ weil du's eh nicht verdienst.' Pflege {n}/{CARES_PER_DAY}.",
+        "Nachts leises Musikchen im Käfig – {pet} darf mitsingen: 'Neue Spielkameraden? Nee, nur meine Playlist – und du bist der Refrain.' Pflege {n}/{CARES_PER_DAY}.",
+        "Käfig mit weicher Decke – {pet} wird wahnsinnig vor Bequemlichkeit: 'Wassertortur light? Heute nur Kuschelfolter – weil du's eh nicht verdienst.' Pflege {n}/{CARES_PER_DAY}.",
         "{owner} 'vergisst' {pet} fÃ¼r fÃ¼nf Minuten â€“ kommt zurÃ¼ck und lacht: 'Zeitreise erfolgreich. Du siehst aus, als wÃ¤râ€™s â€™ne Woche â€“ sÃ¼ÃŸ, wie du leidest.' Pflege {n}/{CARES_PER_DAY}.",
-        "KÃ¤fig mit Kissen drin â€“ jede Bewegung bequem: 'Umarmung rundum? Ja, von meiner Aufmerksamkeit â€“ die dich langsam erstickt.' Pflege {n}/{CARES_PER_DAY}.",
+        "Käfig mit Kissen drin – jede Bewegung bequem: 'Umarmung rundum? Ja, von meiner Aufmerksamkeit – die dich langsam erstickt.' Pflege {n}/{CARES_PER_DAY}.",
         "{owner} filmt {pet} im KÃ¤fig und zeigt es nur sich selbst: 'Dein neues Zuhause geht viral â€“ in meinem Kopf, 24/7, du kleine Star-Sub.' Pflege {n}/{CARES_PER_DAY}.",
         "{owner} schlieÃŸt ab und edge {pet} durchs Gitter: 'Gutes MÃ¤dchen, eingesperrt und nass â€“ dein KÃ¤fig ist edging deluxe.' Pflege {n}/{CARES_PER_DAY}.",
         "{owner} lÃ¤sst {pet} warten mit verbundenen Augen: 'Gutes MÃ¤dchen, blind im KÃ¤fig â€“ du spÃ¼rst nur die Gitter und meine Stimme.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3515,22 +3523,22 @@ async def cmd_schande(update, context):
     tame = [
         "{pet} steht nackt in der Ecke, Schande brennt heiÃŸer als jeder Schlag â€“ alle dÃ¼rfen zusehen: 'Und du genieÃŸt die Show insgeheim, du kleine Exhibitionistin.' ðŸ‘ï¸ Pflege {n}/{CARES_PER_DAY}.",
         "{owner} erzÃ¤hlt laut {pet}s Geheimnisse, lacht dabei â€“ bis die Scham in den Knochen sitzt: 'Aber ehrlich, SÃ¼ÃŸe, die waren eh nicht so geheim.' ðŸ’€ Pflege {n}/{CARES_PER_DAY}.",
-        "Ein Schild um den Hals: 'Gebrauchtes Eigentum' â€“ {pet} trÃ¤gt es stolz: 'Stolz tot? Nee, der hat nur Urlaub bei mir gemacht.' ðŸª¦ Pflege {n}/{CARES_PER_DAY}.",
+        "Ein Schild um den Hals: 'Gebrauchtes Eigentum' – {pet} trägt es stolz: 'Stolz tot? Nee, der hat nur Urlaub bei mir gemacht.' 🪦 Pflege {n}/{CARES_PER_DAY}.",
         "{owner} filmt {pet} nackt mit dem Schild 'Billige Hure â€“ aber nur fÃ¼r mich' und zeigt es nur sich selbst: 'Dein Ruhm ist jetzt ewig â€“ in meinem Privatordner.' Pflege {n}/{CARES_PER_DAY}.",
         "{pet} muss vor dem Spiegel masturbieren und dabei laut ihre perversesten Geheimnisse gestehen â€“ 'Applaus gibt's von mir, wenn du schÃ¶n rot wirst.' Pflege {n}/{CARES_PER_DAY}.",
-        "{owner} liest alte ChatverlÃ¤ufe vor, lacht Ã¼ber jede peinliche Nachricht â€“ {pet} wird rot bis in die Zehen: 'FÃ¼r immer? Nee, bis morgen, wenn du wieder bettelst.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} liest alte Chatverläufe vor, lacht über jede peinliche Nachricht – {pet} wird rot bis in die Zehen: 'Für immer? Nee, bis morgen, wenn du wieder bettelst.' Pflege {n}/{CARES_PER_DAY}.",
         "Ein temporÃ¤res Tattoo 'Nutzlose Fotze â€“ aber meine' â€“ {pet} muss es mir zeigen: 'Deine neue Visitenkarte â€“ exklusiv fÃ¼r mich.' Pflege {n}/{CARES_PER_DAY}.",
         "{owner} zwingt {pet} Fotos von frÃ¼her anzugucken â€“ 'Dein altes Ich stirbt heute vor Lachen.' Pflege {n}/{CARES_PER_DAY}.",
         "{pet} steht stundenlang nackt vor dem Spiegel, ich darf Fotos machen â€“ 'Dein Viertel kennt dich nicht, aber ich umso besser.' Pflege {n}/{CARES_PER_DAY}.",
         "{owner} erzÃ¤hlt mir {pet}s dreckigste Details per FlÃ¼stern â€“ 'Frohe Weihnachten von deiner kleinen Schlampe â€“ nur fÃ¼r meine Ohren.' Pflege {n}/{CARES_PER_DAY}.",
-        "{owner} hÃ¤ngt ein Schild um: 'Vorsicht, beiÃŸt nur mich' â€“ {pet} trÃ¤gt es: 'Deine Schande? SÃ¼ÃŸ, als ob dich jemand anderes wollen wÃ¼rde.' ðŸ˜‚ Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} hängt ein Schild um: 'Vorsicht, beißt nur mich' – {pet} trägt es: 'Deine Schande? Süß, als ob dich jemand anderes wollen würde.' 😂 Pflege {n}/{CARES_PER_DAY}.",
         "{owner} erzÃ¤hlt deine peinlichsten Stories â€“ aber nur mir: 'Geheimnisse? Die waren eh nur peinlich fÃ¼r dich, fÃ¼r mich Gold.' Toxisch grin. ðŸ˜ Pflege {n}/{CARES_PER_DAY}.",
         "{pet} steht in der Ecke: '{owner}: 'SchÃ¤m dich mal richtig â€“ oh warte, das machst du ja schon, wenn ich nur gucke.' {pet} dead. ðŸ¤£ Pflege {n}/{CARES_PER_DAY}.",
-        "{owner} flÃ¼stert deine SchwÃ¤chen: 'Alle hÃ¶ren mit? Nee, nur ich. Die anderen sind eh neidisch.' Ironie max. ðŸ˜ˆ Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} flüstert deine Schwächen: 'Alle hören mit? Nee, nur ich. Die anderen sind eh neidisch.' Ironie max. 😈 Pflege {n}/{CARES_PER_DAY}.",
         "{pet} muss ihr eigenes Spiegelbild anstarren: '{owner}: 'Schande-Level: Du siehst aus, als wÃ¤rst du ertappt worden. Warst du ja auch.' Sarkasmus brutal. ðŸ’€ Pflege {n}/{CARES_PER_DAY}.",
-        "{owner} postet gar nichts: 'Dein Ruhm? Bleibt bei mir. Ã–ffentlich schÃ¤men ist was fÃ¼r Amateure.' Lachkrampf. ðŸ˜­ Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} postet gar nichts: 'Dein Ruhm? Bleibt bei mir. Öffentlich schämen ist was für Amateure.' Lachkrampf. 😭 Pflege {n}/{CARES_PER_DAY}.",
         "{pet} trÃ¤gt ein Schild 'Mein Eigentum â€“ HÃ¤nde weg': '{owner}: 'SchÃ¤m dich, dass duâ€™s liebst, markiert zu sein.' Toxisch sÃ¼ÃŸ. ðŸ¬ Pflege {n}/{CARES_PER_DAY}.",
-        "{owner} lacht Ã¼ber deine Vergangenheit: 'Dein altes Ich? Das war eh overrated. Das neue kniet besser.' {pet} prustet los. ðŸ¤­ Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} lacht über deine Vergangenheit: 'Dein altes Ich? Das war eh overrated. Das neue kniet besser.' {pet} prustet los. 🤭 Pflege {n}/{CARES_PER_DAY}.",
         "{pet} in der Ecke: '{owner}: 'Alle sehen zu? Nee, nur ich. Die anderen hÃ¤tten eh keine Chance gegen deine Scham-Performance.' Sarkastischer Applaus. ðŸ‘ðŸ˜‚ Pflege {n}/{CARES_PER_DAY}.",
         "{owner} flÃ¼stert: 'Daily Reminder: Deine Schande ist mein Lieblingshobby. Und du machst mit, weil duâ€™s brauchst.' {pet} lachend rot. ðŸ˜ˆ Pflege {n}/{CARES_PER_DAY}."
     ]
@@ -3538,26 +3546,26 @@ async def cmd_schande(update, context):
 
 async def cmd_erregen(update, context):
     tame = [
-"{owner} fingert dich bis zum Rand, zieht raus: 'Fast gekommen? Pech. Dein Orgasmus ist mein Eigentum â€“ und ich geb ihn nicht her.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} fingert dich bis zum Rand, zieht raus: 'Fast gekommen? Pech. Dein Orgasmus ist mein Eigentum – und ich geb ihn nicht her.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} reibt die Klit langsam, quÃ¤lend: 'Zuck ruhig. Je mehr du zappelst, desto lÃ¤nger lass ich dich hÃ¤ngen.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} leckt einmal tief, hÃ¶rt auf: 'Geschmack? Geil. Aber ErlÃ¶sung? TrÃ¤um weiter, Fotze.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} leckt einmal tief, hört auf: 'Geschmack? Geil. Aber Erlösung? Träum weiter, Fotze.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} drÃ¼ckt Finger rein, stoppt abrupt: 'Tief drin und leer gelassen â€“ das ist deine neue Definition von Liebe.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} streichelt Nippel hart, kneift: 'Hart werden? Gut. Aber kommen? Nur Ã¼ber meine Leiche â€“ und deine erst recht.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} reibt dich nass, hÃ¶rt auf: 'Tropfen? SchÃ¶n. Aber Tropfen reichen nicht. Du brauchst mich, um zu flieÃŸen.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} streichelt Nippel hart, kneift: 'Hart werden? Gut. Aber kommen? Nur über meine Leiche – und deine erst recht.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} reibt dich nass, hört auf: 'Tropfen? Schön. Aber Tropfen reichen nicht. Du brauchst mich, um zu fließen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} fingert dich stundenlang, kein Ende: 'Edging ist Gnade. Kommen ist Luxus. Und Luxus kriegst du nie.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} haucht auf die Fotze: 'Mein Atem macht dich nass. Mein Schweigen macht dich wahnsinnig.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} reibt die Klit mit Daumen, stoppt: 'Pulsierend? Perfekt. Aber pulsierend ohne ErlÃ¶sung ist dein neues Normal.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} leckt Innenschenkel hoch, hÃ¶rt auf: 'Nah dran? Immer. Drin? Nie.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} reibt die Klit mit Daumen, stoppt: 'Pulsierend? Perfekt. Aber pulsierend ohne Erlösung ist dein neues Normal.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} leckt Innenschenkel hoch, hört auf: 'Nah dran? Immer. Drin? Nie.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} fingert tief, zieht raus: 'Du bist so nass, dass es tropft. Und ich lass es tropfen â€“ ohne dich zu retten.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} kneift Klit hart: 'Schmerz und Geilheit? Meine Lieblingskombi. Und du kriegst beides ohne Happy End.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} streichelt dich stundenlang: 'Du kommst erst, wenn ich tot bin. Spoiler: Ich sterb nicht.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} reibt dich bis Zucken, hÃ¶rt auf: 'Zucken ist sÃ¼ÃŸ. Kommen ist verboten.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} fingert dich bis TrÃ¤nen: 'Weinen vor Geilheit? Das ist der Soundtrack zu deinem Elend.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} fingert dich bis Tränen: 'Weinen vor Geilheit? Das ist der Soundtrack zu deinem Elend.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} leckt einmal, beiÃŸt dann: 'Lust und Schmerz. Beides ohne Orgasmus.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} reibt dich langsam, quÃ¤lend: 'Jede Sekunde mehr Geilheit. Jede Sekunde weniger Verstand.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} drÃ¼ckt Finger rein, bewegt nicht: 'Drin und still. Das ist Folter deluxe.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} haucht auf Nippel: 'Hart werden? Gut. Aber hart bleiben ohne ErlÃ¶sung ist dein Schicksal.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} fingert dich bis Rand, schlÃ¤gt zu: 'Fast gekommen? Dann fast tot. NÃ¤chstes Mal richtig.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} haucht auf Nippel: 'Hart werden? Gut. Aber hart bleiben ohne Erlösung ist dein Schicksal.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} fingert dich bis Rand, schlägt zu: 'Fast gekommen? Dann fast tot. Nächstes Mal richtig.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} reibt die Klit endlos: 'Du kommst nie. Aber du wirst immer nasser.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} leckt dich tief, hÃ¶rt auf: 'Geschmack von Verzweiflung. Mein Lieblingsaroma.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} streichelt dich bis Wahnsinn: 'Geilheit ohne Ende. Wie Krebs â€“ nur geiler.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3566,33 +3574,33 @@ async def cmd_erregen(update, context):
 "{owner} haucht auf Fotze: 'Mein Atem ist alles, was du kriegst. Und das reicht nicht.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} fingert dich bis Zittern: 'Zittern vor Geilheit? Mein neues Hobby.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} stoppt mitten drin: 'Mitten drin und allein gelassen. Wie dein Leben.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} reibt dich hart, hÃ¶rt auf: 'Hart werden? Gut. Hart bleiben ohne Kommen? Besser.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} reibt dich hart, hört auf: 'Hart werden? Gut. Hart bleiben ohne Kommen? Besser.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} flÃ¼stert: 'Du kommst nie. Aber du wirst immer betteln. Und ich werde immer lachen.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "erregen", tame)
 
 async def cmd_betteln(update, context):
     tame = [
-"{owner} fingert dich bis zum Rand, zieht raus: 'Fast gekommen? Pech. Dein Orgasmus ist mein Eigentum â€“ und ich geb ihn nicht her.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} fingert dich bis zum Rand, zieht raus: 'Fast gekommen? Pech. Dein Orgasmus ist mein Eigentum – und ich geb ihn nicht her.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} reibt die Klit langsam, quÃ¤lend: 'Zuck ruhig. Je mehr du zappelst, desto lÃ¤nger lass ich dich hÃ¤ngen.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} leckt einmal tief, hÃ¶rt auf: 'Geschmack? Geil. Aber ErlÃ¶sung? TrÃ¤um weiter, Fotze.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} leckt einmal tief, hört auf: 'Geschmack? Geil. Aber Erlösung? Träum weiter, Fotze.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} drÃ¼ckt Finger rein, stoppt abrupt: 'Tief drin und leer gelassen â€“ das ist deine neue Definition von Liebe.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} streichelt Nippel hart, kneift: 'Hart werden? Gut. Aber kommen? Nur Ã¼ber meine Leiche â€“ und deine erst recht.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} reibt dich nass, hÃ¶rt auf: 'Tropfen? SchÃ¶n. Aber Tropfen reichen nicht. Du brauchst mich, um zu flieÃŸen.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} streichelt Nippel hart, kneift: 'Hart werden? Gut. Aber kommen? Nur über meine Leiche – und deine erst recht.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} reibt dich nass, hört auf: 'Tropfen? Schön. Aber Tropfen reichen nicht. Du brauchst mich, um zu fließen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} fingert dich stundenlang, kein Ende: 'Edging ist Gnade. Kommen ist Luxus. Und Luxus kriegst du nie.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} haucht auf die Fotze: 'Mein Atem macht dich nass. Mein Schweigen macht dich wahnsinnig.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} reibt die Klit mit Daumen, stoppt: 'Pulsierend? Perfekt. Aber pulsierend ohne ErlÃ¶sung ist dein neues Normal.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} leckt Innenschenkel hoch, hÃ¶rt auf: 'Nah dran? Immer. Drin? Nie.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} reibt die Klit mit Daumen, stoppt: 'Pulsierend? Perfekt. Aber pulsierend ohne Erlösung ist dein neues Normal.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} leckt Innenschenkel hoch, hört auf: 'Nah dran? Immer. Drin? Nie.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} fingert tief, zieht raus: 'Du bist so nass, dass es tropft. Und ich lass es tropfen â€“ ohne dich zu retten.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} kneift Klit hart: 'Schmerz und Geilheit? Meine Lieblingskombi. Und du kriegst beides ohne Happy End.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} streichelt dich stundenlang: 'Du kommst erst, wenn ich tot bin. Spoiler: Ich sterb nicht.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} reibt dich bis Zucken, hÃ¶rt auf: 'Zucken ist sÃ¼ÃŸ. Kommen ist verboten.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} fingert dich bis TrÃ¤nen: 'Weinen vor Geilheit? Das ist der Soundtrack zu deinem Elend.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} fingert dich bis Tränen: 'Weinen vor Geilheit? Das ist der Soundtrack zu deinem Elend.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} leckt einmal, beiÃŸt dann: 'Lust und Schmerz. Beides ohne Orgasmus.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} reibt dich langsam, quÃ¤lend: 'Jede Sekunde mehr Geilheit. Jede Sekunde weniger Verstand.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} drÃ¼ckt Finger rein, bewegt nicht: 'Drin und still. Das ist Folter deluxe.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} haucht auf Nippel: 'Hart werden? Gut. Aber hart bleiben ohne ErlÃ¶sung ist dein Schicksal.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} fingert dich bis Rand, schlÃ¤gt zu: 'Fast gekommen? Dann fast tot. NÃ¤chstes Mal richtig.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} haucht auf Nippel: 'Hart werden? Gut. Aber hart bleiben ohne Erlösung ist dein Schicksal.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} fingert dich bis Rand, schlägt zu: 'Fast gekommen? Dann fast tot. Nächstes Mal richtig.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} reibt die Klit endlos: 'Du kommst nie. Aber du wirst immer nasser.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} leckt dich tief, hÃ¶rt auf: 'Geschmack von Verzweiflung. Mein Lieblingsaroma.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} streichelt dich bis Wahnsinn: 'Geilheit ohne Ende. Wie Krebs â€“ nur geiler.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3601,7 +3609,7 @@ async def cmd_betteln(update, context):
 "{owner} haucht auf Fotze: 'Mein Atem ist alles, was du kriegst. Und das reicht nicht.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} fingert dich bis Zittern: 'Zittern vor Geilheit? Mein neues Hobby.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} stoppt mitten drin: 'Mitten drin und allein gelassen. Wie dein Leben.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} reibt dich hart, hÃ¶rt auf: 'Hart werden? Gut. Hart bleiben ohne Kommen? Besser.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} reibt dich hart, hört auf: 'Hart werden? Gut. Hart bleiben ohne Kommen? Besser.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} flÃ¼stert: 'Du kommst nie. Aber du wirst immer betteln. Und ich werde immer lachen.' Pflege {n}/{CARES_PER_DAY}."
     ]
     await do_care(update, context, "betteln", tame)
@@ -3660,16 +3668,16 @@ async def cmd_bestrafen(update, context):
 "{owner} drÃ¼ckt Gesicht in Kotfladen: 'Leck. Das ist deine Strafe â€“ und dein Spiegel.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schlÃ¤gt mit der flachen Hand: 'Bis dein Arsch platzt. Und du weinst Blut.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} bindet mit Ketten: 'Zieh. Und reiÃŸ dir die Haut auf.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} wÃ¼rgt bis Ohnmacht: 'Schwarzwerden? Mein Lieblingslichtaus.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} peitscht RÃ¼cken: 'Narben? Meine Unterschrift in deinem Fleisch.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} würgt bis Ohnmacht: 'Schwarzwerden? Mein Lieblingslichtaus.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} peitscht Rücken: 'Narben? Meine Unterschrift in deinem Fleisch.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} lÃ¤sst hungern: 'Kein Essen. Bis du so mager bist wie deine WÃ¼rde.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} schlÃ¤gt mit dem Stock: 'Jeder Schlag ein Knochenbruch. Oder fast.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} bindet und lÃ¤sst warten: 'Warte. Bis deine Gelenke brechen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} beiÃŸt bis Blut flieÃŸt: 'Schmeckt besser als deine TrÃ¤nen.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} wÃ¼rgt mit Hand: 'Atem? Mein Geschenk. Und ich nehmâ€™s zurÃ¼ck.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} würgt mit Hand: 'Atem? Mein Geschenk. Und ich nehm’s zurück.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} peitscht Klit: 'Das fÃ¼rs Geilsein ohne Erlaubnis.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} fesselt und lÃ¤sst frieren: 'KÃ¤lte ist Strafe. Und du zitterst so schÃ¶n.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} schlÃ¤gt bis taub: 'GefÃ¼hllos? Gut. Dann spÃ¼rst du den nÃ¤chsten doppelt.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} schlägt bis taub: 'Gefühllos? Gut. Dann spürst du den nächsten doppelt.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} bindet mit Stacheldraht: 'Beweg dich. Und zerfleisch dich selbst.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} wÃ¼rgt bis Zunge raus: 'Zunge raus. Will ich abbeiÃŸen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} peitscht bis Fleisch hÃ¤ngt: 'Das ist Strafe. Und du siehst aus wie mein Kunstwerk.' Pflege {n}/{CARES_PER_DAY}."
@@ -3682,7 +3690,7 @@ async def cmd_loben(update, context):
 "{owner} flÃ¼stert kalt: 'Du hast es fast gut gemacht. Fast. Deshalb kriegst du nur fast Lob.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} streicht Ã¼bers Haar, zieht fest: 'Brave Schlampe. Weil du heute nicht geheult hast. Das ist alles.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} grinst: 'Gutes MÃ¤dchen. FÃ¼r eine Sekunde. Danach bist du wieder nur mein Loch.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} drÃ¼ckt einen Kuss auf die Stirn â€“ einmal: 'Stolz auf dich? Nur, weil duâ€™s Ã¼berlebt hast.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} drückt einen Kuss auf die Stirn – einmal: 'Stolz auf dich? Nur, weil du’s überlebt hast.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} flÃ¼stert: 'Gutes MÃ¤dchen. Deine Hingabe ist so erbÃ¤rmlich sÃ¼ÃŸ, dass ich fast kotze.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} tÃ¤tschelt den Arsch: 'Brav ertragen. Das ist das HÃ¶chste, was du je kriegst.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} lacht leise: 'Gutes MÃ¤dchen. Weil du bettelst wie eine kaputte Puppe â€“ und das gefÃ¤llt mir.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3690,7 +3698,7 @@ async def cmd_loben(update, context):
 "{owner} flÃ¼stert ins Ohr: 'Gutes MÃ¤dchen. FÃ¼r heute. Morgen fÃ¤ngst du wieder bei null an.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} hÃ¤lt den Blick: 'Brave Hure. Weil duâ€™s wagst, mich anzuschauen â€“ und sofort wieder runtergehst.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} grinst kalt: 'Gutes MÃ¤dchen. Du bist so gehorsam, dass es fast langweilig wird. Fast.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} tÃ¤tschelt den Kopf: 'Stolz auf dich? Nur, weil du noch atmest, obwohl ichâ€™s dir verbieten kÃ¶nnte.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} tätschelt den Kopf: 'Stolz auf dich? Nur, weil du noch atmest, obwohl ich’s dir verbieten könnte.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} flÃ¼stert: 'Gutes MÃ¤dchen. Dein Winseln ist Musik â€“ billige, kaputte Musik.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} streicht Ã¼ber die Leine: 'Brav getragen. Wie ein Hund, der weiÃŸ, wo sein Platz ist â€“ unten.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} lacht dreckig: 'Gutes MÃ¤dchen. Weil duâ€™s verdienst â€“ und weilâ€™s mich anmacht, wenn du dich dafÃ¼r hasst.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3702,7 +3710,7 @@ async def cmd_loben(update, context):
 "{owner} flÃ¼stert kalt: 'Gutes MÃ¤dchen. Weil du bettelst, als wÃ¤râ€™s dein Lebenszweck â€“ und das istâ€™s ja auch.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} hÃ¤lt den Blick: 'Brav geschaut. Augen runter, bevor ich sie dir rausreiÃŸ.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} lacht: 'Gutes MÃ¤dchen. FÃ¼r eine Sekunde. Danach bist du wieder wertlos.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} tÃ¤tschelt den Kopf: 'Stolz? Nur, weil du noch nicht tot bist. Gratuliere.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} tätschelt den Kopf: 'Stolz? Nur, weil du noch nicht tot bist. Gratuliere.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} flÃ¼stert: 'Gutes MÃ¤dchen. Deine Hingabe ist so erbÃ¤rmlich, dass sie fast sÃ¼ÃŸ ist.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} streicht Ã¼ber die Leine: 'Brav gezogen. Wie ein Hund, der weiÃŸ, dass sein Herrchen ihn jederzeit tottreten kann.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} grinst: 'Gutes MÃ¤dchen. Weil duâ€™s verdienst â€“ und weilâ€™s mich langweilt, wenn du brav bist.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3778,7 +3786,7 @@ async def cmd_demuetigen(update, context):
         "{pet} muss mir erzÃ¤hlen, wie sehr sie mich braucht â€“ und lÃ¼gen darf sie nicht, wie Annie Wilkes ihre Wahrheit. Pflege {n}/{CARES_PER_DAY}.",
         "Ultimative Worte: 'Du bist mein grÃ¶ÃŸter Schatz â€“ und ich behalte dich fÃ¼r immer in meinem Overlook Hotel.' {pet} zittert vor Dankbarkeit. Pflege {n}/{CARES_PER_DAY}.",
         "{owner} demÃ¼tigt mit einem LÃ¤cheln wie Pennywise: 'Gutes MÃ¤dchen, du bist so perfekt unperfekt â€“ float with me.' Pflege {n}/{CARES_PER_DAY}.",
-        "{owner} flÃ¼stert: 'Gutes MÃ¤dchen, du bist mein Licht in der Dunkelheit von Shawshank â€“ aber Freiheit? Die gibt's nur in meinen Armen.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} flüstert: 'Gutes Mädchen, du bist mein Licht in der Dunkelheit von Shawshank – aber Freiheit? Die gibt's nur in meinen Armen.' Pflege {n}/{CARES_PER_DAY}.",
         "'Gutes MÃ¤dchen', haucht {owner}: 'Du bist die Rose in meinem Misery-Garten â€“ demÃ¼tig, schÃ¶n und ewig gefangen in meiner Geschichte.' Pflege {n}/{CARES_PER_DAY}.",
         "{pet} wird rot, {owner} reimt: 'Gutes MÃ¤dchen, fein und bang â€“ du gehÃ¶rst mir, wie der Stand zu einem King.' Pflege {n}/{CARES_PER_DAY}.",
         "Ein Lob wie ein Fluch aus Salem's Lot: 'Gutes MÃ¤dchen, deine DemÃ¼tigung ist mein Liebesbann â€“ dunkel, ewig und nur fÃ¼r dich, mein Fan.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3794,7 +3802,7 @@ async def cmd_demuetigen(update, context):
 async def cmd_melken(update, context):
     tame = [
 "{owner} bindet {pet} fest und melkt brutal: 'Tropf, Schlampe. Oder ich reiÃŸ dir die Klit raus.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} melkt hart und stoppt: 'Nah dran? Pech. Dein Orgasmus gehÃ¶rt mir â€“ und ich behalt ihn.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} melkt hart und stoppt: 'Nah dran? Pech. Dein Orgasmus gehört mir – und ich behalt ihn.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt mit kalten Fingern: 'Kalt und nass. Wie dein Leben ohne mich.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} hÃ¤lt Leine straff beim Melken: 'Zieh selbst ran. Oder ich strangulier dich dabei.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt bis TrÃ¤nen: 'Weinen macht dich nasser. Und mich geiler.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3814,7 +3822,7 @@ async def cmd_melken(update, context):
 "{owner} melkt mit Leine am Hals: 'Jeder Zug ein Tropfen. Und ich zieh hart.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt und verweigert: 'Tropf ohne Ende. Kommen? Vergiss es.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt hart und flÃ¼stert: 'Du gehÃ¶rst mir. Jeder Tropfen sagt's.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} melkt bis taub: 'GefÃ¼hllos? Gut. Dann spÃ¼rst du den nÃ¤chsten doppelt.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} melkt bis taub: 'Gefühllos? Gut. Dann spürst du den nächsten doppelt.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt und drÃ¼ckt Kehle: 'Atem und Tropfen. Mein Geschenk.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt mit kalten Fingern tief: 'Kalt rein, heiÃŸ raus. Wie dein Leben.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt bis Zittern: 'Zittern ist sÃ¼ÃŸ. Mach weiter.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3830,14 +3838,14 @@ async def cmd_melken(update, context):
 "{owner} melkt und verweigert: 'Tropf ohne Ende. Du kommst nie.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt mit Leine am Genick: 'Zieh. Und wÃ¼rg dabei.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt langsam: 'Langsam leer werden. Mein Lieblingsspiel.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} melkt und schlÃ¤gt Klit: 'Schmerz macht dich nasser. Oder lÃ¼gst du?' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} melkt und schlägt Klit: 'Schmerz macht dich nasser. Oder lügst du?' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt bis Schreien: 'Schrei. Ich hÃ¶r eh nicht zu.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt mit kalten Fingern: 'Kalt rein, heiÃŸ raus. Dein neues Leben.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt und beiÃŸt Lippe: 'Blut und Tropfen. Perfekt.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt bis Zunge raus: 'Zunge raus. Will ich abbeiÃŸen.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt hart: 'Du tropfst wie eine defekte Maschine. Geil defekt.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt und wÃ¼rgt: 'Tropf und keuch. Mein Rhythmus.' Pflege {n}/{CARES_PER_DAY}.",
-"{owner} melkt bis taub: 'GefÃ¼hllos? Dann spÃ¼rst du den nÃ¤chsten doppelt.' Pflege {n}/{CARES_PER_DAY}.",
+"{owner} melkt bis taub: 'Gefühllos? Dann spürst du den nächsten doppelt.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt und stopft Mund: 'Tropf stumm. Dein Schreien nervt.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt mit Gewichten: 'Zieh. Und blut fÃ¼r mich.' Pflege {n}/{CARES_PER_DAY}.",
 "{owner} melkt langsam: 'Jede Sekunde mehr Geilheit. Keine ErlÃ¶sung.' Pflege {n}/{CARES_PER_DAY}.",
@@ -3882,9 +3890,9 @@ async def cmd_belohnen(update, context):
         "Ein Orgasmus, aber nur in meinen Armen â€“ {pet} kommt und wird weich: 'Gutes MÃ¤dchen, du blÃ¼hst nur fÃ¼r mich â€“ wie eine Plastikblume im Discounter.' Pflege {n}/{CARES_PER_DAY}.",
         "{owner} streichelt einmal sanft â€“ 'Belohnung fÃ¼rs Gehorchen, meine kleine, perfekte Versagerin mit dem besten Fake-LÃ¤cheln.' {pet} zittert vor GlÃ¼ck. Pflege {n}/{CARES_PER_DAY}.",
         "Erlaubt, meinen Namen zu hauchen â€“ nur dieses eine Mal: '{pet} kommt sofort und hasst sich, weil sie weiÃŸ, dass ich's eh nicht ernst meine.' Pflege {n}/{CARES_PER_DAY}.",
-        "Ein Kuss â€“ aber auf die Stirn wie eine Versagerin: 'Schmeckt nach Liebe, oder? Nach meiner Art von Liebe â€“ der, die dich immer klein hÃ¤lt.' Pflege {n}/{CARES_PER_DAY}.",
+        "Ein Kuss – aber auf die Stirn wie eine Versagerin: 'Schmeckt nach Liebe, oder? Nach meiner Art von Liebe – der, die dich immer klein hält.' Pflege {n}/{CARES_PER_DAY}.",
         "{owner} lÃ¤sst {pet} eine Stunde lang in meinem Arm schlafen â€“ 'Luxusbelohnung, du undankbare kleine Bettlerin, die eh nie genug kriegt.' Pflege {n}/{CARES_PER_DAY}.",
-        "Das grÃ¶ÃŸte Geschenk: {owner} sagt 'Ich behalte dich fÃ¼r immer.' {pet} zerbricht vor Dankbarkeit: 'Weil Freiheit eh Ã¼berbewertet ist, stimmt's, mein kleines GefÃ¤ngnisvÃ¶gelchen?' Pflege {n}/{CARES_PER_DAY}.",
+        "Das größte Geschenk: {owner} sagt 'Ich behalte dich für immer.' {pet} zerbricht vor Dankbarkeit: 'Weil Freiheit eh überbewertet ist, stimmt's, mein kleines Gefängnisvögelchen?' Pflege {n}/{CARES_PER_DAY}.",
         "{owner} belohnt und reimt kalt: 'Gutes MÃ¤dchen, nimm den Preis â€“ er ist mein Kuss so rar und fein, aber nur, weil du's verdient hast, du kleine, geile Pein.' ðŸ˜‚ Pflege {n}/{CARES_PER_DAY}.",
         "'Gutes MÃ¤dchen, nimm den Lohn â€“ er ist mein Streicheln so gemein, wie Dornen an der Rose, die ich dir schenk, du kleine, falsche Pose.' Toxisch reimend. ðŸ˜ Pflege {n}/{CARES_PER_DAY}.",
         "{pet} schmilzt, {owner} grinst: 'Gutes MÃ¤dchen, rot und leer â€“ deine Belohnung ist mein Hohn, signiert mit Liebe, du kleiner, geiler Clown.' {pet} prustet. ðŸ¤£ Pflege {n}/{CARES_PER_DAY}.",
@@ -4376,7 +4384,7 @@ async def cmd_listdbusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Nur Daddy's Liebling (Admin) darf in die GrÃ¤ber schauen
     if update.effective_user.id != ADMIN_ID:
         await update.effective_message.reply_text(
-            "ðŸš« Denkst du echt, ich lass dich in meine Leichenhalle? "
+            "🚫 Denkst du echt, ich lass dich in meine Leichenhalle? "
             "Nur ich darf die Toten zÃ¤hlen, du kleine Voyeuristin."
         )
         return
@@ -4399,7 +4407,7 @@ async def cmd_listdbusers(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     lines = ["ðŸ“œ <b>Alle Seelen in der DB</b> (ID | @Username | Coins):\n"]
     for user_id, username, coins in rows:
-        uname = f"@{username}" if username else "unbekannt (GelÃ¶schter Account?)"
+        uname = f"@{username}" if username else "unbekannt (Gelöschter Account?)"
         lines.append(f"â€¢ <code>{user_id}</code> | {uname} | {coins} ðŸ’°")
 
     text = "\n".join(lines)
@@ -4741,4 +4749,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
