@@ -67,6 +67,8 @@ ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 MESSAGE_THROTTLE_S = 1
 CARE_COOLDOWN_S = 5  # Sekunden zwischen Pflegeaktionen
 CARES_PER_DAY = 10
+CARE_XP_PER_ACTION = 3
+FULL_CARE_XP_BONUS = 5
 MIN_CARES_PER_24H = 10
 RUNAWAY_WINDOW_DAYS = 3
 RUNAWAY_MIN_CARES_IN_WINDOW = 10
@@ -465,25 +467,42 @@ PET_SKILLS = {
 }
 
 PET_LEVEL_TITLES = [
-    "Schwaechling",
-    "Winzling",
-    "Jungtier",
-    "Kleiner Freund",
-    "Begleiter",
-    "Treuer Begleiter",
-    "Kaempfer",
-    "Beschuetzer",
-    "Waechter",
-    "Elite-Pet",
-    "Veteran",
-    "Alpha",
-    "Champion",
-    "Meistertier",
-    "Legenden-Pet",
-    "Titan",
-    "Urbestie",
-    "Mythos",
-    "Goettlicher Begleiter",
+    "Pflegekueken",
+    "Fellwaechter",
+    "Bestienzaehmer",
+    "Rudelfluesterer",
+    "Instinktmeister",
+    "Alpha-Dompteur",
+    "Apex-Baendiger",
+]
+PET_LEVEL_THRESHOLDS = [
+    0,
+    30,
+    60,
+    100,
+    150,
+    210,
+    280,
+    360,
+    450,
+    550,
+    660,
+    780,
+    910,
+    1050,
+    1200,
+    1360,
+    1530,
+    1710,
+    1900,
+    2100,
+]
+FULLCARE_EVOLUTION_STAGES = [
+    (30, "Legendaerer Baendiger"),
+    (14, "Gold-Zaehmer"),
+    (7, "Silber-Zaehmer"),
+    (3, "Bronze-Zaehmer"),
+    (1, "Bestienzaehmer"),
 ]
 
 # =========================
@@ -946,6 +965,22 @@ async def migrate_db(db):
         await _set_user_version(db, 16)
         current = 16
 
+    if current < 17:
+        if not await _table_has_column(db, "pets", "fullcare_days"):
+            await db.execute("ALTER TABLE pets ADD COLUMN fullcare_days INTEGER DEFAULT 0")
+        await db.execute(
+            "UPDATE pets SET fullcare_days=MAX(COALESCE(fullcare_days, 0), COALESCE(fullcare_streak, 0))"
+        )
+        async with db.execute("SELECT chat_id, pet_id, COALESCE(pet_xp, 0) FROM pets") as cur:
+            pet_rows = await cur.fetchall()
+        for row_chat_id, row_pet_id, row_pet_xp in pet_rows:
+            await db.execute(
+                "UPDATE pets SET pet_level=? WHERE chat_id=? AND pet_id=?",
+                (pet_level_from_xp(int(row_pet_xp or 0)), row_chat_id, row_pet_id)
+            )
+        await _set_user_version(db, 17)
+        current = 17
+
     # Sicherheitsnetz: Tabelle muss immer existieren, auch bei Alt-DBs mit inkonsistenter user_version.
     await db.executescript("""
     CREATE TABLE IF NOT EXISTS superwords_found(
@@ -976,6 +1011,11 @@ async def migrate_db(db):
         await db.execute("ALTER TABLE pets ADD COLUMN fullcare_streak INTEGER DEFAULT 0")
     if not await _table_has_column(db, "pets", "fullcare_last_day"):
         await db.execute("ALTER TABLE pets ADD COLUMN fullcare_last_day TEXT DEFAULT NULL")
+    if not await _table_has_column(db, "pets", "fullcare_days"):
+        await db.execute("ALTER TABLE pets ADD COLUMN fullcare_days INTEGER DEFAULT 0")
+        await db.execute(
+            "UPDATE pets SET fullcare_days=MAX(COALESCE(fullcare_days, 0), COALESCE(fullcare_streak, 0))"
+        )
     if not await _table_has_column(db, "settings", "daily_curse_enabled"):
         await db.execute(
             f"ALTER TABLE settings ADD COLUMN daily_curse_enabled INTEGER DEFAULT {1 if DAILY_CURSE_ENABLED else 0}"
@@ -1231,8 +1271,19 @@ async def apply_reward_if_needed(db, chat_id: int, user_id: int, text: str) -> t
     response = trigger_comment.format(reward=reward)
     return reward, response
 
+def _tz_now() -> datetime.datetime:
+    return datetime.datetime.now(ZoneInfo(PETFLIX_TZ))
+
+
 def today_ymd():
-    return datetime.date.today().isoformat()
+    return _tz_now().date().isoformat()
+
+
+def _today_bounds_unix() -> tuple[int, int]:
+    now = _tz_now()
+    start = datetime.datetime.combine(now.date(), datetime.time.min, tzinfo=now.tzinfo)
+    end = start + datetime.timedelta(days=1)
+    return int(start.timestamp()), int(end.timestamp())
 
 
 
@@ -1344,14 +1395,28 @@ def resolve_next_skill(prev_skill: Optional[str], has_prev_owner: bool) -> tuple
 
 def pet_level_from_xp(xp: int) -> int:
     points = max(0, int(xp))
-    return max(0, min(100, points // 5))
+    level = 0
+    for idx, threshold in enumerate(PET_LEVEL_THRESHOLDS, start=1):
+        if points < threshold:
+            break
+        level = idx
+    return level
 
 def pet_level_title(level: int) -> str:
-    lvl = max(0, min(100, int(level)))
+    lvl = max(1, int(level))
     if not PET_LEVEL_TITLES:
         return f"Level {lvl}"
-    idx = min(len(PET_LEVEL_TITLES) - 1, (lvl * (len(PET_LEVEL_TITLES) - 1)) // 100)
+    bucket_size = max(1, (len(PET_LEVEL_THRESHOLDS) + len(PET_LEVEL_TITLES) - 1) // len(PET_LEVEL_TITLES))
+    idx = min(len(PET_LEVEL_TITLES) - 1, max(0, (lvl - 1) // bucket_size))
     return PET_LEVEL_TITLES[idx]
+
+
+def fullcare_evolution_title(fullcare_days: int) -> str:
+    days = max(0, int(fullcare_days))
+    for needed_days, title in FULLCARE_EVOLUTION_STAGES:
+        if days >= needed_days:
+            return title
+    return "Pflegekueken"
 
 def is_group(update: Update) -> bool:
     return update.effective_chat and update.effective_chat.type in {ChatType.GROUP, ChatType.SUPERGROUP}
@@ -1430,9 +1495,9 @@ def superword_pattern(word: str) -> str:
     return rf"(?<![a-z0-9]){body}(?![a-z0-9])"
 
 def _secs_until_tomorrow() -> int:
-    now = datetime.datetime.now()
+    now = _tz_now()
     tomorrow = (now + datetime.timedelta(days=1)).date()
-    midnight = datetime.datetime.combine(tomorrow, datetime.time.min)
+    midnight = datetime.datetime.combine(tomorrow, datetime.time.min, tzinfo=now.tzinfo)
     return max(1, int((midnight - now).total_seconds()))
 
 # 48h Mindestbesitz
@@ -1575,7 +1640,7 @@ async def do_care(update, context, action_key, tame_lines):
         ) as cur:
             prog_row = await cur.fetchone()
         prev_xp = int(prog_row[0]) if prog_row else 0
-        prev_level = int(prog_row[1]) if prog_row else 0
+        prev_level = pet_level_from_xp(prev_xp)
 
         now = int(time.time())
         care_window_since = now - RUNAWAY_HOURS * 3600
@@ -1617,12 +1682,13 @@ async def do_care(update, context, action_key, tame_lines):
         await set_care(db, chat_id, pet.id, now, done, today)
 
         level_up_text = None
-        new_xp = prev_xp
-        new_level = prev_level
+        gained_xp = CARE_XP_PER_ACTION
+        new_xp = prev_xp + gained_xp
+        new_level = pet_level_from_xp(new_xp)
         bonus_text = None
         if done >= CARES_PER_DAY:
             async with db.execute(
-                "SELECT pet_skill, care_bonus_day, COALESCE(fullcare_streak, 0), fullcare_last_day "
+                "SELECT pet_skill, care_bonus_day, COALESCE(fullcare_streak, 0), fullcare_last_day, COALESCE(fullcare_days, 0) "
                 "FROM pets WHERE chat_id=? AND pet_id=?",
                 (chat_id, pet.id)
             ) as cur:
@@ -1631,23 +1697,27 @@ async def do_care(update, context, action_key, tame_lines):
             care_bonus_day = prow[1] if prow else None
             prev_streak = int(prow[2]) if prow and prow[2] is not None else 0
             last_full_day = prow[3] if prow else None
+            prev_fullcare_days = int(prow[4]) if prow and prow[4] is not None else 0
 
             yesterday = (datetime.date.fromisoformat(today) - datetime.timedelta(days=1)).isoformat()
             streak = (prev_streak + 1) if last_full_day == yesterday else 1
-            streak_bonus = 1 if streak % 3 == 0 else 0
-
-            gained_points = 1 + streak_bonus
-            new_xp = prev_xp + gained_points
+            fullcare_days = prev_fullcare_days + 1
+            gained_xp += FULL_CARE_XP_BONUS
+            new_xp = prev_xp + gained_xp
             new_level = pet_level_from_xp(new_xp)
             await db.execute(
-                "UPDATE pets SET pet_xp=?, pet_level=?, fullcare_streak=?, fullcare_last_day=? "
+                "UPDATE pets SET pet_xp=?, pet_level=?, fullcare_streak=?, fullcare_last_day=?, fullcare_days=? "
                 "WHERE chat_id=? AND pet_id=?",
-                (new_xp, new_level, streak, today, chat_id, pet.id)
+                (new_xp, new_level, streak, today, fullcare_days, chat_id, pet.id)
             )
 
-            bonus_lines = [f"Levelpunkte: +{gained_points} fuer {CARES_PER_DAY}/{CARES_PER_DAY} Pflege."]
-            if streak_bonus:
-                bonus_lines.append(f"Streak-Bonus: +1 (Serie: {streak} volle Tage in Folge).")
+            evolution_title = fullcare_evolution_title(fullcare_days)
+            bonus_lines = [
+                f"XP heute: +{gained_xp} ({done}x Pflege + Full-Care-Bonus).",
+                f"Gesamt-XP: <b>{new_xp}</b> | Level: <b>{new_level}</b> ({escape(pet_level_title(new_level), False)}).",
+                f"Perfekte Tage gesamt: <b>{fullcare_days}</b> | Evolutionsstufe: <b>{escape(evolution_title, False)}</b>.",
+                f"Streak voller Tage: <b>{streak}</b>.",
+            ]
 
             if skill_key == "goldesel" and care_bonus_day != today:
                 await db.execute(
@@ -1676,6 +1746,11 @@ async def do_care(update, context, action_key, tame_lines):
             )
             bonus_lines.append(title_line)
             bonus_text = "\n".join(bonus_lines)
+        else:
+            await db.execute(
+                "UPDATE pets SET pet_xp=?, pet_level=? WHERE chat_id=? AND pet_id=?",
+                (new_xp, new_level, chat_id, pet.id)
+            )
 
         if new_level > prev_level:
             level_up_text = (
@@ -2441,6 +2516,7 @@ _JOBS_WATCHDOGS = create_jobs_watchdogs({
     "random": random,
     "ALLOWED_CHAT_ID": ALLOWED_CHAT_ID,
     "today_ymd": today_ymd,
+    "_today_bounds_unix": _today_bounds_unix,
     "get_cd_left": get_cd_left,
     "set_cd": set_cd,
     "_secs_until_tomorrow": _secs_until_tomorrow,
@@ -4107,10 +4183,9 @@ async def _attempt_pet_buy(update: Update, context: ContextTypes.DEFAULT_TYPE, r
             if random.random() > success_chance:
                 penalty = max(1, int(buyer_coins * BUY_FAIL_PENALTY_RATIO)) if buyer_coins > 0 else 0
                 total_penalty = penalty + risk_amount
-                new_coins = max(0, buyer_coins - total_penalty)
                 await db.execute(
-                    "UPDATE players SET coins=? WHERE chat_id=? AND user_id=?",
-                    (new_coins, chat_id, buyer_id)
+                    "UPDATE players SET coins=MAX(0, coins-?) WHERE chat_id=? AND user_id=?",
+                    (total_penalty, chat_id, buyer_id)
                 )
                 await db.commit()
                 target_tag_inline = f"@{target_username}" if target_username else f"ID:{target_id}"

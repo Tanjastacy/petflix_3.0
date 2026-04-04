@@ -90,10 +90,9 @@ def create_admin_coin_commands(deps: dict):
                 )
             chat_id = update.effective_chat.id
             await _ensure_player_entry(db, chat_id, tid, uname)
-            old = await _get_coins(db, chat_id, tid)
-            new = old + amount
-            await db.execute("UPDATE players SET coins=? WHERE chat_id=? AND user_id=?", (new, chat_id, tid))
+            await db.execute("UPDATE players SET coins=coins+? WHERE chat_id=? AND user_id=?", (amount, chat_id, tid))
             await db.commit()
+            new = await _get_coins(db, chat_id, tid)
         tag = f"@{uname}" if uname else f"ID:{tid}"
         await update.effective_message.reply_text(
             f"{amount} Coins an {escape(tag, quote=False)} vergeben. Neuer Kontostand: {new}."
@@ -117,10 +116,9 @@ def create_admin_coin_commands(deps: dict):
                 return await update.effective_message.reply_text("Ziel nicht gefunden.")
             chat_id = update.effective_chat.id
             await _ensure_player_entry(db, chat_id, tid, uname)
-            old = await _get_coins(db, chat_id, tid)
-            new = max(0, old - amount)
-            await db.execute("UPDATE players SET coins=? WHERE chat_id=? AND user_id=?", (new, chat_id, tid))
+            await db.execute("UPDATE players SET coins=MAX(0, coins-?) WHERE chat_id=? AND user_id=?", (amount, chat_id, tid))
             await db.commit()
+            new = await _get_coins(db, chat_id, tid)
         tag = f"@{uname}" if uname else f"ID:{tid}"
         await update.effective_message.reply_text(
             f"{amount} Coins bei {escape(tag, quote=False)} eingezogen. Neuer Kontostand: {new}."
@@ -212,10 +210,9 @@ def create_admin_coin_commands(deps: dict):
                 target_tag = mention_html(tid, uname or None)
                 thief_old = await _get_coins(db, chat_id, thief.id)
                 penalty = max(1, int(thief_old * STEAL_FAIL_PENALTY_RATIO)) if thief_old > 0 else 0
-                new_thief = max(0, thief_old - penalty)
                 await db.execute(
-                    "UPDATE players SET coins=? WHERE chat_id=? AND user_id=?",
-                    (new_thief, chat_id, thief.id)
+                    "UPDATE players SET coins=MAX(0, coins-?) WHERE chat_id=? AND user_id=?",
+                    (penalty, chat_id, thief.id)
                 )
                 await set_cd(db, chat_id, thief.id, "steal", STEAL_COOLDOWN_S)
                 await db.commit()
@@ -235,14 +232,13 @@ def create_admin_coin_commands(deps: dict):
                     parse_mode=ParseMode.HTML
                 )
 
-            thief_old = await _get_coins(db, chat_id, thief.id)
             await db.execute(
-                "UPDATE players SET coins=? WHERE chat_id=? AND user_id=?",
-                (victim_coins - stolen, chat_id, tid)
+                "UPDATE players SET coins=MAX(0, coins-?) WHERE chat_id=? AND user_id=?",
+                (stolen, chat_id, tid)
             )
             await db.execute(
-                "UPDATE players SET coins=? WHERE chat_id=? AND user_id=?",
-                (thief_old + stolen, chat_id, thief.id)
+                "UPDATE players SET coins=coins+? WHERE chat_id=? AND user_id=?",
+                (stolen, chat_id, thief.id)
             )
             await set_cd(db, chat_id, thief.id, "steal", STEAL_COOLDOWN_S)
             await db.commit()

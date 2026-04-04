@@ -5,6 +5,7 @@ def create_jobs_watchdogs(deps: dict):
     random = deps["random"]
     ALLOWED_CHAT_ID = deps["ALLOWED_CHAT_ID"]
     today_ymd = deps["today_ymd"]
+    _today_bounds_unix = deps["_today_bounds_unix"]
     get_cd_left = deps["get_cd_left"]
     set_cd = deps["set_cd"]
     _secs_until_tomorrow = deps["_secs_until_tomorrow"]
@@ -102,6 +103,7 @@ def create_jobs_watchdogs(deps: dict):
         chat_id = ALLOWED_CHAT_ID
         today = today_ymd()
         cd_key = f"dailyprimetime:{today}"
+        day_start_ts, day_end_ts = _today_bounds_unix()
 
         async with aiosqlite.connect(deps["DB"]) as db:
             left = await get_cd_left(db, chat_id, 0, cd_key)
@@ -114,11 +116,12 @@ def create_jobs_watchdogs(deps: dict):
                 FROM players
                 WHERE chat_id=?
                   AND last_seen IS NOT NULL
-                  AND date(last_seen, 'unixepoch', 'localtime') = ?
+                  AND last_seen >= ?
+                  AND last_seen < ?
                 ORDER BY RANDOM()
                 LIMIT 1
                 """,
-                (chat_id, today),
+                (chat_id, day_start_ts, day_end_ts),
             ) as cur:
                 row = await cur.fetchone()
 
