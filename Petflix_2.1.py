@@ -672,6 +672,34 @@ FLUCH_LINES.extend([
     "{user}, du bist heute der Grund, warum man Kellertueren doppelt abschliesst.",
 ])
 
+FLUCH_LINES.extend([
+    "{user}, heute klebt dir das Pech so tief im Gesicht, dass selbst Mitleid einen Rueckzieher macht.",
+    "{user}, dein Fluch heute ist ein offener Abgrund mit deinem Namen dran. Und du laeufst schon darauf zu.",
+    "{user}, jede Minute heute fuehlt sich an wie ein gezielter Tritt auf den letzten Rest deiner Wuerde.",
+    "{user}, dein Tag ist heute kein Absturz mehr. Das ist kontrollierter Zerfall mit Ansage.",
+    "{user}, heute wirst du vom Unglueck nicht begleitet. Es fuehrt dich an der Leine.",
+    "{user}, dein Fluch heute frisst dir erst die Laune, dann die Haltung und zum Schluss jeden Stolz weg.",
+    "{user}, du klingst heute wie jemand, der schon verloren hat und trotzdem weiter erniedrigt wird.",
+    "{user}, dein Schatten wirkt heute, als haette selbst er keine Lust mehr, mit dir gesehen zu werden.",
+    "{user}, heute trifft dich das Karma nicht hart. Es nimmt Anlauf.",
+    "{user}, dein Fluch heute ist rohe Demuetigung in Zeitlupe. Jeder sieht zu, keiner stoppt es.",
+    "{user}, sogar deine besten Ausreden sehen heute aus wie verweste Reste von Selbstachtung.",
+    "{user}, dein Tag hat heute die Energie eines verschlossenen Kellers und du bist das, was darin vergessen wurde.",
+    "{user}, heute reisst dir jeder kleine Fehler gleich ein groesseres Loch in den Tag.",
+    "{user}, dein Fluch heute ist das sichere Gefuehl, dass unter dir jederzeit alles wegbrechen kann.",
+    "{user}, du bist heute die Sorte Warnschild, die man zu spaet liest und sofort bereut.",
+    "{user}, heute haengt das Scheitern an dir wie nasse Erde an einem Grabstein.",
+    "{user}, dein Fluch heute ist so boese abgestimmt, dass sogar Hoffnung nur noch kurz auflacht und verschwindet.",
+    "{user}, jedes bisschen Ruhe heute ist nur die Pause, bevor dich der naechste Schlag laecherlich macht.",
+    "{user}, dein Tag wurde heute mit Absicht gegen jede Form von Gnade gebaut.",
+    "{user}, du bist heute nicht einfach Opfer eines Fluchs. Du bist sein Lieblingsprojekt."
+])
+
+
+def render_curse_text(user_mention: str) -> str:
+    line = random.choice(FLUCH_LINES).format(user=user_mention)
+    return f"{line}\n<b>Strafe:</b> -{DAILY_CURSE_PENALTY} Coins"
+
 
 # =========================
 # /hass + /selbst
@@ -2077,14 +2105,14 @@ async def maybe_auto_curse(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         user = mention_html(uid, uname)
-        line = random.choice(FLUCH_LINES).format(user=user)
+        curse_text = render_curse_text(user)
         await db.execute(
             "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
             (DAILY_CURSE_PENALTY, chat_id, uid)
         )
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"Auto-Fluch!\n{line}\n<b>Strafe:</b> -{DAILY_CURSE_PENALTY} Coins",
+            text=f"Auto-Fluch!\n{curse_text}",
             parse_mode=ParseMode.HTML
         )
 
@@ -2229,9 +2257,15 @@ async def cmd_verfluchen(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return await update.effective_message.reply_text("Keine Opfer verfuegbar. Postet mehr, dann kann ich euch schlimmer behandeln.")
             tid, tname = uid, uname
 
+        await db.execute(
+            "UPDATE players SET coins = MAX(0, coins - ?) WHERE chat_id=? AND user_id=?",
+            (DAILY_CURSE_PENALTY, chat_id, tid)
+        )
+        await db.commit()
+
     user = mention_html(tid, tname)
-    line = random.choice(FLUCH_LINES).format(user=user)
-    await update.effective_message.reply_text(line, parse_mode=ParseMode.HTML)
+    curse_text = render_curse_text(user)
+    await update.effective_message.reply_text(curse_text, parse_mode=ParseMode.HTML)
 
 
 # =========================
@@ -2653,6 +2687,7 @@ _JOBS_WATCHDOGS = create_jobs_watchdogs({
     "DAILY_PRIMETIME_COINS": DAILY_PRIMETIME_COINS,
     "mention_html": mention_html,
     "FLUCH_LINES": FLUCH_LINES,
+    "render_curse_text": render_curse_text,
     "_apply_hass_penalty": _apply_hass_penalty,
     "_finish_hass": _finish_hass,
     "_finish_love": _finish_love,

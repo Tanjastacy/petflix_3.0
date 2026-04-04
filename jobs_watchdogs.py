@@ -18,6 +18,7 @@ def create_jobs_watchdogs(deps: dict):
     DAILY_PRIMETIME_COINS = deps["DAILY_PRIMETIME_COINS"]
     mention_html = deps["mention_html"]
     FLUCH_LINES = deps["FLUCH_LINES"]
+    render_curse_text = deps["render_curse_text"]
     _apply_hass_penalty = deps["_apply_hass_penalty"]
     _finish_hass = deps["_finish_hass"]
     _finish_love = deps["_finish_love"]
@@ -86,10 +87,10 @@ def create_jobs_watchdogs(deps: dict):
             await db.commit()
 
         user_mention = mention_html(uid, uname)
-        line = random.choice(FLUCH_LINES).format(user=user_mention)
+        curse_text = render_curse_text(user_mention)
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"Stuendlicher Fluch!\n{line}\n<b>Strafe:</b> -{DAILY_CURSE_PENALTY} Coins",
+            text=f"Stuendlicher Fluch!\n{curse_text}",
             parse_mode=ParseMode.HTML
         )
 
