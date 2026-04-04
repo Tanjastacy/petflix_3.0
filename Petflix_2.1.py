@@ -62,7 +62,7 @@ DAILY_COINS = 0
 DAILY_COOLDOWN_S = 22 * 3600
 MESSAGE_REWARD = 5
 USER_BASE_PRICE = 100
-USER_PRICE_STEP = 50  # 100 -> 150 -> 200 ...
+USER_PRICE_STEP = 200  # 100 -> 300 -> 500 ...
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
 MESSAGE_THROTTLE_S = 1
 CARE_COOLDOWN_S = 5  # Sekunden zwischen Pflegeaktionen
@@ -81,9 +81,9 @@ LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
 TITLE_BESTIENZAEHMER = "Bestienzaehmer 🐉"
 TITLE_DURATION_S = 2 * 3600
-DAILY_GIFT_COINS = 15
+DAILY_GIFT_COINS = 25000
 DAILY_CURSE_PENALTY = 150
-DAILY_PRIMETIME_COINS = 50000
+DAILY_PRIMETIME_COINS = 70000
 DAILY_CURSE_ENABLED = True
 MORAL_TAX_DEFAULT = 5
 REWARD_AMOUNT = 1 
@@ -5458,7 +5458,7 @@ def main():
     # Tägliches Gift um 10:00 planen
     gift_time = dtime(hour=10, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
     app.job_queue.run_daily(daily_gift_job, time=gift_time, name="daily_gift_10am")
-    app.job_queue.run_repeating(daily_curse_job, interval=3600, first=3600, name="hourly_curse")
+    app.job_queue.run_repeating(daily_curse_job, interval=3600, first=180, name="hourly_curse")
     primetime_time = dtime(hour=20, minute=0, tzinfo=ZoneInfo(PETFLIX_TZ))
     app.job_queue.run_daily(daily_primetime_job, time=primetime_time, name="daily_primetime_8pm")
     backup_time = dtime(hour=3, minute=30, tzinfo=ZoneInfo(PETFLIX_TZ))

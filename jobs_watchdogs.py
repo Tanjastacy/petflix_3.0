@@ -9,6 +9,7 @@ def create_jobs_watchdogs(deps: dict):
     _pick_recent_active_user = deps["_pick_recent_active_user"]
     get_cd_left = deps["get_cd_left"]
     set_cd = deps["set_cd"]
+    _secs_until_tomorrow = deps["_secs_until_tomorrow"]
     _pick_random_player = deps["_pick_random_player"]
     _mention_from_uid_username = deps["_mention_from_uid_username"]
     _SAVAGE_LINES = deps["_SAVAGE_LINES"]
