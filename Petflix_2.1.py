@@ -1685,6 +1685,7 @@ async def do_care(update, context, action_key, tame_lines):
         gained_xp = CARE_XP_PER_ACTION
         new_xp = prev_xp + gained_xp
         new_level = pet_level_from_xp(new_xp)
+        current_fullcare_days = 0
         bonus_text = None
         if done >= CARES_PER_DAY:
             async with db.execute(
@@ -1702,6 +1703,7 @@ async def do_care(update, context, action_key, tame_lines):
             yesterday = (datetime.date.fromisoformat(today) - datetime.timedelta(days=1)).isoformat()
             streak = (prev_streak + 1) if last_full_day == yesterday else 1
             fullcare_days = prev_fullcare_days + 1
+            current_fullcare_days = fullcare_days
             gained_xp += FULL_CARE_XP_BONUS
             new_xp = prev_xp + gained_xp
             new_level = pet_level_from_xp(new_xp)
@@ -1753,10 +1755,11 @@ async def do_care(update, context, action_key, tame_lines):
             )
 
         if new_level > prev_level:
+            evolution_name = fullcare_evolution_title(current_fullcare_days)
             level_up_text = (
                 f"Lvl <b>{new_level}</b> ({escape(pet_level_title(new_level), False)}) | "
                 f"{nice_name_html(pet)} | Owner: {mention_html(owner.id, owner.username or None)} | "
-                f"Pflege <b>{done}/{CARES_PER_DAY}</b>"
+                f"Pflege <b>{done}/{CARES_PER_DAY}</b> | Evo: <b>{escape(evolution_name, False)}</b>"
             )
 
         await set_cd(db, chat_id, owner.id, cd_key, CARE_COOLDOWN_S)
@@ -1774,10 +1777,12 @@ async def do_care(update, context, action_key, tame_lines):
         bonus_msg = await msg.reply_text(bonus_text, parse_mode=ParseMode.HTML)
         cleanup_message_ids.append(bonus_msg.message_id)
     if done % CARES_PER_DAY == 0:
+        progress_evolution = fullcare_evolution_title(current_fullcare_days)
         progress_text = (
             f"Pflege-Stand: {nice_name_html(owner)} hat {nice_name_html(pet)} "
             f"<b>{done}/{CARES_PER_DAY}</b> gepflegt. "
-            f"Level: <b>{new_level}</b> ({escape(pet_level_title(new_level), False)})."
+            f"Level: <b>{new_level}</b> ({escape(pet_level_title(new_level), False)}) | "
+            f"XP: <b>{new_xp}</b> | Evo: <b>{escape(progress_evolution, False)}</b>."
         )
         await _send_or_replace_level_message(context, chat_id, msg, progress_text)
 
@@ -2470,6 +2475,7 @@ _OWNERSHIP_FEATURES = create_ownership_features({
     "get_pet_skill": get_pet_skill,
     "_skill_label": _skill_label,
     "pet_level_title": pet_level_title,
+    "fullcare_evolution_title": fullcare_evolution_title,
     "get_pet_lock_until": get_pet_lock_until,
     "get_active_titles_map": get_active_titles_map,
     "with_title_suffix": with_title_suffix,

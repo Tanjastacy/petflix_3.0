@@ -10,6 +10,7 @@ def create_ownership_features(deps: dict):
     get_pet_skill = deps["get_pet_skill"]
     _skill_label = deps["_skill_label"]
     pet_level_title = deps["pet_level_title"]
+    fullcare_evolution_title = deps["fullcare_evolution_title"]
     get_pet_lock_until = deps["get_pet_lock_until"]
     get_active_titles_map = deps["get_active_titles_map"]
     with_title_suffix = deps["with_title_suffix"]
@@ -84,12 +85,20 @@ def create_ownership_features(deps: dict):
             skill_key = await get_pet_skill(db, chat_id, target_id)
             skill_txt = _skill_label(skill_key)
             async with db.execute(
-                "SELECT COALESCE(pet_level,0) FROM pets WHERE chat_id=? AND pet_id=?",
+                "SELECT COALESCE(pet_level,0), COALESCE(pet_xp,0), COALESCE(fullcare_days,0), COALESCE(fullcare_streak,0) "
+                "FROM pets WHERE chat_id=? AND pet_id=?",
                 (chat_id, target_id)
             ) as cur:
                 lrow = await cur.fetchone()
             pet_level = int(lrow[0]) if lrow else 0
-            level_txt = f"Level {pet_level} - {pet_level_title(pet_level)}"
+            pet_xp = int(lrow[1]) if lrow else 0
+            fullcare_days = int(lrow[2]) if lrow else 0
+            fullcare_streak = int(lrow[3]) if lrow else 0
+            level_txt = f"Level {pet_level} - {pet_level_title(pet_level)} | XP: {pet_xp}"
+            evolution_txt = (
+                f"Evolution: {fullcare_evolution_title(fullcare_days)} | "
+                f"Perfekte Tage: {fullcare_days} | Streak: {fullcare_streak}"
+            )
 
             owner_uname = None
             if owner_id:
@@ -116,12 +125,12 @@ def create_ownership_features(deps: dict):
             raw_tag = f"@{owner_uname}" if owner_uname else f"[ID:{owner_id}](tg://user?id={owner_id})"
             tag = with_title_suffix(raw_tag, owner_title)
             await update.effective_message.reply_text(
-                f"Besitzer: {tag}. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{level_txt}",
+                f"Besitzer: {tag}. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{level_txt}\n{evolution_txt}",
                 parse_mode="Markdown"
             )
         else:
             await update.effective_message.reply_text(
-                f"Kein Besitzer. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{level_txt}"
+                f"Kein Besitzer. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{level_txt}\n{evolution_txt}"
             )
 
     async def cmd_ownerlist(update, context):
@@ -141,7 +150,8 @@ def create_ownership_features(deps: dict):
                         COALESCE(pl.price, 0)                       AS current_price,
                         COALESCE(p.purchase_lock_until, 0)          AS locked_until,
                         p.pet_skill                                  AS pet_skill,
-                        COALESCE(p.pet_level, 0)                    AS pet_level
+                        COALESCE(p.pet_level, 0)                    AS pet_level,
+                        COALESCE(p.fullcare_days, 0)                AS fullcare_days
                     FROM pets p
                     LEFT JOIN players ou ON ou.chat_id=p.chat_id AND ou.user_id=p.owner_id
                     LEFT JOIN players pu ON pu.chat_id=p.chat_id AND pu.user_id=p.pet_id
@@ -151,7 +161,7 @@ def create_ownership_features(deps: dict):
                 """, (chat_id,)) as cur:
                     rows = await cur.fetchall()
                 title_user_ids = []
-                for owner_id, _, pet_id, _, _, _, _, _ in rows:
+                for owner_id, _, pet_id, _, _, _, _, _, _ in rows:
                     if owner_id:
                         title_user_ids.append(int(owner_id))
                     if pet_id:
@@ -167,9 +177,9 @@ def create_ownership_features(deps: dict):
             return await update.effective_message.reply_text("Noch keine Besitzverhaeltnisse. Kauf dir erstmal jemanden.")
 
         by_owner = {}
-        for owner_id, owner_uname, pet_id, pet_uname, price, locked_until, pet_skill, pet_level in rows:
+        for owner_id, owner_uname, pet_id, pet_uname, price, locked_until, pet_skill, pet_level, fullcare_days in rows:
             by_owner.setdefault((owner_id, owner_uname), []).append(
-                (pet_id, pet_uname, int(price or 0), int(locked_until or 0), pet_skill, int(pet_level or 0))
+                (pet_id, pet_uname, int(price or 0), int(locked_until or 0), pet_skill, int(pet_level or 0), int(fullcare_days or 0))
             )
 
         def tag(uid, uname):
@@ -185,17 +195,18 @@ def create_ownership_features(deps: dict):
             total_value = sum(p[2] for p in pets)
 
             out.append(f"<b>{tag(owner_id, owner_uname)}</b>  <i>({len(pets)} Pet(s), Gesamtwert: {total_value})</i>")
-            for pet_id, pet_uname, price, locked_until, pet_skill, pet_level in pets:
+            for pet_id, pet_uname, price, locked_until, pet_skill, pet_level, fullcare_days in pets:
                 pet_tag = tag(pet_id, pet_uname)
                 lock_txt = ""
                 skill_name = _skill_meta(pet_skill)["name"]
                 level_name = pet_level_title(pet_level)
+                evolution_name = fullcare_evolution_title(fullcare_days)
                 if locked_until > now:
                     mins_total = (locked_until - now) // 60
                     hrs, mins = divmod(mins_total, 60)
                     lock_txt = f" [LOCK {hrs}h{mins:02d}m]"
                 out.append(
-                    f" - {pet_tag}  (<b>{price}</b>) [Lvl {pet_level}: {escape(level_name, False)}] "
+                    f" - {pet_tag}  (<b>{price}</b>) [Lvl {pet_level}: {escape(level_name, False)}] [Evo: {escape(evolution_name, False)}] "
                     f"[{escape(skill_name, False)}]{lock_txt}"
                 )
             out.append("")
