@@ -2642,10 +2642,10 @@ async def cmd_boxen(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "<b>Boxen</b>\n\n"
         f"1. Kellerkiste - <b>{BOX_STANDARD_COST}</b> Coins\n"
         "Coins, Pet-XP, Fluchschild oder ein brutaler Titel.\n"
-        "Kaufen: <code>/buybox keller</code>\n\n"
+        "Kaufen: <code>/buyboxkeller</code> oder <code>/buybox keller</code>\n\n"
         f"2. Abyss-Kiste - <b>{BOX_ABYSS_COST}</b> Coins\n"
         "Groessere Drops, groessere Treffer, groessere Schmerzen.\n"
-        "Kaufen: <code>/buybox abyss</code>\n\n"
+        "Kaufen: <code>/buyboxabyss</code> oder <code>/buybox abyss</code>\n\n"
         "Wer zu lang auf seinen Coins sitzt, fault mit ihnen zusammen."
     )
     await update.effective_message.reply_text(text, parse_mode=ParseMode.HTML)
@@ -2847,6 +2847,28 @@ async def cmd_buybox(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     return await update.effective_message.reply_text(
         "Unbekannte Box. Nutze /buybox <keller|abyss>."
+    )
+
+
+async def cmd_buybox_keller(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return await _open_loot_box(
+        update,
+        cost=BOX_STANDARD_COST,
+        box_name="Kellerkiste",
+        title_pool=BOX_STANDARD_TITLES,
+        title_duration_s=BOX_TITLE_DURATION_S,
+        abyss=False,
+    )
+
+
+async def cmd_buybox_abyss(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return await _open_loot_box(
+        update,
+        cost=BOX_ABYSS_COST,
+        box_name="Abyss-Kiste",
+        title_pool=BOX_ABYSS_TITLES,
+        title_duration_s=BOX_ABYSS_TITLE_DURATION_S,
+        abyss=True,
     )
 
 
@@ -3585,6 +3607,8 @@ async def register_commands(application: Application):
         BotCommand("top", "Top 10 Spieler nach Coins"),
         BotCommand("boxen", "Kurze Übersicht der Boxen"),
         BotCommand("buybox", "Kauft eine Box: keller oder abyss"),
+        BotCommand("buyboxkeller", "Kauft direkt die Kellerkiste"),
+        BotCommand("buyboxabyss", "Kauft direkt die Abyss-Kiste"),
 
         # Pflege & Fun
         BotCommand("pet", "Streicheln"),
@@ -5340,6 +5364,8 @@ def main():
     app.add_handler(CommandHandler("daily",    cmd_daily,    filters=CHAT_FILTER))
     app.add_handler(CommandHandler("boxen",    cmd_boxen,    filters=CHAT_FILTER))
     app.add_handler(CommandHandler("buybox",   cmd_buybox,   filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("buyboxkeller", cmd_buybox_keller, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("buyboxabyss",  cmd_buybox_abyss,  filters=CHAT_FILTER))
     app.add_handler(CommandHandler("id",       cmd_id,       filters=CHAT_FILTER))
 
     # Kernspiel
