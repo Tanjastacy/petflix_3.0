@@ -2651,6 +2651,10 @@ async def cmd_boxen(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(text, parse_mode=ParseMode.HTML)
 
 
+def _min_box_coin_payout(cost: int) -> int:
+    return (int(cost) * 13 + 9) // 10
+
+
 async def _open_loot_box(
     update: Update,
     cost: int,
@@ -2693,7 +2697,8 @@ async def _open_loot_box(
 
         if abyss:
             if roll < 0.32:
-                gain = random.randint(6000, 14000)
+                min_gain = _min_box_coin_payout(cost)
+                gain = random.randint(min_gain, max(min_gain, 28000))
                 await db.execute(
                     "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
                     (gain, chat_id, user.id)
@@ -2727,7 +2732,8 @@ async def _open_loot_box(
                     )
                     body = random.choice(BOX_ABYSS_XP_TEXTS).format(amount=xp_gain)
                 else:
-                    fallback = random.randint(2500, 5000)
+                    min_fallback = _min_box_coin_payout(cost)
+                    fallback = random.randint(min_fallback, max(min_fallback, 22000))
                     await db.execute(
                         "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
                         (fallback, chat_id, user.id)
@@ -2741,7 +2747,8 @@ async def _open_loot_box(
                     duration=_format_duration_compact(title_duration_s),
                 )
             else:
-                gain = random.randint(18000, 35000)
+                min_gain = _min_box_coin_payout(cost)
+                gain = random.randint(max(min_gain, 28000), max(min_gain, 50000))
                 await db.execute(
                     "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
                     (gain, chat_id, user.id)
@@ -2755,7 +2762,8 @@ async def _open_loot_box(
                 )
         else:
             if roll < 0.34:
-                gain = random.randint(800, 2200)
+                min_gain = _min_box_coin_payout(cost)
+                gain = random.randint(min_gain, max(min_gain, 5000))
                 await db.execute(
                     "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
                     (gain, chat_id, user.id)
@@ -2789,7 +2797,8 @@ async def _open_loot_box(
                     )
                     body = random.choice(BOX_STANDARD_XP_TEXTS).format(amount=xp_gain)
                 else:
-                    fallback = random.randint(400, 1000)
+                    min_fallback = _min_box_coin_payout(cost)
+                    fallback = random.randint(min_fallback, max(min_fallback, 4000))
                     await db.execute(
                         "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
                         (fallback, chat_id, user.id)

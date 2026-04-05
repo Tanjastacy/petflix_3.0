@@ -49,7 +49,7 @@ async def test_buybox_keller_opens_and_updates_balance(main_module, main_db_path
 
     await main_module.cmd_buybox_keller(update, context)
 
-    expected = 5000 + 800
+    expected = 5000 + main_module._min_box_coin_payout(main_module.BOX_STANDARD_COST)
     assert await get_player_coins(main_db_path, 111) == expected
     assert "Kellerkiste" in update.effective_message.replies[-1]["text"]
 
@@ -64,7 +64,7 @@ async def test_buybox_abyss_opens_and_updates_balance(main_module, main_db_path,
 
     await main_module.cmd_buybox_abyss(update, context)
 
-    expected = 30000 + 6000
+    expected = 30000 + main_module._min_box_coin_payout(main_module.BOX_ABYSS_COST)
     assert await get_player_coins(main_db_path, 111) == expected
     assert "Abyss-Kiste" in update.effective_message.replies[-1]["text"]
 
