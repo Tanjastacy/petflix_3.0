@@ -3666,6 +3666,7 @@ async def register_commands(application: Application):
         BotCommand("buy", "Kaufe einen anderen User"),
         BotCommand("risk", "Klauversuch mit Coin-Risiko fuer mehr Chance"),
         BotCommand("release", "Gib dein Haustier frei"),
+        BotCommand("niemals", "Admin-only: Niemand besitzt mich"),
         BotCommand("owner", "Zeigt den Besitzer eines Users"),
         BotCommand("ownerlist", "Zeigt alle Besitzverhältnisse + Wert"),
         BotCommand("prices", "Zeigt Kaufpreise aller User"),
@@ -5094,6 +5095,41 @@ async def cmd_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _attempt_pet_buy(update, context, risk_amount=0)
 
 
+async def cmd_niemals(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group(update):
+        return
+    if not _is_admin_here(update):
+        return
+
+    chat_id = update.effective_chat.id
+    me = update.effective_user
+    my_id = me.id
+
+    async with aiosqlite.connect(DB) as db:
+        owner_id = await get_owner_id(db, chat_id, my_id)
+        if not owner_id:
+            await update.effective_message.reply_text(
+                "Befehl ausgefuehrt. Ergebnis unveraendert: Niemand besitzt mich. Nie. Nicht heute, nicht morgen, nicht in diesem Leben."
+            )
+            return
+
+        async with db.execute(
+            "SELECT username FROM players WHERE chat_id=? AND user_id=?",
+            (chat_id, owner_id)
+        ) as cur:
+            row = await cur.fetchone()
+        owner_username = row[0] if row else None
+
+        await set_owner(db, chat_id, my_id, None)
+        await db.commit()
+
+    owner_tag = mention_html(owner_id, owner_username or None)
+    await update.effective_message.reply_text(
+        "Mich besitzt niemand, dem ich es nicht erlaube!",
+        parse_mode=ParseMode.HTML
+    )
+
+
 async def cmd_risk(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update):
         return
@@ -5451,6 +5487,7 @@ def main():
     app.add_handler(CommandHandler("owner",     cmd_owner,     filters=CHAT_FILTER))
     app.add_handler(CommandHandler("ownerlist", cmd_ownerlist, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("release",   cmd_release,   filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("niemals",   cmd_niemals,   filters=CHAT_FILTER))
     app.add_handler(CommandHandler("prices",    cmd_prices,    filters=CHAT_FILTER))
     app.add_handler(CommandHandler("top",       cmd_top,       filters=CHAT_FILTER))
 
