@@ -36,6 +36,8 @@ data/
 # txt
 *.txt
 /*.txt
+!texts/
+!texts/*.txt
 
 #db 
 petflix_2.1.db
