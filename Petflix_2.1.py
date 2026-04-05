@@ -2528,7 +2528,7 @@ async def autoload_and_reward(update: Update, context: ContextTypes.DEFAULT_TYPE
             (now, chat.id, user.id)
         )
 
-        # Superworte (pro Chat nur einmal pro Wort, global fuer alle User)
+        # Superworte (pro Chat mit 4-Tage-Cooldown pro Wort, global fuer alle User)
         msg_text = msg.text or ""
         msg_norm = normalize_superword_text(msg_text)
         for word in SUPERWORDS:
@@ -3163,7 +3163,8 @@ async def cmd_superwordsstatus(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     chat_id = update.effective_chat.id
-    total = len(SUPERWORD_KEYS)
+    loaded_total = len(SUPERWORDS)
+    unique_total = len(SUPERWORD_KEYS)
     active_cutoff = int(time.time()) - SUPERWORD_COOLDOWN_S
     async with aiosqlite.connect(DB) as db:
         async with db.execute(
@@ -3173,13 +3174,14 @@ async def cmd_superwordsstatus(update: Update, context: ContextTypes.DEFAULT_TYP
             row = await cur.fetchone()
         found = int((row[0] if row else 0) or 0)
 
-    remaining = max(0, total - found)
+    remaining = max(0, unique_total - found)
     await update.effective_message.reply_text(
         (
             "✨ <b>Superwort-Status</b>\n"
-            f"Gesamt (eindeutige Superworte): <b>{total}</b>\n"
-            f"Aktuell auf Cooldown (4 Tage): <b>{found}</b>\n"
-            f"Wieder verfuegbar: <b>{remaining}</b>"
+            f"Geladene Eintraege: <b>{loaded_total}</b>\n"
+            f"Gesamt (eindeutige Superworte): <b>{unique_total}</b>\n"
+            f"Aktuell gefundene Worte: <b>{found}</b>\n"
+            f"Verbleibende Worte: <b>{remaining}</b>"
         ),
         parse_mode=ParseMode.HTML
     )

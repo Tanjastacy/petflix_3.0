@@ -179,8 +179,9 @@ async def test_superwordsstatus_uses_unique_total_and_active_cooldown(main_modul
     await main_module.cmd_superwordsstatus(update, context)
 
     text = update.effective_message.replies[-1]["text"]
+    assert f"Geladene Eintraege: <b>{len(main_module.SUPERWORDS)}</b>" in text
     assert f"Gesamt (eindeutige Superworte): <b>{len(main_module.SUPERWORD_KEYS)}</b>" in text
-    assert "Aktuell auf Cooldown (4 Tage): <b>1</b>" in text
+    assert "Aktuell gefundene Worte: <b>1</b>" in text
 
 
 @pytest.mark.asyncio
