@@ -3161,14 +3161,42 @@ async def _resolve_target(db, update: Update, context: ContextTypes.DEFAULT_TYPE
         return u.id, (u.username or None)
     if not context.args:
         return None, None
-    first = context.args[0].lstrip("@")
-    if first.isdigit():
-        return int(first), None
+
+    # Erst nach @username / username irgendwo in den Args suchen.
+    # Das erlaubt z.B. "/addcoins 60000 @name" statt nur "/addcoins @name 60000".
     chat_id = update.effective_chat.id
-    async with db.execute("SELECT user_id FROM players WHERE chat_id=? AND username=?", (chat_id, first)) as cur:
-        row = await cur.fetchone()
-    if row:
-        return int(row[0]), first
+
+    for token in context.args:
+        raw = token.strip().lstrip("@")
+        if not raw or raw.isdigit():
+            continue
+        async with db.execute(
+            "SELECT user_id, username FROM players WHERE chat_id=? AND lower(username)=lower(?)",
+            (chat_id, raw)
+        ) as cur:
+            row = await cur.fetchone()
+        if row:
+            return int(row[0]), (row[1] or raw)
+
+    # Wenn nur Zahlen da sind, interpretieren wir die letzte Zahl als Betrag
+    # und bevorzugen davor stehende Zahlen als Ziel-ID.
+    numeric_tokens = [int(token.strip()) for token in context.args if token.strip().isdigit()]
+    if len(numeric_tokens) >= 2:
+        target_id = numeric_tokens[0]
+        async with db.execute(
+            "SELECT username FROM players WHERE chat_id=? AND user_id=?",
+            (chat_id, target_id)
+        ) as cur:
+            row = await cur.fetchone()
+        return target_id, (row[0] if row else None)
+    if len(numeric_tokens) == 1:
+        target_id = numeric_tokens[0]
+        async with db.execute(
+            "SELECT username FROM players WHERE chat_id=? AND user_id=?",
+            (chat_id, target_id)
+        ) as cur:
+            row = await cur.fetchone()
+        return target_id, (row[0] if row else None)
     return None, None
 
 async def _ensure_player_entry(db, chat_id: int, user_id: int, username: str | None):
