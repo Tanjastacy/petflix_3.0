@@ -236,6 +236,29 @@ async def test_forcepurge_removes_user_by_username(main_module, main_db_path, ma
 
 
 @pytest.mark.asyncio
+async def test_forcepurge_removes_user_by_reply_without_username(main_module, main_db_path, make_update):
+    await upsert_player(main_db_path, 222, "", coins=100)
+    target = FakeUser(222, None)
+    update, context = make_update(TEST_ADMIN_ID, "owner", reply_from_user=target)
+
+    await main_module.cmd_forcepurge(update, context)
+
+    assert await fetch_scalar(main_db_path, "SELECT COUNT(*) FROM players WHERE chat_id=? AND user_id=?", (TEST_CHAT_ID, 222)) == 0
+    assert "entsorgt" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_forcepurge_removes_user_by_numeric_id(main_module, main_db_path, make_update):
+    await upsert_player(main_db_path, 222, "", coins=100)
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+    context.args = ["222"]
+
+    await main_module.cmd_forcepurge(update, context)
+
+    assert await fetch_scalar(main_db_path, "SELECT COUNT(*) FROM players WHERE chat_id=? AND user_id=?", (TEST_CHAT_ID, 222)) == 0
+
+
+@pytest.mark.asyncio
 async def test_forcepurge_reports_unknown_username(main_module, main_db_path, make_update):
     update, context = make_update(TEST_ADMIN_ID, "owner")
     context.args = ["@missing"]

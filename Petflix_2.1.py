@@ -3095,6 +3095,8 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     until = datetime.datetime.fromtimestamp(expires, tz=ZoneInfo(PETFLIX_TZ)).strftime("%d.%m.%Y %H:%M")
     target = mention_html(int(uid), uname if uname else None)
     caller_tag = mention_html(caller.id, caller.username or None)
+    if not label:
+        label = f"ID {user_id}"
     await update.effective_message.reply_text(
         (
             "💣 <b>Liebes-Bombe detoniert.</b>\n"
@@ -5280,23 +5282,34 @@ async def cmd_forcepurge(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    if not context.args:
+    msg = update.effective_message
+    reply_user = msg.reply_to_message.from_user if msg.reply_to_message and msg.reply_to_message.from_user else None
+
+    if not context.args and not reply_user:
         await update.effective_message.reply_text(
             "Sag mir wen ich foltern soll, du kleine Sadistin.\n"
-            "Benutze: /forcepurge @username  oder  /forcepurge user_id"
+            "Benutze: als Reply /forcepurge oder /forcepurge @username oder /forcepurge user_id"
         )
         return
 
     chat_id = update.effective_chat.id
-    arg = context.args[0].lstrip('@')
+    arg = context.args[0].lstrip('@') if context.args else None
+    if reply_user:
+        arg = str(reply_user.id)
 
     async with aiosqlite.connect(DB) as db:
         user_id = None
+        label = None
+
+        if reply_user:
+            user_id = int(reply_user.id)
+            label = f"@{reply_user.username}" if reply_user.username else f"ID {user_id}"
 
         # Wenn's eine Zahl ist → direkt als ID nehmen
-        if arg.isdigit():
+        if user_id is None and arg and arg.isdigit():
             user_id = int(arg)
-        else:
+            label = f"ID {user_id}"
+        elif user_id is None and arg:
             # Sonst nach Username in der DB suchen
             async with db.execute(
                 "SELECT user_id FROM players WHERE chat_id=? AND LOWER(username)=LOWER(?)", 
@@ -5305,6 +5318,7 @@ async def cmd_forcepurge(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 row = await cur.fetchone()
                 if row:
                     user_id = row[0]
+                    label = f"@{arg}"
 
         if not user_id:
             await update.effective_message.reply_text(
