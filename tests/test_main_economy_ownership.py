@@ -200,10 +200,12 @@ async def test_prices_lists_users_by_price(main_module, main_db_path, make_updat
 async def test_top_lists_richest_players(ownership_commands, main_db_path, make_update):
     await upsert_player(main_db_path, 111, "alice", coins=500)
     await upsert_player(main_db_path, 222, "bob", coins=100)
+    await upsert_player(main_db_path, 333, "charlie", coins=50)
     update, context = make_update(TEST_ADMIN_ID, "owner")
 
     await ownership_commands["cmd_top"](update, context)
 
     text = update.effective_message.replies[-1]["text"]
-    assert "Rangliste Top 10 Spieler" in text
+    assert "Rangliste aller Spieler" in text
     assert text.index("@alice") < text.index("@bob")
+    assert text.index("@bob") < text.index("@charlie")

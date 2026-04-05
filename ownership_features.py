@@ -39,7 +39,7 @@ def create_ownership_features(deps: dict):
             return
         chat_id = update.effective_chat.id
         async with aiosqlite.connect(DB) as db:
-            async with db.execute("SELECT username, user_id, coins FROM players WHERE chat_id=? ORDER BY coins DESC LIMIT 10", (chat_id,)) as cur:
+            async with db.execute("SELECT username, user_id, coins FROM players WHERE chat_id=? ORDER BY coins DESC", (chat_id,)) as cur:
                 rows = await cur.fetchall()
             titles = await get_active_titles_map(db, chat_id, [int(r[1]) for r in rows])
             await db.commit()
@@ -53,7 +53,7 @@ def create_ownership_features(deps: dict):
             tag = escape(raw_tag, quote=False)
             lines.append(f"{i}. {tag}: {c} Coins")
 
-        text = "Rangliste Top 10 Spieler:\n\n" + "\n".join(lines)
+        text = "Rangliste aller Spieler:\n\n" + "\n".join(lines)
         for chunk in [text[i:i+4000] for i in range(0, len(text), 4000)]:
             await update.effective_message.reply_text(chunk, quote=False)
 
