@@ -103,6 +103,7 @@ RUNAWAY_PENALTY = 400
 # Superworte
 # =========================
 SUPERWORD_REWARD = 5000
+SUPERWORD_COOLDOWN_S = 4 * 24 * 3600
 SUPERWORDS = [
     "krieg der sterne",
     "stand by me",
@@ -1931,17 +1932,28 @@ async def get_cd_left(db, chat_id: int, user_id: int, key: str) -> int:
 
 async def claim_superword_once(db, chat_id: int, word: str, user_id: int) -> bool:
     now = int(time.time())
+    key = (word or "").lower()
+    async with db.execute(
+        "SELECT found_ts FROM superwords_found WHERE chat_id=? AND word=?",
+        (chat_id, key),
+    ) as cur:
+        row = await cur.fetchone()
+    if row and row[0] is not None:
+        found_ts = int(row[0])
+        if now - found_ts < SUPERWORD_COOLDOWN_S:
+            return False
+
     await db.execute(
         """
         INSERT INTO superwords_found(chat_id, word, found_by, found_ts)
         VALUES(?,?,?,?)
-        ON CONFLICT(chat_id, word) DO NOTHING
+        ON CONFLICT(chat_id, word) DO UPDATE SET
+          found_by=excluded.found_by,
+          found_ts=excluded.found_ts
         """,
-        (chat_id, word.lower(), user_id, now),
+        (chat_id, key, user_id, now),
     )
-    async with db.execute("SELECT changes()") as cur:
-        row = await cur.fetchone()
-    return bool(row and int(row[0]) > 0)
+    return True
 
 
 async def _get_latest_owned_pet_id(db, chat_id: int, owner_id: int):
@@ -1968,6 +1980,13 @@ def superword_pattern(word: str) -> str:
         return ""
     body = r"[\s\-_]*".join(re.escape(p) for p in parts)
     return rf"(?<![a-z0-9]){body}(?![a-z0-9])"
+
+
+SUPERWORD_KEYS = {
+    re.sub(r"[^a-z0-9]+", "", normalize_superword_text(word))
+    for word in SUPERWORDS
+    if re.sub(r"[^a-z0-9]+", "", normalize_superword_text(word))
+}
 
 def _secs_until_tomorrow() -> int:
     now = _tz_now()
@@ -2047,6 +2066,8 @@ async def do_care(update, context, action_key, tame_lines):
         return
     msg = update.effective_message
     chat_id = update.effective_chat.id
+    active_cutoff = int(time.time()) - SUPERWORD_COOLDOWN_S
+    active_cutoff = int(time.time()) - SUPERWORD_COOLDOWN_S
     owner = update.effective_user
 
     # Ziel bestimmen: Reply > @username/user_id > letztes Haustier
@@ -2887,6 +2908,7 @@ async def cmd_buybox_abyss(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_prices(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update): return
     chat_id = update.effective_chat.id
+    active_cutoff = int(time.time()) - SUPERWORD_COOLDOWN_S
     async with aiosqlite.connect(DB) as db:
         async with db.execute("SELECT username, user_id, price FROM players WHERE chat_id=? ORDER BY price DESC", (chat_id,)) as cur:
             rows = await cur.fetchall()
@@ -3120,10 +3142,11 @@ async def cmd_resetsuperwords(update: Update, context: ContextTypes.DEFAULT_TYPE
         return await update.effective_message.reply_text("🚫 Nur der Bot-Admin darf das.")
 
     chat_id = update.effective_chat.id
+    active_cutoff = int(time.time()) - SUPERWORD_COOLDOWN_S
     async with aiosqlite.connect(DB) as db:
         async with db.execute(
-            "SELECT COUNT(*) FROM superwords_found WHERE chat_id=?",
-            (chat_id,)
+            "SELECT COUNT(*) FROM superwords_found WHERE chat_id=? AND found_ts>?",
+            (chat_id, active_cutoff)
         ) as cur:
             row = await cur.fetchone()
         cleared = int((row[0] if row else 0) or 0)
@@ -3131,7 +3154,7 @@ async def cmd_resetsuperwords(update: Update, context: ContextTypes.DEFAULT_TYPE
         await db.commit()
 
     await update.effective_message.reply_text(
-        f"Superworte wurden zurueckgesetzt. {cleared} bereits gefundene Superworte zaehlen jetzt wieder neu."
+        f"Superwort-Cooldowns wurden zurueckgesetzt. {cleared} aktuell gesperrte Superworte sind sofort wieder verfuegbar."
     )
 
 
@@ -3140,11 +3163,12 @@ async def cmd_superwordsstatus(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     chat_id = update.effective_chat.id
-    total = len(SUPERWORDS)
+    total = len(SUPERWORD_KEYS)
+    active_cutoff = int(time.time()) - SUPERWORD_COOLDOWN_S
     async with aiosqlite.connect(DB) as db:
         async with db.execute(
-            "SELECT COUNT(*) FROM superwords_found WHERE chat_id=?",
-            (chat_id,)
+            "SELECT COUNT(*) FROM superwords_found WHERE chat_id=? AND found_ts>?",
+            (chat_id, active_cutoff)
         ) as cur:
             row = await cur.fetchone()
         found = int((row[0] if row else 0) or 0)
@@ -3153,9 +3177,9 @@ async def cmd_superwordsstatus(update: Update, context: ContextTypes.DEFAULT_TYP
     await update.effective_message.reply_text(
         (
             "✨ <b>Superwort-Status</b>\n"
-            f"Gesamt: <b>{total}</b>\n"
-            f"Bereits gefunden: <b>{found}</b>\n"
-            f"Noch offen: <b>{remaining}</b>"
+            f"Gesamt (eindeutige Superworte): <b>{total}</b>\n"
+            f"Aktuell auf Cooldown (4 Tage): <b>{found}</b>\n"
+            f"Wieder verfuegbar: <b>{remaining}</b>"
         ),
         parse_mode=ParseMode.HTML
     )
@@ -3687,7 +3711,7 @@ async def register_commands(application: Application):
         BotCommand("hass", "Startet Hass-Status (2h, 3 mal /selbst)"),
         BotCommand("selbst", "Nur für betroffenen User: zählt 1/3 Strafen"),
         BotCommand("liebes", "Liebesgestaendnis-Challenge"),
-        BotCommand("resetsuperwords", "Admin: Superworte zuruecksetzen"),
+        BotCommand("resetsuperwords", "Admin: Superwort-Cooldowns resetten"),
         BotCommand("superwordsstatus", "Status der Superworte"),
         BotCommand("settings", "Admin: Runtime-Settings"),
         BotCommand("admin", "Admin: Uebersicht"),

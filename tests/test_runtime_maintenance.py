@@ -134,6 +134,78 @@ async def test_moraltaxset_rejects_invalid_value(main_module, make_update):
 
 
 @pytest.mark.asyncio
+async def test_superwords_have_more_than_600_unique_keys(main_module):
+    assert len(main_module.SUPERWORD_KEYS) > 600
+
+
+@pytest.mark.asyncio
+async def test_superword_claim_has_four_day_cooldown(main_module, main_db_path):
+    async with aiosqlite.connect(main_db_path) as db:
+        claimed = await main_module.claim_superword_once(db, TEST_CHAT_ID, "kriegdersterne", 111)
+        await db.commit()
+        assert claimed is True
+
+        claimed_again = await main_module.claim_superword_once(db, TEST_CHAT_ID, "kriegdersterne", 111)
+        await db.commit()
+        assert claimed_again is False
+
+        old_ts = int(main_module.time.time()) - main_module.SUPERWORD_COOLDOWN_S - 10
+        await db.execute(
+            "UPDATE superwords_found SET found_ts=? WHERE chat_id=? AND word=?",
+            (old_ts, TEST_CHAT_ID, "kriegdersterne"),
+        )
+        await db.commit()
+
+        claimed_after_cooldown = await main_module.claim_superword_once(db, TEST_CHAT_ID, "kriegdersterne", 111)
+        await db.commit()
+        assert claimed_after_cooldown is True
+
+
+@pytest.mark.asyncio
+async def test_superwordsstatus_uses_unique_total_and_active_cooldown(main_module, main_db_path, make_update):
+    now = int(main_module.time.time())
+    async with aiosqlite.connect(main_db_path) as db:
+        await db.execute(
+            "INSERT INTO superwords_found(chat_id, word, found_by, found_ts) VALUES(?,?,?,?)",
+            (TEST_CHAT_ID, "kriegdersterne", 111, now),
+        )
+        await db.execute(
+            "INSERT INTO superwords_found(chat_id, word, found_by, found_ts) VALUES(?,?,?,?)",
+            (TEST_CHAT_ID, "standbyme", 222, now - main_module.SUPERWORD_COOLDOWN_S - 100),
+        )
+        await db.commit()
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+
+    await main_module.cmd_superwordsstatus(update, context)
+
+    text = update.effective_message.replies[-1]["text"]
+    assert f"Gesamt (eindeutige Superworte): <b>{len(main_module.SUPERWORD_KEYS)}</b>" in text
+    assert "Aktuell auf Cooldown (4 Tage): <b>1</b>" in text
+
+
+@pytest.mark.asyncio
+async def test_resetsuperwords_clears_all_active_cooldowns(main_module, main_db_path, make_update):
+    now = int(main_module.time.time())
+    async with aiosqlite.connect(main_db_path) as db:
+        await db.execute(
+            "INSERT INTO superwords_found(chat_id, word, found_by, found_ts) VALUES(?,?,?,?)",
+            (TEST_CHAT_ID, "kriegdersterne", 111, now),
+        )
+        await db.execute(
+            "INSERT INTO superwords_found(chat_id, word, found_by, found_ts) VALUES(?,?,?,?)",
+            (TEST_CHAT_ID, "standbyme", 222, now),
+        )
+        await db.commit()
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+
+    await main_module.cmd_resetsuperwords(update, context)
+
+    remaining = await fetch_scalar(main_db_path, "SELECT COUNT(*) FROM superwords_found WHERE chat_id=?", (TEST_CHAT_ID,))
+    assert remaining == 0
+    assert "Superwort-Cooldowns wurden zurueckgesetzt" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
 async def test_cleanup_zombies_purges_missing_members(main_module, main_db_path, make_update):
     await upsert_player(main_db_path, 111, "alive", coins=100)
     await upsert_player(main_db_path, 222, "ghost", coins=50)
