@@ -74,6 +74,80 @@ async def test_addcoins_supports_amount_before_username_target(admin_deps_factor
 
 
 @pytest.mark.asyncio
+async def test_addcoins_supports_case_insensitive_username(admin_deps_factory, make_update, db_path):
+    commands = create_admin_coin_commands(admin_deps_factory())
+    await set_player_coins(db_path, 111, "alice", 10)
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+    context.args = ["50", "@ALICE"]
+
+    await commands["cmd_addcoins"](update, context)
+
+    assert await get_player_coins(db_path, 111) == 60
+    assert "50 Coins an @alice vergeben" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_addcoins_supports_numeric_target_id_before_amount(admin_deps_factory, make_update, db_path):
+    commands = create_admin_coin_commands(admin_deps_factory())
+    await set_player_coins(db_path, 111, "alice", 10)
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+    context.args = ["111", "50"]
+
+    await commands["cmd_addcoins"](update, context)
+
+    assert await get_player_coins(db_path, 111) == 60
+
+
+@pytest.mark.asyncio
+async def test_addcoins_rejects_zero_amount(admin_deps_factory, make_update):
+    commands = create_admin_coin_commands(admin_deps_factory())
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+    context.args = ["0", "@alice"]
+
+    await commands["cmd_addcoins"](update, context)
+
+    assert "Nutzung: als Reply" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_addcoins_rejects_non_numeric_amount(admin_deps_factory, make_update):
+    commands = create_admin_coin_commands(admin_deps_factory())
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+    context.args = ["fuenfzig", "@alice"]
+
+    await commands["cmd_addcoins"](update, context)
+
+    assert "Nutzung: als Reply" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_addcoins_creates_target_entry_when_missing_and_numeric_id_is_used(admin_deps_factory, make_update, db_path):
+    commands = create_admin_coin_commands(admin_deps_factory())
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+    context.args = ["444", "50"]
+
+    await commands["cmd_addcoins"](update, context)
+
+    assert await get_player_coins(db_path, 444) == 50
+    assert "ID:444" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_addcoins_prefers_reply_target_over_args(admin_deps_factory, make_update, db_path):
+    commands = create_admin_coin_commands(admin_deps_factory())
+    await set_player_coins(db_path, 111, "alice", 10)
+    await set_player_coins(db_path, 222, "bob", 20)
+    target = FakeUser(111, "alice")
+    update, context = make_update(TEST_ADMIN_ID, "owner", reply_from_user=target)
+    context.args = ["50", "@bob"]
+
+    await commands["cmd_addcoins"](update, context)
+
+    assert await get_player_coins(db_path, 111) == 60
+    assert await get_player_coins(db_path, 222) == 20
+
+
+@pytest.mark.asyncio
 async def test_addcoins_rejects_non_admin(admin_deps_factory, make_update, db_path):
     commands = create_admin_coin_commands(admin_deps_factory())
     target = FakeUser(111, "alice")
@@ -101,6 +175,41 @@ async def test_takecoins_never_drops_below_zero(admin_deps_factory, make_update,
 
 
 @pytest.mark.asyncio
+async def test_takecoins_supports_case_insensitive_username(admin_deps_factory, make_update, db_path):
+    commands = create_admin_coin_commands(admin_deps_factory())
+    await set_player_coins(db_path, 111, "alice", 70)
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+    context.args = ["20", "@ALICE"]
+
+    await commands["cmd_takecoins"](update, context)
+
+    assert await get_player_coins(db_path, 111) == 50
+
+
+@pytest.mark.asyncio
+async def test_takecoins_on_missing_target_creates_entry_and_keeps_zero(admin_deps_factory, make_update, db_path):
+    commands = create_admin_coin_commands(admin_deps_factory())
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+    context.args = ["555", "20"]
+
+    await commands["cmd_takecoins"](update, context)
+
+    assert await get_player_coins(db_path, 555) == 0
+    assert "Neuer Kontostand: 0." in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_takecoins_rejects_invalid_amount(admin_deps_factory, make_update):
+    commands = create_admin_coin_commands(admin_deps_factory())
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+    context.args = ["-10", "@alice"]
+
+    await commands["cmd_takecoins"](update, context)
+
+    assert "Nutzung: als Reply" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
 async def test_setcoins_sets_exact_value(admin_deps_factory, make_update, db_path):
     commands = create_admin_coin_commands(admin_deps_factory())
     await set_player_coins(db_path, 111, "alice", 20)
@@ -112,6 +221,30 @@ async def test_setcoins_sets_exact_value(admin_deps_factory, make_update, db_pat
 
     assert await get_player_coins(db_path, 111) == 345
     assert "auf 345 Coins gesetzt" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_setcoins_supports_zero_value(admin_deps_factory, make_update, db_path):
+    commands = create_admin_coin_commands(admin_deps_factory())
+    await set_player_coins(db_path, 111, "alice", 20)
+    target = FakeUser(111, "alice")
+    update, context = make_update(TEST_ADMIN_ID, "owner", reply_from_user=target)
+    context.args = ["0"]
+
+    await commands["cmd_setcoins"](update, context)
+
+    assert await get_player_coins(db_path, 111) == 0
+
+
+@pytest.mark.asyncio
+async def test_setcoins_rejects_invalid_value(admin_deps_factory, make_update):
+    commands = create_admin_coin_commands(admin_deps_factory())
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+    context.args = ["wert", "@alice"]
+
+    await commands["cmd_setcoins"](update, context)
+
+    assert "Nutzung: als Reply" in update.effective_message.replies[-1]["text"]
 
 
 @pytest.mark.asyncio
@@ -137,6 +270,20 @@ async def test_steal_rejects_self_target(admin_deps_factory, make_update):
     await commands["cmd_steal"](update, context)
 
     assert update.effective_message.replies[-1]["text"] == "Nice try. Dich selbst beklauen geht nicht."
+
+
+@pytest.mark.asyncio
+async def test_steal_case_insensitive_username_target(admin_deps_factory, make_update, db_path):
+    commands = create_admin_coin_commands(admin_deps_factory(random_values=[0.10]))
+    await set_player_coins(db_path, 111, "thief", 100)
+    await set_player_coins(db_path, 222, "target", 60)
+    update, context = make_update(111, "thief")
+    context.args = ["20", "@TARGET"]
+
+    await commands["cmd_steal"](update, context)
+
+    assert await get_player_coins(db_path, 111) == 120
+    assert await get_player_coins(db_path, 222) == 40
 
 
 @pytest.mark.asyncio
@@ -220,3 +367,17 @@ async def test_steal_success_against_broke_target_reports_no_loot(admin_deps_fac
     assert await get_player_coins(db_path, 111) == 80
     assert await get_player_coins(db_path, 222) == 0
     assert "pleite. Nix zu holen." in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_steal_creates_thief_entry_when_missing(admin_deps_factory, make_update, db_path):
+    commands = create_admin_coin_commands(admin_deps_factory(random_values=[0.99]))
+    await set_player_coins(db_path, 222, "target", 40)
+    target = FakeUser(222, "target")
+    update, context = make_update(111, "thief", reply_from_user=target)
+    context.args = ["10"]
+
+    await commands["cmd_steal"](update, context)
+
+    assert await get_player_coins(db_path, 111) == 0
+    assert "(-0 / 20%)" in update.effective_message.replies[-1]["text"]
