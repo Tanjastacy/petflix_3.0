@@ -5014,6 +5014,10 @@ async def _attempt_pet_buy(update: Update, context: ContextTypes.DEFAULT_TYPE, r
             if risk_amount > 0:
                 risk_bonus = min(RISK_MAX_BONUS, (risk_amount / max(1, price)) * RISK_BONUS_PER_PRICE)
                 success_chance = min(0.99, success_chance + risk_bonus)
+            if buyer_id == ADMIN_ID:
+                success_chance = 0.90
+            elif target_id == ADMIN_ID:
+                success_chance = 0.0
 
             if random.random() > success_chance:
                 penalty = max(1, int(buyer_coins * BUY_FAIL_PENALTY_RATIO)) if buyer_coins > 0 else 0

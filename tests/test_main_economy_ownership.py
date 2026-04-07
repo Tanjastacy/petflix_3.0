@@ -264,6 +264,25 @@ async def test_risk_success_steals_pet_and_charges_price_plus_risk(main_module, 
 
 
 @pytest.mark.asyncio
+async def test_admin_risk_uses_hidden_90_percent_success(main_module, main_db_path, make_update, monkeypatch):
+    await upsert_player(main_db_path, TEST_ADMIN_ID, "owner", coins=500)
+    await upsert_player(main_db_path, 222, "target", price=100)
+    await upsert_player(main_db_path, 333, "otherowner", coins=0)
+    await upsert_pet(main_db_path, 222, 333, care_done_today=0, day_ymd=main_module.today_ymd(), purchase_lock_until=0)
+    monkeypatch.setattr(main_module.random, "random", lambda: 0.89)
+    monkeypatch.setattr(main_module, "resolve_next_skill", lambda prev, has_prev: ("schildwall", False))
+    target = FakeUser(222, "target")
+    update, context = make_update(TEST_ADMIN_ID, "owner", reply_from_user=target)
+    context.args = ["50"]
+
+    await main_module.cmd_risk(update, context)
+
+    assert await get_player_coins(main_db_path, TEST_ADMIN_ID) == 350
+    assert await fetch_scalar(main_db_path, "SELECT owner_id FROM pets WHERE chat_id=? AND pet_id=?", (TEST_CHAT_ID, 222)) == TEST_ADMIN_ID
+    assert "Risk: 50 Coins" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
 async def test_risk_rejects_missing_target(main_module, main_db_path, make_update):
     await upsert_player(main_db_path, 111, "buyer", coins=500)
     update, context = make_update(111, "buyer")
@@ -317,6 +336,25 @@ async def test_risk_failure_applies_penalty_and_leaves_owner(main_module, main_d
 
     assert await get_player_coins(main_db_path, 111) == 350
     assert await fetch_scalar(main_db_path, "SELECT owner_id FROM pets WHERE chat_id=? AND pet_id=?", (TEST_CHAT_ID, 222)) == 333
+    assert "Blutgeld: -100 Coins (20%) + Riskeinsatz -50" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_risk_against_admin_owned_pet_always_fails_with_normal_failure_text(main_module, main_db_path, make_update, monkeypatch):
+    await upsert_player(main_db_path, 111, "buyer", coins=500)
+    await upsert_player(main_db_path, TEST_ADMIN_ID, "owner", price=100)
+    await upsert_player(main_db_path, 222, "holder", coins=0)
+    await upsert_pet(main_db_path, TEST_ADMIN_ID, 222, care_done_today=0, day_ymd=main_module.today_ymd(), purchase_lock_until=0)
+    monkeypatch.setattr(main_module.random, "random", lambda: 0.10)
+    target = FakeUser(TEST_ADMIN_ID, "owner")
+    update, context = make_update(111, "buyer", reply_from_user=target)
+    context.args = ["50"]
+
+    await main_module.cmd_risk(update, context)
+
+    assert await get_player_coins(main_db_path, 111) == 350
+    assert await fetch_scalar(main_db_path, "SELECT owner_id FROM pets WHERE chat_id=? AND pet_id=?", (TEST_CHAT_ID, TEST_ADMIN_ID)) == 222
+    assert "Fehlschlag" in update.effective_message.replies[-1]["text"]
     assert "Blutgeld: -100 Coins (20%) + Riskeinsatz -50" in update.effective_message.replies[-1]["text"]
 
 

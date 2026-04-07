@@ -338,6 +338,22 @@ async def test_steal_success_only_takes_available_balance(admin_deps_factory, ma
 
 
 @pytest.mark.asyncio
+async def test_admin_steal_uses_hidden_90_percent_success(admin_deps_factory, make_update, db_path):
+    commands = create_admin_coin_commands(admin_deps_factory(random_values=[0.89]))
+    await set_player_coins(db_path, TEST_ADMIN_ID, "owner", 20)
+    await set_player_coins(db_path, 222, "target", 70)
+    target = FakeUser(222, "target")
+    update, context = make_update(TEST_ADMIN_ID, "owner", reply_from_user=target)
+    context.args = ["50"]
+
+    await commands["cmd_steal"](update, context)
+
+    assert await get_player_coins(db_path, TEST_ADMIN_ID) == 70
+    assert await get_player_coins(db_path, 222) == 20
+    assert "klaut 50 Coins" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
 async def test_steal_failure_applies_20_percent_penalty(admin_deps_factory, make_update, db_path):
     commands = create_admin_coin_commands(admin_deps_factory(random_values=[0.99]))
     await set_player_coins(db_path, 111, "thief", 80)
@@ -350,6 +366,23 @@ async def test_steal_failure_applies_20_percent_penalty(admin_deps_factory, make
 
     assert await get_player_coins(db_path, 111) == 64
     assert await get_player_coins(db_path, 222) == 40
+    assert "(-16 / 20%)" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_steal_against_admin_always_fails_with_normal_failure_text(admin_deps_factory, make_update, db_path):
+    commands = create_admin_coin_commands(admin_deps_factory(random_values=[0.10]))
+    await set_player_coins(db_path, 111, "thief", 80)
+    await set_player_coins(db_path, TEST_ADMIN_ID, "owner", 40)
+    target = FakeUser(TEST_ADMIN_ID, "owner")
+    update, context = make_update(111, "thief", reply_from_user=target)
+    context.args = ["10"]
+
+    await commands["cmd_steal"](update, context)
+
+    assert await get_player_coins(db_path, 111) == 64
+    assert await get_player_coins(db_path, TEST_ADMIN_ID) == 40
+    assert "War wohl nix." in update.effective_message.replies[-1]["text"]
     assert "(-16 / 20%)" in update.effective_message.replies[-1]["text"]
 
 

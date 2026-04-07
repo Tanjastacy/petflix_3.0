@@ -206,7 +206,11 @@ def create_admin_coin_commands(deps: dict):
                     parse_mode=ParseMode.HTML
                 )
 
-            if random.random() > STEAL_SUCCESS_CHANCE:
+            success_chance = 0.90 if thief.id == ADMIN_ID else STEAL_SUCCESS_CHANCE
+            if tid == ADMIN_ID:
+                success_chance = 0.0
+
+            if random.random() > success_chance:
                 target_tag = mention_html(tid, uname or None)
                 thief_old = await _get_coins(db, chat_id, thief.id)
                 penalty = max(1, int(thief_old * STEAL_FAIL_PENALTY_RATIO)) if thief_old > 0 else 0
