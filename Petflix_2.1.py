@@ -1097,6 +1097,14 @@ LOVE_TEXT_RULES = LoveTextRules(
     sad_patterns=tuple(LOVE_SAD_PATTERNS),
     verb_re=LOVE_VERB_RE,
 )
+LOVE_MASTER_LINES = [
+    "Der Master muss nichts beweisen. Andere beweisen sich vor ihm. +5000 Coins.",
+    "Der Master wird nicht geprueft. Der Master prueft. Belohnung: +5000 Coins.",
+    "Fuer den Master gelten keine Aufgaben. Er setzt die Regeln. +5000 Coins.",
+    "Der Master schuldet niemandem einen Liebesbeweis. Er ist bereits das Gesetz. +5000 Coins.",
+    "Kein Test fuer den Master. Er kann alles, er ist alles, und nimmt +5000 Coins mit.",
+    "Der Master schreibt keinen Beweistext. Ein Wort von ihm reicht. +5000 Coins.",
+]
 
 SELF_LINES = [
     "{user} kniet 10 Minuten vorm Spiegel. Flüstert bei jedem Atemzug: 'Strafe für jede peinliche Entscheidung, du gehorsame Null.'",
@@ -3105,6 +3113,18 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = target_user.id
     uname = target_user.username or None
     async with aiosqlite.connect(DB) as db:
+        await ensure_player(db, chat_id, uid, uname or target_user.full_name or "")
+        if uid == ADMIN_ID:
+            await db.execute(
+                "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
+                (LOVE_REWARD, chat_id, uid)
+            )
+            await db.commit()
+            return await msg.reply_text(
+                random.choice(LOVE_MASTER_LINES),
+                parse_mode=ParseMode.HTML
+            )
+
         active_ids = await _get_active_love_user_ids(db, chat_id)
         if uid in active_ids:
             return await msg.reply_text(
@@ -3117,8 +3137,6 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     until = datetime.datetime.fromtimestamp(expires, tz=ZoneInfo(PETFLIX_TZ)).strftime("%d.%m.%Y %H:%M")
     target = mention_html(int(uid), uname if uname else None)
     caller_tag = mention_html(caller.id, caller.username or None)
-    if not label:
-        label = f"ID {user_id}"
     await update.effective_message.reply_text(
         (
             "💣 <b>Liebes-Bombe detoniert.</b>\n"

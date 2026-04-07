@@ -3,7 +3,7 @@ import time
 import aiosqlite
 import pytest
 
-from tests.conftest import FakeUser, TEST_CHAT_ID, fetch_scalar, get_player_coins, upsert_pet, upsert_player
+from tests.conftest import TEST_ADMIN_ID, FakeUser, TEST_CHAT_ID, fetch_scalar, get_player_coins, upsert_pet, upsert_player
 
 
 CARE_COMMANDS = [
@@ -87,6 +87,42 @@ async def test_dom_rejects_non_female_target(main_module, main_db_path, make_upd
     await main_module.cmd_dom(update, context)
 
     assert update.effective_message.replies[-1]["text"] == "Nur bei Frauen."
+
+
+@pytest.mark.asyncio
+async def test_liebes_starts_challenge_and_sends_text(main_module, main_db_path, make_update):
+    await upsert_player(main_db_path, 111, "caller", coins=10)
+    await upsert_player(main_db_path, 222, "target", coins=0)
+    target = FakeUser(222, "target")
+    update, context = make_update(111, "caller", reply_from_user=target)
+
+    await main_module.cmd_liebes(update, context)
+
+    assert "Liebes-Bombe detoniert" in update.effective_message.replies[-1]["text"]
+    assert await fetch_scalar(
+        main_db_path,
+        "SELECT active FROM love_challenges WHERE chat_id=? AND user_id=?",
+        (TEST_CHAT_ID, 222),
+    ) == 1
+
+
+@pytest.mark.asyncio
+async def test_liebes_for_master_grants_direct_reward_without_challenge(main_module, main_db_path, make_update, monkeypatch):
+    await upsert_player(main_db_path, 111, "caller", coins=10)
+    await upsert_player(main_db_path, TEST_ADMIN_ID, "owner", coins=100)
+    monkeypatch.setattr(main_module.random, "choice", lambda seq: seq[0])
+    target = FakeUser(TEST_ADMIN_ID, "owner")
+    update, context = make_update(111, "caller", reply_from_user=target)
+
+    await main_module.cmd_liebes(update, context)
+
+    assert update.effective_message.replies[-1]["text"] == main_module.LOVE_MASTER_LINES[0]
+    assert await get_player_coins(main_db_path, TEST_ADMIN_ID) == 5100
+    assert await fetch_scalar(
+        main_db_path,
+        "SELECT COUNT(*) FROM love_challenges WHERE chat_id=? AND user_id=? AND active=1",
+        (TEST_CHAT_ID, TEST_ADMIN_ID),
+    ) == 0
 
 
 @pytest.mark.asyncio
