@@ -134,8 +134,15 @@ async def test_moraltaxset_rejects_invalid_value(main_module, make_update):
 
 
 @pytest.mark.asyncio
-async def test_superwords_have_more_than_600_unique_keys(main_module):
-    assert len(main_module.SUPERWORD_KEYS) > 600
+async def test_superwords_load_active_list_only(main_module):
+    assert len(main_module.SUPERWORDS) >= 136
+    assert "Pulp Fiction" in main_module.SUPERWORDS
+    assert "krieg der sterne" not in main_module.SUPERWORDS
+    assert len(main_module.SUPERWORDS) == len(set(main_module.SUPERWORDS))
+    assert len(main_module.SUPERWORD_KEYS) == len({
+        main_module.re.sub(r"[^a-z0-9]+", "", main_module.normalize_superword_text(word))
+        for word in main_module.SUPERWORDS
+    })
 
 
 @pytest.mark.asyncio
@@ -164,14 +171,19 @@ async def test_superword_claim_has_four_day_cooldown(main_module, main_db_path):
 @pytest.mark.asyncio
 async def test_superwordsstatus_uses_unique_total_and_active_cooldown(main_module, main_db_path, make_update):
     now = int(main_module.time.time())
+    active_key = next(iter(main_module.SUPERWORD_KEYS))
     async with aiosqlite.connect(main_db_path) as db:
         await db.execute(
             "INSERT INTO superwords_found(chat_id, word, found_by, found_ts) VALUES(?,?,?,?)",
-            (TEST_CHAT_ID, "kriegdersterne", 111, now),
+            (TEST_CHAT_ID, active_key, 111, now),
         )
         await db.execute(
             "INSERT INTO superwords_found(chat_id, word, found_by, found_ts) VALUES(?,?,?,?)",
-            (TEST_CHAT_ID, "standbyme", 222, now - main_module.SUPERWORD_COOLDOWN_S - 100),
+            (TEST_CHAT_ID, "alterdeaktivierterkey", 222, now),
+        )
+        await db.execute(
+            "INSERT INTO superwords_found(chat_id, word, found_by, found_ts) VALUES(?,?,?,?)",
+            (TEST_CHAT_ID, "pulpfiction", 333, now - main_module.SUPERWORD_COOLDOWN_S - 100),
         )
         await db.commit()
     update, context = make_update(TEST_ADMIN_ID, "owner")
@@ -182,19 +194,21 @@ async def test_superwordsstatus_uses_unique_total_and_active_cooldown(main_modul
     assert f"Geladene Eintraege: <b>{len(main_module.SUPERWORDS)}</b>" in text
     assert f"Gesamt (eindeutige Superworte): <b>{len(main_module.SUPERWORD_KEYS)}</b>" in text
     assert "Aktuell gefundene Worte: <b>1</b>" in text
+    assert f"Verbleibende Worte: <b>{len(main_module.SUPERWORD_KEYS) - 1}</b>" in text
 
 
 @pytest.mark.asyncio
 async def test_resetsuperwords_clears_all_active_cooldowns(main_module, main_db_path, make_update):
     now = int(main_module.time.time())
+    active_key = next(iter(main_module.SUPERWORD_KEYS))
     async with aiosqlite.connect(main_db_path) as db:
         await db.execute(
             "INSERT INTO superwords_found(chat_id, word, found_by, found_ts) VALUES(?,?,?,?)",
-            (TEST_CHAT_ID, "kriegdersterne", 111, now),
+            (TEST_CHAT_ID, active_key, 111, now),
         )
         await db.execute(
             "INSERT INTO superwords_found(chat_id, word, found_by, found_ts) VALUES(?,?,?,?)",
-            (TEST_CHAT_ID, "standbyme", 222, now),
+            (TEST_CHAT_ID, "alterdeaktivierterkey", 222, now),
         )
         await db.commit()
     update, context = make_update(TEST_ADMIN_ID, "owner")
@@ -204,6 +218,26 @@ async def test_resetsuperwords_clears_all_active_cooldowns(main_module, main_db_
     remaining = await fetch_scalar(main_db_path, "SELECT COUNT(*) FROM superwords_found WHERE chat_id=?", (TEST_CHAT_ID,))
     assert remaining == 0
     assert "Superwort-Cooldowns wurden zurueckgesetzt" in update.effective_message.replies[-1]["text"]
+    assert "1 aktuell gesperrte Superworte" in update.effective_message.replies[-1]["text"]
+
+
+@pytest.mark.asyncio
+async def test_resetsuperwords_rejects_non_master(main_module, main_db_path, make_update):
+    now = int(main_module.time.time())
+    active_key = next(iter(main_module.SUPERWORD_KEYS))
+    async with aiosqlite.connect(main_db_path) as db:
+        await db.execute(
+            "INSERT INTO superwords_found(chat_id, word, found_by, found_ts) VALUES(?,?,?,?)",
+            (TEST_CHAT_ID, active_key, 111, now),
+        )
+        await db.commit()
+    update, context = make_update(111, "alice")
+
+    await main_module.cmd_resetsuperwords(update, context)
+
+    remaining = await fetch_scalar(main_db_path, "SELECT COUNT(*) FROM superwords_found WHERE chat_id=?", (TEST_CHAT_ID,))
+    assert remaining == 1
+    assert "Nur der Bot-Admin darf das" in update.effective_message.replies[-1]["text"]
 
 
 @pytest.mark.asyncio

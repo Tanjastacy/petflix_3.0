@@ -398,7 +398,7 @@ SUPERWORDS_FILES = [
     "texts/superwords_series_de.txt",
     "texts/superwords_series_en.txt",
 ]
-SUPERWORDS_CLEAN_FILE = "texts/superwords_all_clean.txt"
+SUPERWORDS_CLEAN_FILE = "texts/superwords_active.txt"
 if os.path.exists(SUPERWORDS_CLEAN_FILE):
     SUPERWORDS = []
     with open(SUPERWORDS_CLEAN_FILE, "r", encoding="utf-8-sig") as f:
@@ -1463,6 +1463,11 @@ async def migrate_db(db):
         await db.execute("DELETE FROM superwords_found")
         await _set_user_version(db, 18)
         current = 18
+
+    if current < 19:
+        await db.execute("DELETE FROM superwords_found")
+        await _set_user_version(db, 19)
+        current = 19
 
     # Sicherheitsnetz fuer inkonsistente Alt-DBs:
     # Wenn user_version hoch ist, Spalten aber fehlen, ziehen wir sie hier trotzdem nach.
@@ -3162,18 +3167,24 @@ async def cmd_resetsuperwords(update: Update, context: ContextTypes.DEFAULT_TYPE
     chat_id = update.effective_chat.id
     active_cutoff = int(time.time()) - SUPERWORD_COOLDOWN_S
     async with aiosqlite.connect(DB) as db:
-        async with db.execute(
-            "SELECT COUNT(*) FROM superwords_found WHERE chat_id=? AND found_ts>?",
-            (chat_id, active_cutoff)
-        ) as cur:
-            row = await cur.fetchone()
-        cleared = int((row[0] if row else 0) or 0)
+        cleared = await _count_active_superword_cooldowns(db, chat_id, active_cutoff)
         await db.execute("DELETE FROM superwords_found WHERE chat_id=?", (chat_id,))
         await db.commit()
 
     await update.effective_message.reply_text(
         f"Superwort-Cooldowns wurden zurueckgesetzt. {cleared} aktuell gesperrte Superworte sind sofort wieder verfuegbar."
     )
+
+
+async def _count_active_superword_cooldowns(db, chat_id: int, active_cutoff: int) -> int:
+    if not SUPERWORD_KEYS:
+        return 0
+    async with db.execute(
+        "SELECT word FROM superwords_found WHERE chat_id=? AND found_ts>?",
+        (chat_id, active_cutoff)
+    ) as cur:
+        rows = await cur.fetchall()
+    return sum(1 for row in rows if row and str(row[0]).lower() in SUPERWORD_KEYS)
 
 
 async def cmd_superwordsstatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -3185,12 +3196,7 @@ async def cmd_superwordsstatus(update: Update, context: ContextTypes.DEFAULT_TYP
     unique_total = len(SUPERWORD_KEYS)
     active_cutoff = int(time.time()) - SUPERWORD_COOLDOWN_S
     async with aiosqlite.connect(DB) as db:
-        async with db.execute(
-            "SELECT COUNT(*) FROM superwords_found WHERE chat_id=? AND found_ts>?",
-            (chat_id, active_cutoff)
-        ) as cur:
-            row = await cur.fetchone()
-        found = int((row[0] if row else 0) or 0)
+        found = await _count_active_superword_cooldowns(db, chat_id, active_cutoff)
 
     remaining = max(0, unique_total - found)
     await update.effective_message.reply_text(
