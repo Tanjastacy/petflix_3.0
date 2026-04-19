@@ -419,7 +419,7 @@ SUPERWORDS = list(dict.fromkeys(_add_umlaut_variants(SUPERWORDS)))
 # =========================
 # /steal
 # =========================
-STEAL_SUCCESS_CHANCE = 0.48
+STEAL_SUCCESS_CHANCE = 0.50
 STEAL_COOLDOWN_S = 10 * 60
 STEAL_FAIL_PENALTY_RATIO = 0.20
 

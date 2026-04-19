@@ -207,8 +207,6 @@ def create_admin_coin_commands(deps: dict):
                 )
 
             success_chance = 0.90 if thief.id == ADMIN_ID else STEAL_SUCCESS_CHANCE
-            if tid == ADMIN_ID:
-                success_chance = 0.0
 
             if random.random() > success_chance:
                 target_tag = mention_html(tid, uname or None)
