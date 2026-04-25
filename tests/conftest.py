@@ -550,7 +550,7 @@ def main_module(monkeypatch):
     monkeypatch.setenv("DB_PATH", str(repo_root / "tests" / "placeholder.sqlite3"))
     monkeypatch.setenv("BACKUP_DIR", str(repo_root / "tests" / "backups"))
     monkeypatch.setenv("PETFLIX_TZ", "Europe/Berlin")
-    return load_petflix_main(repo_root / "Petflix_2.1.py")
+    return load_petflix_main(repo_root / "Petflix_3.0.py")
 
 
 @pytest_asyncio.fixture

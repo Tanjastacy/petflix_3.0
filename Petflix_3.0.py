@@ -37,7 +37,7 @@ try:
 except ValueError:
     CHAT_FILTER = filters.Chat(ALLOWED_CHAT_ID_RAW)
 
-DB = os.environ.get("DB_PATH", "petflix_2.1.db")
+DB = os.environ.get("DB_PATH", "petflix_3.0.db")
 BACKUP_DIR = os.getenv("BACKUP_DIR", "data")
 BACKUP_KEEP_FILES = 7
 MAX_CHUNK = 3500  # unter 4096 bleiben, wegen HTML-Overhead sicher

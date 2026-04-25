@@ -1,8 +1,8 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `Petflix_2.1.py` is the main Telegram bot implementation and contains all handlers and database logic.
-- `petflix_2.1.db` is the SQLite database used by default (or a sample copy for local runs).
+- `Petflix_3.0.py` is the main Telegram bot implementation and contains all handlers and database logic.
+- `petflix_3.0.db` is the SQLite database used by default (or a sample copy for local runs).
 - `data/` stores backups when `BACKUP_DIR` points there.
 - `.venv/` is a local Python virtual environment (do not commit changes from it).
 
@@ -10,7 +10,7 @@
 - `python -m venv .venv` creates a local virtual environment.
 - `pip install -r requirements.txt` installs runtime dependencies.
 - Set required environment variables: `BOT_TOKEN`, `ALLOWED_CHAT_ID`, `ADMIN_ID`, `DB_PATH`, `BACKUP_DIR`, `PETFLIX_TZ`. Use `.env` as a local template, but do not commit real tokens.
-- `python Petflix_2.1.py` runs the bot in polling mode.
+- `python Petflix_3.0.py` runs the bot in polling mode.
 
 ## Coding Style & Naming Conventions
 - Use 4-space indentation and keep Python code PEP 8 compliant.
@@ -35,8 +35,8 @@
 ## Collaboration Defaults (Persistent)
 - Preferred language for communication is German.
 - For normal requests, implement changes directly first and ask follow-up questions only when requirements are ambiguous or risky.
-- Keep diffs small and focused; avoid unrelated refactors in `Petflix_2.1.py`.
-- After code changes, run a quick syntax check with `python -m py_compile Petflix_2.1.py` when possible.
+- Keep diffs small and focused; avoid unrelated refactors in `Petflix_3.0.py`.
+- After code changes, run a quick syntax check with `python -m py_compile Petflix_3.0.py` when possible.
 - In every final response, include:
   - short summary of what changed,
   - touched file paths,
