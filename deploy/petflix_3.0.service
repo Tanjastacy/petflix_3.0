@@ -1,0 +1,16 @@
+[Unit]
+Description=Petflix 3.0 Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/petflix_3.0
+EnvironmentFile=/opt/petflix_3.0/.env
+ExecStart=/opt/petflix_3.0/.venv/bin/python /opt/petflix_3.0/Petflix_3.0.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
