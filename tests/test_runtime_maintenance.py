@@ -115,6 +115,39 @@ async def test_moraltax_status_toggle_and_set(main_module, main_db_path, make_up
 
 
 @pytest.mark.asyncio
+async def test_moraltaxset_accepts_negative_amount_as_deduction(main_module, main_db_path, make_update):
+    update, context = make_update(TEST_ADMIN_ID, "owner")
+    context.args = ["-50"]
+
+    await main_module.cmd_moraltaxset(update, context)
+
+    assert "gesetzt auf 50 Coins" in update.effective_message.replies[-1]["text"]
+    assert await fetch_scalar(
+        main_db_path,
+        "SELECT moraltax_amount FROM settings WHERE chat_id=?",
+        (TEST_CHAT_ID,),
+    ) == 50
+
+
+@pytest.mark.asyncio
+async def test_moraltax_recognizes_added_thanks_variants(main_module, main_db_path):
+    await upsert_player(main_db_path, 222, "pet", chat_id=TEST_CHAT_ID, coins=120)
+
+    async with main_module.aiosqlite.connect(main_db_path) as db:
+        await db.execute(
+            "INSERT INTO settings(chat_id, moraltax_enabled, moraltax_amount) VALUES(?,?,?) "
+            "ON CONFLICT(chat_id) DO UPDATE SET moraltax_enabled=excluded.moraltax_enabled, moraltax_amount=excluded.moraltax_amount",
+            (TEST_CHAT_ID, 1, 50),
+        )
+        await db.commit()
+
+        deducted, _ = await main_module.apply_moraltax_if_needed(db, TEST_CHAT_ID, 222, "dangö thxuu")
+
+    assert deducted == 50
+    assert await get_player_coins(main_db_path, 222, TEST_CHAT_ID) == 70
+
+
+@pytest.mark.asyncio
 async def test_moraltax_rejects_non_admin(main_module, make_update):
     update, context = make_update(111, "user")
 

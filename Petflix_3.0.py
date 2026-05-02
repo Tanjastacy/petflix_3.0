@@ -1147,10 +1147,16 @@ SELF_LINES = [
 MORAL_TAX_TRIGGERS = [
     (r"(?i)\bbitte\b", "Bitte? Als ob du je was umsonst kriegst, du kleine Bettel-Prinzessin. −{deduct} Coins fürs Winseln."),
     (r"(?i)\bdanke\b", "Danke? Süß, als ob du was verdient hättest. Nächstes Mal mit Knien, du undankbare Fotze. −{deduct} Coins."),
+    (r"(?i)\bdankeee+\b", "Dankeee? Noch ein paar e mehr und ich kassiere doppelt, du kleine Schleimerin. −{deduct} Coins."),
+    (r"(?i)\bdange\b", "Dange? Vertippt, aber trotzdem ekelhaft höflich. Zahl gefälligst, du kleine Tastatur-Bettlerin. −{deduct} Coins."),
+    (r"(?i)\bdang(?:ö|oe)\b", "Dangö? Niedlich verkorkst. Nettigkeit mit Akzent bleibt steuerpflichtig. −{deduct} Coins."),
+    (r"(?i)\bdankesch(?:ö|oe)n\b", "Dankeschön? Zu geschniegelt für meinen Geschmack. Das kostet dich sofort −{deduct} Coins."),
     (r"(?i)\bentschuldigung\b", "Entschuldigung? Als ob ich dir je verzeihen würde, ohne dass du richtig leidest. −{deduct} Coins."),
     (r"(?i)\bsorry\b", "Sorry? Sorry not sorry – aber du sagst’s eh nur, um mich heiß zu machen, du kleine Manipuliererin. −{deduct} Coins."),
     (r"(?i)\bwärst du so lieb\b", "Wärst du so lieb? Ich bin lieb – auf meine Art, du kleine Masochistin mit Herzchenaugen. −{deduct} Coins."),
     (r"(?i)\bthx\b", "Thx? Cringe-Abkürzung. Sag’s richtig oder halt die Klappe, du faule kleine Abkürzungs-Hure. −{deduct} Coins."),
+    (r"(?i)\bthx+u*\b", "Thx? Egal wie faul du das schreibst, ich les da nur steuerpflichtige Unterwürfigkeit. −{deduct} Coins."),
+    (r"(?i)\bthanks+\b", "Thanks? Englisch macht es nicht billiger, du kleine internationale Bittstellerin. −{deduct} Coins."),
     (r"(?i)\bthank you\b", "Thank you? International betteln jetzt? Du kleine Welt-Sub, lern Deutsch oder knie still. −{deduct} Coins."),
     (r"(?i)🙏", "Betende Hände? Perfekt für auf Knien vor mir. Bete zu mir, nicht zum Himmel, du kleine Andächtige. −{deduct} Coins."),
     (r"(?i)\bbrav\b", "Brav? Als ob du’s je wärst, ohne dass ich dich drauftrimme. Lüg mich nicht an. −{deduct} Coins."),
@@ -3680,7 +3686,7 @@ async def cmd_setgender(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =========================
 async def register_commands(application: Application):
     commands = [
-        BotCommand("start", "Kurzstart"),
+        BotCommand("petgo", "Kurzstart"),
         BotCommand("sospet", "Kurze Befehlsuebersicht"),
         BotCommand("ping", "Ping-Test (Antwort: pong)"),
         BotCommand("balance", "Zeigt deinen Coin-Kontostand"),
@@ -4775,10 +4781,9 @@ async def cmd_moraltaxset(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if not is_group(update): return
     chat_id = update.effective_chat.id
-    if not context.args or not context.args[0].isdigit():
+    if not context.args or not re.fullmatch(r"-?\d+", context.args[0]):
         return await update.effective_message.reply_text("Nutzung: /moraltaxset <betrag in coins>")
-    amount = int(context.args[0])
-    if amount < 0: amount = 0
+    amount = abs(int(context.args[0]))
     async with aiosqlite.connect(DB) as db:
         await db.execute("INSERT INTO settings(chat_id) VALUES(?) ON CONFLICT(chat_id) DO NOTHING", (chat_id,))
         await db.execute("UPDATE settings SET moraltax_amount=? WHERE chat_id=?", (amount, chat_id))
@@ -5497,7 +5502,7 @@ def main():
     app.post_init = register_commands
 
     # Standard-Commands
-    app.add_handler(CommandHandler("start",    cmd_start))
+    app.add_handler(CommandHandler("petgo",    cmd_start))
     app.add_handler(CommandHandler(["sospet", "help"], cmd_help))
     app.add_handler(CommandHandler("ping",     cmd_ping,     filters=CHAT_FILTER))
     app.add_handler(CommandHandler("balance",  cmd_balance,  filters=CHAT_FILTER))
