@@ -241,7 +241,7 @@ def create_runtime_features(deps: dict):
             "3) Pflege dein Pet regelmaessig mit /pet, /walk, /kiss, ...\n"
             "\n<b>Wichtige Commands</b>\n"
             "/balance, /daily, /treasure, /top, /prices\n"
-            "/treat (alias /leckerli), /buy, /risk, /steal\n"
+            "/treat (alias /leckerli), /buy, /risk, /steal, /fehde\n"
             "/owner, /ownerlist, /release\n"
             "\n<b>Challenges</b>\n"
             "/hass, /selbst, /liebes\n"

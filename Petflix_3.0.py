@@ -15,7 +15,7 @@ from datetime import time as dtime
 from zoneinfo import ZoneInfo  # Python 3.9+
 from html import escape
 from love_text_rules import LoveTextRules, love_text_ok
-from text_helpers import get_cached_json, split_chunks
+from text_helpers import get_cached_json, load_json_dict, split_chunks
 from admin_coin_commands import create_admin_coin_commands
 from runtime_features import create_runtime_features
 from ownership_features import create_ownership_features
@@ -43,6 +43,7 @@ BACKUP_KEEP_FILES = 7
 MAX_CHUNK = 3500  # unter 4096 bleiben, wegen HTML-Overhead sicher
 DOM_RESPONSES_PATH = os.getenv("DOM_RESPONSES_PATH", "texts/dom_responses.json")
 CARE_RESPONSES_PATH = os.getenv("CARE_RESPONSES_PATH", "texts/care_responses.json")
+STEAL_TEXTS_PATH = os.getenv("STEAL_TEXTS_PATH", "texts/steal_texts.json")
 DOM_FEMALE_DENY_LINES = [
     "Nein. Schau zu und lern.",
     "Schoener Versuch, aber nein.",
@@ -420,7 +421,7 @@ SUPERWORDS = list(dict.fromkeys(_add_umlaut_variants(SUPERWORDS)))
 # /steal
 # =========================
 STEAL_SUCCESS_CHANCE = 0.50
-STEAL_COOLDOWN_S = 10 * 60
+STEAL_COOLDOWN_S = 30
 STEAL_FAIL_PENALTY_RATIO = 0.20
 
 # =========================
@@ -1204,7 +1205,7 @@ log = logging.getLogger("Petflix_2.0")
 # DB-Setup 
 # =========================
 
-SCHEMA_VERSION = 16
+SCHEMA_VERSION = 20
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -1475,6 +1476,27 @@ async def migrate_db(db):
         await _set_user_version(db, 19)
         current = 19
 
+    if current < 20:
+        await db.executescript("""
+        CREATE TABLE IF NOT EXISTS steal_feuds(
+          chat_id          INTEGER,
+          user_a           INTEGER,
+          user_b           INTEGER,
+          heat             INTEGER DEFAULT 0,
+          clash_count      INTEGER DEFAULT 0,
+          success_count    INTEGER DEFAULT 0,
+          last_attack_ts   INTEGER DEFAULT 0,
+          last_attacker_id INTEGER DEFAULT NULL,
+          last_victim_id   INTEGER DEFAULT NULL,
+          active_until_ts  INTEGER DEFAULT 0,
+          PRIMARY KEY(chat_id, user_a, user_b)
+        );
+        CREATE INDEX IF NOT EXISTS idx_steal_feuds_active ON steal_feuds(chat_id, active_until_ts);
+        CREATE INDEX IF NOT EXISTS idx_steal_feuds_last   ON steal_feuds(chat_id, last_attack_ts);
+        """)
+        await _set_user_version(db, 20)
+        current = 20
+
     # Sicherheitsnetz fuer inkonsistente Alt-DBs:
     # Wenn user_version hoch ist, Spalten aber fehlen, ziehen wir sie hier trotzdem nach.
     if not await _table_has_column(db, "pets", "pet_skill"):
@@ -1507,6 +1529,23 @@ async def migrate_db(db):
         await db.execute(
             f"ALTER TABLE settings ADD COLUMN auto_curse_enabled INTEGER DEFAULT {1 if AUTO_CURSE_ENABLED else 0}"
         )
+    await db.executescript("""
+    CREATE TABLE IF NOT EXISTS steal_feuds(
+      chat_id          INTEGER,
+      user_a           INTEGER,
+      user_b           INTEGER,
+      heat             INTEGER DEFAULT 0,
+      clash_count      INTEGER DEFAULT 0,
+      success_count    INTEGER DEFAULT 0,
+      last_attack_ts   INTEGER DEFAULT 0,
+      last_attacker_id INTEGER DEFAULT NULL,
+      last_victim_id   INTEGER DEFAULT NULL,
+      active_until_ts  INTEGER DEFAULT 0,
+      PRIMARY KEY(chat_id, user_a, user_b)
+    );
+    CREATE INDEX IF NOT EXISTS idx_steal_feuds_active ON steal_feuds(chat_id, active_until_ts);
+    CREATE INDEX IF NOT EXISTS idx_steal_feuds_last   ON steal_feuds(chat_id, last_attack_ts);
+    """)
 
 async def db_init():
     async with aiosqlite.connect(DB) as db:
@@ -3090,6 +3129,137 @@ async def _get_active_love_for_user(db, chat_id: int, user_id: int):
     """, (chat_id, user_id)) as cur:
         return await cur.fetchone()
 
+FEUD_STAGE_1_HEAT = 3
+FEUD_STAGE_2_HEAT = 6
+FEUD_STAGE_3_HEAT = 10
+FEUD_ACTIVE_WINDOW_S = 48 * 3600
+FEUD_REVENGE_WINDOW_S = 30 * 60
+FEUD_REVENGE_CHANCE_BONUS = 0.15
+FEUD_STAGE_BONUS = {
+    0: {"chance": 0.00, "steal_pct": 0.00, "label": "Ruhe vor dem Diebstahl"},
+    1: {"chance": 0.04, "steal_pct": 0.10, "label": "Erstes Blut"},
+    2: {"chance": 0.08, "steal_pct": 0.20, "label": "Menschenjagd"},
+    3: {"chance": 0.12, "steal_pct": 0.35, "label": "Hinrichtung"},
+}
+FEUD_STAGE_TRIGGER_LINES = {
+    1: [
+        "Zwischen {attacker} und {victim} ist das <b>Erste Blut</b> gefallen.",
+        "{attacker} und {victim} haben die Schwelle ueberschritten. <b>Stufe 1: Erstes Blut</b>.",
+    ],
+    2: [
+        "{attacker} gegen {victim}: Das kippt in offene <b>Menschenjagd</b>.",
+        "Die Gruppe riecht Blut. {attacker} und {victim} stehen jetzt in <b>Stufe 2: Menschenjagd</b>.",
+    ],
+    3: [
+        "{attacker} und {victim} sind komplett entgleist. <b>Hinrichtung</b> wurde ausgerufen.",
+        "Alarm im Chat: {attacker} und {victim} haben <b>Stufe 3: Hinrichtung</b> erreicht.",
+    ],
+}
+
+def feud_stage_from_heat(heat: int) -> int:
+    value = max(0, int(heat or 0))
+    if value >= FEUD_STAGE_3_HEAT:
+        return 3
+    if value >= FEUD_STAGE_2_HEAT:
+        return 2
+    if value >= FEUD_STAGE_1_HEAT:
+        return 1
+    return 0
+
+def feud_stage_label(stage: int) -> str:
+    return FEUD_STAGE_BONUS.get(int(stage or 0), FEUD_STAGE_BONUS[0])["label"]
+
+def _feud_pair(user_x: int, user_y: int) -> tuple[int, int]:
+    a = int(user_x)
+    b = int(user_y)
+    return (a, b) if a < b else (b, a)
+
+def feud_revenge_key(other_user_id: int) -> str:
+    return f"revenge:{int(other_user_id)}"
+
+async def get_feud_state(db, chat_id: int, user_x: int, user_y: int) -> dict:
+    user_a, user_b = _feud_pair(user_x, user_y)
+    async with db.execute("""
+        SELECT heat, clash_count, success_count, last_attack_ts,
+               last_attacker_id, last_victim_id, active_until_ts
+        FROM steal_feuds
+        WHERE chat_id=? AND user_a=? AND user_b=?
+    """, (chat_id, user_a, user_b)) as cur:
+        row = await cur.fetchone()
+    if not row:
+        return {
+            "heat": 0,
+            "clash_count": 0,
+            "success_count": 0,
+            "last_attack_ts": 0,
+            "last_attacker_id": None,
+            "last_victim_id": None,
+            "active_until_ts": 0,
+            "stage": 0,
+            "active": False,
+        }
+    heat = int(row[0] or 0)
+    active_until_ts = int(row[6] or 0)
+    active = active_until_ts > int(time.time())
+    return {
+        "heat": heat,
+        "clash_count": int(row[1] or 0),
+        "success_count": int(row[2] or 0),
+        "last_attack_ts": int(row[3] or 0),
+        "last_attacker_id": int(row[4]) if row[4] is not None else None,
+        "last_victim_id": int(row[5]) if row[5] is not None else None,
+        "active_until_ts": active_until_ts,
+        "stage": feud_stage_from_heat(heat) if active else 0,
+        "active": active,
+    }
+
+async def register_feud_clash(db, chat_id: int, attacker_id: int, victim_id: int, success: bool) -> dict:
+    state_before = await get_feud_state(db, chat_id, attacker_id, victim_id)
+    heat = int(state_before["heat"] or 0) + (2 if success else 1)
+    clash_count = int(state_before["clash_count"] or 0) + 1
+    success_count = int(state_before["success_count"] or 0) + (1 if success else 0)
+    now = int(time.time())
+    active_until_ts = now + FEUD_ACTIVE_WINDOW_S
+    user_a, user_b = _feud_pair(attacker_id, victim_id)
+    await db.execute("""
+        INSERT INTO steal_feuds(
+          chat_id, user_a, user_b, heat, clash_count, success_count,
+          last_attack_ts, last_attacker_id, last_victim_id, active_until_ts
+        )
+        VALUES(?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(chat_id, user_a, user_b) DO UPDATE SET
+          heat=excluded.heat,
+          clash_count=excluded.clash_count,
+          success_count=excluded.success_count,
+          last_attack_ts=excluded.last_attack_ts,
+          last_attacker_id=excluded.last_attacker_id,
+          last_victim_id=excluded.last_victim_id,
+          active_until_ts=excluded.active_until_ts
+    """, (
+        chat_id, user_a, user_b, heat, clash_count, success_count,
+        now, attacker_id, victim_id, active_until_ts
+    ))
+    stage_before = int(state_before["stage"] or 0)
+    stage_after = feud_stage_from_heat(heat)
+    return {
+        "heat": heat,
+        "clash_count": clash_count,
+        "success_count": success_count,
+        "last_attack_ts": now,
+        "last_attacker_id": attacker_id,
+        "last_victim_id": victim_id,
+        "active_until_ts": active_until_ts,
+        "active": True,
+        "stage": stage_after,
+        "stage_changed": stage_after > stage_before,
+    }
+
+def format_feud_stage_trigger(stage: int, attacker_tag: str, victim_tag: str) -> str:
+    lines = FEUD_STAGE_TRIGGER_LINES.get(int(stage or 0))
+    if not lines:
+        return ""
+    return random.choice(lines).format(attacker=attacker_tag, victim=victim_tag)
+
 async def _get_active_love_user_ids(db, chat_id: int):
     async with db.execute("""
         SELECT user_id FROM love_challenges WHERE chat_id=? AND active=1
@@ -3420,12 +3590,18 @@ _ADMIN_COIN_CMDS = create_admin_coin_commands({
     "ParseMode": ParseMode,
     "escape": escape,
     "random": random,
+    "load_json_dict": load_json_dict,
+    "STEAL_TEXTS_PATH": STEAL_TEXTS_PATH,
     "STEAL_SUCCESS_CHANCE": STEAL_SUCCESS_CHANCE,
     "STEAL_COOLDOWN_S": STEAL_COOLDOWN_S,
     "STEAL_FAIL_PENALTY_RATIO": STEAL_FAIL_PENALTY_RATIO,
+    "FEUD_REVENGE_WINDOW_S": FEUD_REVENGE_WINDOW_S,
+    "FEUD_REVENGE_CHANCE_BONUS": FEUD_REVENGE_CHANCE_BONUS,
+    "FEUD_STAGE_BONUS": FEUD_STAGE_BONUS,
     "set_cd": set_cd,
     "get_cd_left": get_cd_left,
     "mention_html": mention_html,
+    "format_duration": _format_duration_compact,
     "today_ymd": today_ymd,
     "is_group": is_group,
     "_is_admin_here": _is_admin_here,
@@ -3433,6 +3609,11 @@ _ADMIN_COIN_CMDS = create_admin_coin_commands({
     "_ensure_player_entry": _ensure_player_entry,
     "_get_coins": _get_coins,
     "_parse_amount_from_args": _parse_amount_from_args,
+    "get_feud_state": get_feud_state,
+    "register_feud_clash": register_feud_clash,
+    "feud_revenge_key": feud_revenge_key,
+    "feud_stage_label": feud_stage_label,
+    "format_feud_stage_trigger": format_feud_stage_trigger,
 })
 cmd_adminping = _ADMIN_COIN_CMDS["cmd_adminping"]
 cmd_careminus = _ADMIN_COIN_CMDS["cmd_careminus"]
@@ -3441,6 +3622,7 @@ cmd_takecoins = _ADMIN_COIN_CMDS["cmd_takecoins"]
 cmd_setcoins = _ADMIN_COIN_CMDS["cmd_setcoins"]
 cmd_resetcoins = _ADMIN_COIN_CMDS["cmd_resetcoins"]
 cmd_steal = _ADMIN_COIN_CMDS["cmd_steal"]
+cmd_fehde = _ADMIN_COIN_CMDS["cmd_fehde"]
 
 async def _fetch_gender_candidates(db, chat_id: int, include_assigned: bool):
     if include_assigned:
@@ -3693,6 +3875,7 @@ async def register_commands(application: Application):
         BotCommand("treat", "Schenke Coins an einen User"),
         BotCommand("leckerli", "Schenke Coins an einen User"),
         BotCommand("steal", "Versuche Coins zu klauen (48% Chance)"),
+        BotCommand("fehde", "Zeigt aktive Rivalitaeten und Stufen"),
         BotCommand("buy", "Kaufe einen anderen User"),
         BotCommand("risk", "Klauversuch mit Coin-Risiko fuer mehr Chance"),
         BotCommand("release", "Gib dein Haustier frei"),
@@ -5573,6 +5756,7 @@ def main():
     app.add_handler(CommandHandler("setcoins",   cmd_setcoins,   filters=CHAT_FILTER))
     app.add_handler(CommandHandler("resetcoins", cmd_resetcoins, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("steal",      cmd_steal,      filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("fehde",      cmd_fehde,      filters=CHAT_FILTER))
     app.add_handler(CommandHandler("assign_gender", cmd_assign_gender, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("genderlist", cmd_genderlist, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("setgender", cmd_setgender, filters=CHAT_FILTER))
