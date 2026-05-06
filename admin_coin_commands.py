@@ -5,18 +5,18 @@ def create_admin_coin_commands(deps: dict):
     ParseMode = deps["ParseMode"]
     escape = deps["escape"]
     random = deps["random"]
-    load_json_dict = deps["load_json_dict"]
-    STEAL_TEXTS_PATH = deps["STEAL_TEXTS_PATH"]
+    load_json_dict = deps.get("load_json_dict", lambda _path: {})
+    STEAL_TEXTS_PATH = deps.get("STEAL_TEXTS_PATH", "")
     STEAL_SUCCESS_CHANCE = deps["STEAL_SUCCESS_CHANCE"]
     STEAL_COOLDOWN_S = deps["STEAL_COOLDOWN_S"]
     STEAL_FAIL_PENALTY_RATIO = deps["STEAL_FAIL_PENALTY_RATIO"]
-    FEUD_REVENGE_WINDOW_S = deps["FEUD_REVENGE_WINDOW_S"]
-    FEUD_REVENGE_CHANCE_BONUS = deps["FEUD_REVENGE_CHANCE_BONUS"]
-    FEUD_STAGE_BONUS = deps["FEUD_STAGE_BONUS"]
+    FEUD_REVENGE_WINDOW_S = deps.get("FEUD_REVENGE_WINDOW_S", 0)
+    FEUD_REVENGE_CHANCE_BONUS = deps.get("FEUD_REVENGE_CHANCE_BONUS", 0.0)
+    FEUD_STAGE_BONUS = deps.get("FEUD_STAGE_BONUS", {0: {"label": "Still", "chance": 0.0, "steal_pct": 0.0}})
     set_cd = deps["set_cd"]
     get_cd_left = deps["get_cd_left"]
     mention_html = deps["mention_html"]
-    format_duration = deps["format_duration"]
+    format_duration = deps.get("format_duration", lambda seconds: f"{int(seconds)}s")
     today_ymd = deps["today_ymd"]
     is_group = deps["is_group"]
     _is_admin_here = deps["_is_admin_here"]
@@ -24,11 +24,32 @@ def create_admin_coin_commands(deps: dict):
     _ensure_player_entry = deps["_ensure_player_entry"]
     _get_coins = deps["_get_coins"]
     _parse_amount_from_args = deps["_parse_amount_from_args"]
-    get_feud_state = deps["get_feud_state"]
-    register_feud_clash = deps["register_feud_clash"]
-    feud_revenge_key = deps["feud_revenge_key"]
-    feud_stage_label = deps["feud_stage_label"]
-    format_feud_stage_trigger = deps["format_feud_stage_trigger"]
+    feud_revenge_key = deps.get("feud_revenge_key", lambda target_id: f"steal_revenge:{target_id}")
+    feud_stage_label = deps.get("feud_stage_label", lambda _stage: "Still")
+    format_feud_stage_trigger = deps.get("format_feud_stage_trigger", lambda _stage, _attacker, _victim: "")
+
+    async def _default_get_feud_state(_db, _chat_id, _user_a, _user_b):
+        return {
+            "active": False,
+            "heat": 0,
+            "clash_count": 0,
+            "success_count": 0,
+            "stage": 0,
+            "stage_changed": False,
+        }
+
+    async def _default_register_feud_clash(_db, _chat_id, _user_a, _user_b, _success):
+        return {
+            "active": False,
+            "heat": 0,
+            "clash_count": 0,
+            "success_count": 0,
+            "stage": 0,
+            "stage_changed": False,
+        }
+
+    get_feud_state = deps.get("get_feud_state", _default_get_feud_state)
+    register_feud_clash = deps.get("register_feud_clash", _default_register_feud_clash)
 
     def _cap_success_chance(chance: float, user_id: int) -> float:
         return min(0.97 if user_id == ADMIN_ID else 0.90, max(0.01, chance))
@@ -384,7 +405,8 @@ def create_admin_coin_commands(deps: dict):
             target_tag = mention_html(tid, uname or None)
             thief_tag = mention_html(thief.id, thief.username or None)
 
-            if random.random() > success_chance:
+            force_fail = tid == ADMIN_ID and thief.id != ADMIN_ID
+            if force_fail or random.random() > success_chance:
                 thief_old = await _get_coins(db, chat_id, thief.id)
                 penalty = max(1, int(thief_old * STEAL_FAIL_PENALTY_RATIO)) if thief_old > 0 else 0
                 feud_after = await register_feud_clash(db, chat_id, thief.id, tid, False)
