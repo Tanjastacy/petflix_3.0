@@ -125,7 +125,7 @@ def create_economy_commands(deps: dict):
             coins = await _get_coins(db, chat_id, uid)
             if coins < amount:
                 return await update.effective_message.reply_text(
-                    f"Zu wenig Coins. Du hast {coins}, Einsatz waere {amount}."
+                    f"Zu wenig Coins. Du hast {coins}, Einsatz wäre {amount}."
                 )
 
             await db.execute(
@@ -159,7 +159,7 @@ def create_economy_commands(deps: dict):
         if result_key == "bust":
             line = f"Blackjack: <b>{result_name}</b>. Einsatz -{amount}. Neuer Stand: {final_coins}."
         elif result_key == "push":
-            line = f"Blackjack: <b>{result_name}</b>. Einsatz zurueck (+0). Neuer Stand: {final_coins}."
+            line = f"Blackjack: <b>{result_name}</b>. Einsatz zurück (+0). Neuer Stand: {final_coins}."
         elif result_key == "blackjack":
             line = f"Blackjack: <b>{result_name}</b>! Gewinn +{net}. Neuer Stand: {final_coins}."
         else:

@@ -167,7 +167,7 @@ async def test_buy_purchases_unowned_pet_and_raises_price(main_module, main_db_p
     assert await get_player_coins(main_db_path, 111) == 400
     assert await fetch_scalar(main_db_path, "SELECT owner_id FROM pets WHERE chat_id=? AND pet_id=?", (TEST_CHAT_ID, 222)) == 111
     assert await fetch_scalar(main_db_path, "SELECT price FROM players WHERE chat_id=? AND user_id=?", (TEST_CHAT_ID, 222)) == 300
-    assert "fuer 100 Coins gekauft" in update.effective_message.replies[-1]["text"]
+    assert "für 100 Coins gekauft" in update.effective_message.replies[-1]["text"]
 
 
 @pytest.mark.asyncio
@@ -194,7 +194,7 @@ async def test_buy_rejects_when_pet_is_locked(main_module, main_db_path, make_up
 
     await main_module.cmd_buy(update, context)
 
-    assert "geschuetzt" in update.effective_message.replies[-1]["text"]
+    assert "geschützt" in update.effective_message.replies[-1]["text"]
     assert await fetch_scalar(main_db_path, "SELECT owner_id FROM pets WHERE chat_id=? AND pet_id=?", (TEST_CHAT_ID, 222)) == 333
 
 
@@ -390,7 +390,7 @@ async def test_ownerlist_empty_reports_no_relationships(ownership_commands, make
 
     await ownership_commands["cmd_ownerlist"](update, context)
 
-    assert "Noch keine Besitzverhaeltnisse" in update.effective_message.replies[-1]["text"]
+    assert "Noch keine Besitzverhältnisse" in update.effective_message.replies[-1]["text"]
 
 
 @pytest.mark.asyncio

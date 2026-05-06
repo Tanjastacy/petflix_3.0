@@ -101,7 +101,7 @@ async def test_blackjack_rejects_when_balance_is_too_low(economy_deps_factory, m
     await commands["cmd_blackjack"](update, context)
 
     assert await get_player_coins(db_path, 111) == 30
-    assert "Zu wenig Coins. Du hast 30, Einsatz waere 50." == update.effective_message.replies[-1]["text"]
+    assert "Zu wenig Coins. Du hast 30, Einsatz wäre 50." == update.effective_message.replies[-1]["text"]
 
 
 @pytest.mark.asyncio
@@ -130,7 +130,7 @@ async def test_blackjack_push_returns_stake(economy_deps_factory, make_update, d
     await commands["cmd_blackjack"](update, context)
 
     assert await get_player_coins(db_path, 111) == 100
-    assert "Einsatz zurueck (+0)" in update.effective_message.replies[-1]["text"]
+    assert "Einsatz zurück (+0)" in update.effective_message.replies[-1]["text"]
 
 
 @pytest.mark.asyncio

@@ -40,8 +40,8 @@ def create_jobs_watchdogs(deps: dict):
         "Prime-Time Jackpot! {user} hat heute den Chat gerockt und kassiert +{coins} Coins.",
         "20:00 Uhr, Spotlight an: {user} schnappt sich +{coins} Coins aus dem Nichts.",
         "Abendbonus explodiert: {user} wird gezogen und nimmt +{coins} Coins mit.",
-        "Zufall trifft voll: {user} raeumt den Prime-Time Pot mit +{coins} Coins ab.",
-        "Jackpot-Alarm! {user} bekommt fuer heute +{coins} Coins auf die Kralle."
+        "Zufall trifft voll: {user} r?umt den Prime-Time Pot mit +{coins} Coins ab.",
+        "Jackpot-Alarm! {user} bekommt für heute +{coins} Coins auf die Kralle."
     ]
 
     async def daily_gift_job(context):
@@ -66,7 +66,7 @@ def create_jobs_watchdogs(deps: dict):
 
         user_mention = _mention_from_uid_username(uid, uname)
         line = random.choice(_SAVAGE_LINES).format(user=user_mention, coins=DAILY_GIFT_COINS)
-        await context.bot.send_message(chat_id=chat_id, text=f"Taegliche Almosen-Time!\n{line}", parse_mode="Markdown")
+        await context.bot.send_message(chat_id=chat_id, text=f"T?gliche Almosen-Time!\n{line}", parse_mode="Markdown")
 
     async def daily_curse_job(context):
         chat_id = ALLOWED_CHAT_ID
@@ -107,7 +107,7 @@ def create_jobs_watchdogs(deps: dict):
         curse_text = render_curse_text(user_mention)
         await context.bot.send_message(
             chat_id=chat_id,
-            text=f"Stuendlicher Fluch!\n{curse_text}",
+            text=f"St?ndlicher Fluch!\n{curse_text}",
             parse_mode=ParseMode.HTML
         )
 
@@ -228,7 +228,7 @@ def create_jobs_watchdogs(deps: dict):
                     msg = (
                         f"{mention_html(user_id, username or None)} hat die Fresse aufgerissen und dann wie der letzte peinliche Lappen komplett verkackt.\n"
                         f"Strafe: -{penalty} Coins ({LOVE_PENALTY_PERCENT}% des aktuellen Kontostands).\n"
-                        "Gross labern, nichts liefern. Der ganze Chat sieht jetzt schwarz auf weiss, dass ausser heisser Luft, Rueckgrat aus Pappe und erbarmungsloser Fremdschaam wirklich gar nichts da ist."
+                        "Gro? labern, nichts liefern. Der ganze Chat sieht jetzt schwarz auf wei?, dass au?er hei?er Luft, R?ckgrat aus Pappe und erbarmungsloser Fremdscham wirklich gar nichts da ist."
                     )
                     try:
                         await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
@@ -241,8 +241,8 @@ def create_jobs_watchdogs(deps: dict):
                     left = max(0, expires_ts - now)
                     m = left // 60
                     msg = (
-                        f"{mention_html(user_id, username or None)} letzte Warnung, du peinlicher Ausfall: noch {m}m fuer dein Liebesgestaendnis.\n"
-                        "Wenn du jetzt wieder nichts lieferst, reisst es dir gleich brutal die Haelfte deiner Coins weg und der ganze Chat sieht, was fuer ein Totalausfall du bist."
+                        f"{mention_html(user_id, username or None)} letzte Warnung, du peinlicher Ausfall: noch {m}m für dein Liebesgeständnis.\n"
+                        "Wenn du jetzt wieder nichts lieferst, rei?t es dir gleich brutal die H?lfte deiner Coins weg und der ganze Chat sieht, was für ein Totalausfall du bist."
                     )
                     try:
                         await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
@@ -259,8 +259,8 @@ def create_jobs_watchdogs(deps: dict):
                     left = max(0, expires_ts - now)
                     m = left // 60
                     msg = (
-                        f"{mention_html(user_id, username or None)} beweg endlich deinen Arsch: noch {m}m fuer dein Liebesgestaendnis.\n"
-                        "Bis jetzt kommt von dir nur grosse Fresse und null Leistung. Wenn das so bleibt, wird dir die Challenge die Coins aus der Tasche treten."
+                        f"{mention_html(user_id, username or None)} beweg endlich deinen Arsch: noch {m}m für dein Liebesgeständnis.\n"
+                        "Bis jetzt kommt von dir nur gro?e Fresse und null Leistung. Wenn das so bleibt, wird dir die Challenge die Coins aus der Tasche treten."
                     )
                     try:
                         await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
@@ -277,8 +277,8 @@ def create_jobs_watchdogs(deps: dict):
                     left = max(0, expires_ts - now)
                     m = left // 60
                     msg = (
-                        f"{mention_html(user_id, username or None)} letzte Warnung, du peinlicher Ausfall: noch {m}m fuer dein Liebesgestaendnis.\n"
-                        "Wenn du jetzt wieder nichts lieferst, reisst es dir gleich brutal die Haelfte deiner Coins weg und der ganze Chat sieht, was fuer ein Totalausfall du bist."
+                        f"{mention_html(user_id, username or None)} letzte Warnung, du peinlicher Ausfall: noch {m}m für dein Liebesgeständnis.\n"
+                        "Wenn du jetzt wieder nichts lieferst, rei?t es dir gleich brutal die H?lfte deiner Coins weg und der ganze Chat sieht, was für ein Totalausfall du bist."
                     )
                     try:
                         await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)

@@ -579,6 +579,8 @@ def ownership_commands(main_module, main_db_path):
         "get_user_price": main_module.get_user_price,
         "get_pet_skill": main_module.get_pet_skill,
         "_skill_label": main_module._skill_label,
+        "pet_bond_title": main_module.pet_bond_title,
+        "pet_mood_label": main_module.pet_mood_label,
         "pet_level_title": main_module.pet_level_title,
         "fullcare_evolution_title": main_module.fullcare_evolution_title,
         "get_pet_lock_until": main_module.get_pet_lock_until,

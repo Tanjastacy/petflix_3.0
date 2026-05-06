@@ -230,15 +230,15 @@ def create_runtime_features(deps: dict):
 
     async def cmd_help(update, context):
         if not is_allowed_chat(update):
-            await update.effective_message.reply_text("Dieses Spiel laeuft nur in der vorgesehenen Gruppe.")
+            await update.effective_message.reply_text("Dieses Spiel läuft nur in der vorgesehenen Gruppe.")
             return
         text = (
             "<b>SOSPET</b>\n"
             "Petflix ist ein Gruppen-Game mit Coins, Besitzsystem, Pflegeaktionen und Challenges.\n"
             "\n<b>Schnellstart</b>\n"
-            "1) Schreibe normal im Chat fuer Coins\n"
-            "2) Nutze /buy oder /risk fuer Besitzaktionen\n"
-            "3) Pflege dein Pet regelmaessig mit /pet, /walk, /kiss, ...\n"
+            "1) Schreibe normal im Chat für Coins\n"
+            "2) Nutze /buy oder /risk für Besitzaktionen\n"
+            "3) Pflege dein Pet regelmäßig mit /pet, /walk, /kiss, ...\n"
             "\n<b>Wichtige Commands</b>\n"
             "/balance, /daily, /treasure, /top, /prices\n"
             "/treat (alias /leckerli), /buy, /risk, /steal, /fehde\n"
@@ -253,10 +253,10 @@ def create_runtime_features(deps: dict):
 
     async def cmd_start(update, context):
         if not is_allowed_chat(update):
-            await update.effective_message.reply_text("Dieses Spiel laeuft nur in der vorgesehenen Gruppe.")
+            await update.effective_message.reply_text("Dieses Spiel läuft nur in der vorgesehenen Gruppe.")
             return
         await update.effective_message.reply_text(
-            "Petflix ist aktiv. Nutze /sospet fuer die kurze Uebersicht."
+            "Petflix ist aktiv. Nutze /sospet für die kurze Übersicht."
         )
 
     return {

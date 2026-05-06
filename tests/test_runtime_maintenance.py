@@ -224,7 +224,7 @@ async def test_superwordsstatus_uses_unique_total_and_active_cooldown(main_modul
     await main_module.cmd_superwordsstatus(update, context)
 
     text = update.effective_message.replies[-1]["text"]
-    assert f"Geladene Eintraege: <b>{len(main_module.SUPERWORDS)}</b>" in text
+    assert f"Geladene Eintr?ge: <b>{len(main_module.SUPERWORDS)}</b>" in text
     assert f"Gesamt (eindeutige Superworte): <b>{len(main_module.SUPERWORD_KEYS)}</b>" in text
     assert "Aktuell gefundene Worte: <b>1</b>" in text
     assert f"Verbleibende Worte: <b>{len(main_module.SUPERWORD_KEYS) - 1}</b>" in text
@@ -250,7 +250,7 @@ async def test_resetsuperwords_clears_all_active_cooldowns(main_module, main_db_
 
     remaining = await fetch_scalar(main_db_path, "SELECT COUNT(*) FROM superwords_found WHERE chat_id=?", (TEST_CHAT_ID,))
     assert remaining == 0
-    assert "Superwort-Cooldowns wurden zurueckgesetzt" in update.effective_message.replies[-1]["text"]
+    assert "Superwort-Cooldowns wurden zurückgesetzt" in update.effective_message.replies[-1]["text"]
     assert "1 aktuell gesperrte Superworte" in update.effective_message.replies[-1]["text"]
 
 

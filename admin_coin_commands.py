@@ -105,7 +105,7 @@ def create_admin_coin_commands(deps: dict):
             ) as cur:
                 row = await cur.fetchone()
             if not row:
-                return await update.effective_message.reply_text("Kein Pflege-Eintrag fuer den User.")
+                return await update.effective_message.reply_text("Kein Pflege-Eintrag für den User.")
 
             done, day = int(row[0] or 0), row[1]
             today = today_ymd()
@@ -364,7 +364,7 @@ def create_admin_coin_commands(deps: dict):
         amount = _parse_amount_from_args(context)
         if amount is None or amount <= 0:
             return await update.effective_message.reply_text(
-                _pick_text(text_cfg, "steal_invalid_amount", "Bitte gib eine gueltige Coin-Zahl an. Beispiel: `/steal @user 50`."),
+                _pick_text(text_cfg, "steal_invalid_amount", "Bitte gib eine gültige Coin-Zahl an. Beispiel: `/steal @user 50`."),
                 parse_mode="Markdown"
             )
 
