@@ -381,6 +381,9 @@ async def upsert_pet(
     pet_level: int | None = None,
     fullcare_days: int | None = None,
     fullcare_streak: int | None = None,
+    mood_name: str | None = None,
+    imprint_score: int | None = None,
+    rebellious_until: int | None = None,
 ):
     async with aiosqlite.connect(db_path) as db:
         now = int(time.time())
@@ -421,6 +424,12 @@ async def upsert_pet(
             columns["fullcare_days"] = fullcare_days
         if fullcare_streak is not None:
             columns["fullcare_streak"] = fullcare_streak
+        if mood_name is not None:
+            columns["mood_name"] = mood_name
+        if imprint_score is not None:
+            columns["imprint_score"] = imprint_score
+        if rebellious_until is not None:
+            columns["rebellious_until"] = rebellious_until
         assignments = ", ".join(f"{key}=?" for key in columns)
         values = list(columns.values()) + [chat_id, pet_id]
         await db.execute(f"UPDATE pets SET {assignments} WHERE chat_id=? AND pet_id=?", values)
@@ -581,6 +590,8 @@ def ownership_commands(main_module, main_db_path):
         "_skill_label": main_module._skill_label,
         "pet_bond_title": main_module.pet_bond_title,
         "pet_mood_label": main_module.pet_mood_label,
+        "render_pet_mood": main_module.render_pet_mood,
+        "pet_imprint_label": main_module.pet_imprint_label,
         "pet_level_title": main_module.pet_level_title,
         "fullcare_evolution_title": main_module.fullcare_evolution_title,
         "get_pet_lock_until": main_module.get_pet_lock_until,

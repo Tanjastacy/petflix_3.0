@@ -207,3 +207,93 @@ async def test_care_command_ignored_outside_group(main_module, main_db_path, mak
     await main_module.cmd_pet(update, context)
 
     assert update.effective_message.replies == []
+
+
+@pytest.mark.asyncio
+async def test_full_care_grants_masterofpuppets_title(main_module, main_db_path, make_update, monkeypatch):
+    await upsert_player(main_db_path, 111, "owner", coins=100)
+    await upsert_player(main_db_path, 222, "pet", coins=0)
+    await upsert_pet(
+        main_db_path,
+        222,
+        111,
+        care_done_today=main_module.CARES_PER_DAY - 1,
+        day_ymd=main_module.today_ymd(),
+        fullcare_days=0,
+        fullcare_streak=0,
+    )
+    monkeypatch.setattr(main_module, "get_cached_json", lambda context, key, path: {})
+    monkeypatch.setattr(main_module.random, "choice", lambda seq: seq[0])
+    target = FakeUser(222, "pet")
+    update, context = make_update(111, "owner", reply_from_user=target, with_job_queue=True)
+
+    await main_module.cmd_pet(update, context)
+
+    assert await fetch_scalar(
+        main_db_path,
+        "SELECT title FROM user_titles WHERE chat_id=? AND user_id=?",
+        (TEST_CHAT_ID, 111),
+    ) == "MasterofPuppets"
+
+
+@pytest.mark.asyncio
+async def test_second_full_care_promotes_owner_to_unantastbar(main_module, main_db_path, make_update, monkeypatch):
+    await upsert_player(main_db_path, 111, "owner", coins=100)
+    await upsert_player(main_db_path, 222, "pet1", coins=0)
+    await upsert_player(main_db_path, 333, "pet2", coins=0)
+    await upsert_pet(main_db_path, 222, 111, care_done_today=main_module.CARES_PER_DAY, day_ymd=main_module.today_ymd())
+    await upsert_pet(main_db_path, 333, 111, care_done_today=main_module.CARES_PER_DAY - 1, day_ymd=main_module.today_ymd())
+    monkeypatch.setattr(main_module, "get_cached_json", lambda context, key, path: {})
+    monkeypatch.setattr(main_module.random, "choice", lambda seq: seq[0])
+    target = FakeUser(333, "pet2")
+    update, context = make_update(111, "owner", reply_from_user=target, with_job_queue=True)
+
+    await main_module.cmd_pet(update, context)
+
+    assert await fetch_scalar(
+        main_db_path,
+        "SELECT title FROM user_titles WHERE chat_id=? AND user_id=?",
+        (TEST_CHAT_ID, 111),
+    ) == "Unantastbar"
+
+
+@pytest.mark.asyncio
+async def test_neglected_pet_turns_widerspenstig_before_running_away(main_module, main_db_path, make_update, monkeypatch):
+    now = int(time.time())
+    old_ts = now - (main_module.RUNAWAY_HOURS * 3600) - 3600
+    await upsert_player(main_db_path, 111, "owner", coins=100)
+    await upsert_player(main_db_path, 222, "pet", coins=0)
+    await upsert_pet(
+        main_db_path,
+        222,
+        111,
+        acquired_ts=old_ts,
+        last_care_ts=old_ts,
+        care_done_today=0,
+        day_ymd=main_module.today_ymd(),
+    )
+    monkeypatch.setattr(main_module, "get_cached_json", lambda context, key, path: {})
+    monkeypatch.setattr(main_module.random, "choice", lambda seq: seq[0])
+    async with aiosqlite.connect(main_db_path) as db:
+        for message_id in range(1, 9):
+            await db.execute(
+                "INSERT OR REPLACE INTO care_events(chat_id, message_id, pet_id, owner_id, action, ts) VALUES(?,?,?,?,?,?)",
+                (TEST_CHAT_ID, 9000 + message_id, 222, 111, "pet", now - 3600),
+            )
+        await db.commit()
+    target = FakeUser(222, "pet")
+    update, context = make_update(111, "owner", reply_from_user=target, with_job_queue=True)
+
+    await main_module.cmd_pet(update, context)
+
+    assert await fetch_scalar(
+        main_db_path,
+        "SELECT owner_id FROM pets WHERE chat_id=? AND pet_id=?",
+        (TEST_CHAT_ID, 222),
+    ) == 111
+    assert (await fetch_scalar(
+        main_db_path,
+        "SELECT rebellious_until FROM pets WHERE chat_id=? AND pet_id=?",
+        (TEST_CHAT_ID, 222),
+    )) > now
+    assert any("widerspenstig" in reply["text"].lower() for reply in update.effective_message.replies)

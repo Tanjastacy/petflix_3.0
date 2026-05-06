@@ -373,7 +373,18 @@ async def test_owner_without_owner_shows_no_owner(ownership_commands, main_db_pa
 async def test_owner_reports_current_owner_and_price(ownership_commands, main_module, main_db_path, make_update):
     await upsert_player(main_db_path, 111, "owner")
     await upsert_player(main_db_path, 222, "pet", price=250)
-    await upsert_pet(main_db_path, 222, 111, pet_skill="schildwall", pet_level=1, pet_xp=10, fullcare_days=2, fullcare_streak=1)
+    await upsert_pet(
+        main_db_path,
+        222,
+        111,
+        pet_skill="schildwall",
+        pet_level=1,
+        pet_xp=10,
+        fullcare_days=2,
+        fullcare_streak=1,
+        mood_name="Fordernd",
+        imprint_score=9,
+    )
     target = FakeUser(222, "pet")
     update, context = make_update(9999, "viewer", reply_from_user=target)
 
@@ -382,6 +393,8 @@ async def test_owner_reports_current_owner_and_price(ownership_commands, main_mo
     text = update.effective_message.replies[-1]["text"]
     assert "Besitzer:" in text
     assert "250" in text
+    assert "Laune: Fordernd" in text
+    assert "Prägung: Hörig" in text
 
 
 @pytest.mark.asyncio

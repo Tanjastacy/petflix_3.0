@@ -82,6 +82,7 @@ LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
 TITLE_MASTEROFPUPPETS = "MasterofPuppets"
 TITLE_DURATION_S = 2 * 3600
+PRESTIGE_TITLE_DURATION_S = 24 * 3600
 DAILY_GIFT_COINS = 25000
 DAILY_CURSE_PENALTY = 150
 DAILY_PRIMETIME_COINS = 70000
@@ -99,6 +100,44 @@ RUNAWAY_LINES = [
     "{pet} zerreißt die Leine von {owner} und ist Staub."
 ]
 RUNAWAY_PENALTY = 400
+REBELLIOUS_DURATION_S = 12 * 3600
+REBELLION_DEFICIT_TRIGGER = 4
+
+PET_DAILY_MOODS = [
+    "Fordernd",
+    "Prüfend",
+    "Provokant",
+    "Unterkühlt",
+    "Gefügig",
+    "Anlehnungsbedürftig",
+    "Besitzergreifend",
+    "Gierig nach Führung",
+]
+
+SOFT_CARE_ACTIONS = {"pet", "kiss", "dine", "massage", "loben", "belohnen", "walk"}
+STRICT_CARE_ACTIONS = {
+    "knien", "kriechen", "klaps", "leine", "halsband", "verweigern",
+    "kaefig", "schande", "stumm", "bestrafen", "demuetigen", "ohrfeige",
+}
+
+REBELLION_LINES = [
+    "{pet} ist widerspenstig und zieht die Leine straff. {owner} merkt sofort, dass Nachlässigkeit heute nicht unkommentiert bleibt.",
+    "{pet} ist widerspenstig. Zu wenig Führung, zu viel Bequemlichkeit. {owner} darf das jetzt ausbaden.",
+    "{pet} probt offen Aufstand. Wer tagelang schludert, bekommt eben keine stille Hingabe zurück.",
+    "{pet} lässt {owner} spüren, dass Kontrolle kein Gerücht sein sollte, sondern tägliche Arbeit.",
+]
+
+JEALOUSY_LINES = [
+    "{other_pet} beobachtet das Ganze mit giftigem Blick. Aufmerksamkeit ist Besitzsache, nicht Charity.",
+    "{other_pet} wird still und kalt. Offensichtlich teilst du Führung genauso schlecht wie Zuneigung.",
+    "{other_pet} reagiert eifersüchtig. Zu viel Fokus auf {pet}, zu wenig Hand auf der zweiten Leine.",
+    "{other_pet} macht klar, dass es Konkurrenz nicht mit Würde, sondern mit Trotz beantwortet.",
+]
+
+TITLE_KETTENHALTER = "Kettenhalter"
+TITLE_UNANTASTBAR = "Unantastbar"
+TITLE_LEINENKOENIG = "Leinenkönig"
+TITLE_ZUCHTMEISTER = "Zuchtmeister"
 
 # =========================
 # Superworte
@@ -1224,7 +1263,7 @@ log = logging.getLogger("Petflix_2.0")
 # DB-Setup 
 # =========================
 
-SCHEMA_VERSION = 20
+SCHEMA_VERSION = 21
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -1516,6 +1555,20 @@ async def migrate_db(db):
         await _set_user_version(db, 20)
         current = 20
 
+    if current < 21:
+        if not await _table_has_column(db, "pets", "mood_name"):
+            await db.execute("ALTER TABLE pets ADD COLUMN mood_name TEXT DEFAULT NULL")
+        if not await _table_has_column(db, "pets", "mood_day"):
+            await db.execute("ALTER TABLE pets ADD COLUMN mood_day TEXT DEFAULT NULL")
+        if not await _table_has_column(db, "pets", "imprint_score"):
+            await db.execute("ALTER TABLE pets ADD COLUMN imprint_score INTEGER DEFAULT 0")
+        if not await _table_has_column(db, "pets", "rebellious_until"):
+            await db.execute("ALTER TABLE pets ADD COLUMN rebellious_until INTEGER DEFAULT 0")
+        if not await _table_has_column(db, "pets", "breakout_count"):
+            await db.execute("ALTER TABLE pets ADD COLUMN breakout_count INTEGER DEFAULT 0")
+        await _set_user_version(db, 21)
+        current = 21
+
     # Sicherheitsnetz für inkonsistente Alt-DBs:
     # Wenn user_version hoch ist, Spalten aber fehlen, ziehen wir sie hier trotzdem nach.
     if not await _table_has_column(db, "pets", "pet_skill"):
@@ -1540,6 +1593,16 @@ async def migrate_db(db):
         await db.execute(
             "UPDATE pets SET fullcare_days=MAX(COALESCE(fullcare_days, 0), COALESCE(fullcare_streak, 0))"
         )
+    if not await _table_has_column(db, "pets", "mood_name"):
+        await db.execute("ALTER TABLE pets ADD COLUMN mood_name TEXT DEFAULT NULL")
+    if not await _table_has_column(db, "pets", "mood_day"):
+        await db.execute("ALTER TABLE pets ADD COLUMN mood_day TEXT DEFAULT NULL")
+    if not await _table_has_column(db, "pets", "imprint_score"):
+        await db.execute("ALTER TABLE pets ADD COLUMN imprint_score INTEGER DEFAULT 0")
+    if not await _table_has_column(db, "pets", "rebellious_until"):
+        await db.execute("ALTER TABLE pets ADD COLUMN rebellious_until INTEGER DEFAULT 0")
+    if not await _table_has_column(db, "pets", "breakout_count"):
+        await db.execute("ALTER TABLE pets ADD COLUMN breakout_count INTEGER DEFAULT 0")
     if not await _table_has_column(db, "settings", "daily_curse_enabled"):
         await db.execute(
             f"ALTER TABLE settings ADD COLUMN daily_curse_enabled INTEGER DEFAULT {1 if DAILY_CURSE_ENABLED else 0}"
@@ -1967,6 +2030,123 @@ def pet_mood_label(care_done_today: int, fullcare_streak: int) -> str:
     return "Unruhig"
 
 
+def pet_imprint_label(score: int) -> str:
+    points = int(score or 0)
+    if points <= -8:
+        return "Strafgeprägt"
+    if points <= -3:
+        return "Abgehärtet"
+    if points < 3:
+        return "Abrichtbar"
+    if points < 8:
+        return "Fixiert"
+    return "Hörig"
+
+
+def _care_style_delta(action_key: str) -> int:
+    key = (action_key or "").strip().lower()
+    if key in SOFT_CARE_ACTIONS:
+        return 1
+    if key in STRICT_CARE_ACTIONS:
+        return -1
+    return 0
+
+
+def _daily_pet_mood(chat_id: int, pet_id: int, owner_pet_count: int, today: str) -> str:
+    digest = hashlib.sha256(f"{chat_id}:{pet_id}:{today}:{owner_pet_count}".encode("utf-8")).digest()
+    mood_pool = list(PET_DAILY_MOODS)
+    if owner_pet_count < 2 and "Besitzergreifend" in mood_pool:
+        mood_pool.remove("Besitzergreifend")
+    return mood_pool[digest[0] % len(mood_pool)]
+
+
+def render_pet_mood(mood_name: str | None, care_done_today: int, fullcare_streak: int, rebellious_until: int, now_ts: int) -> str:
+    if int(rebellious_until or 0) > int(now_ts):
+        return "Widerspenstig"
+    if mood_name:
+        return mood_name
+    return pet_mood_label(care_done_today, fullcare_streak)
+
+
+async def ensure_pet_dynamic_state(db, chat_id: int, pet_id: int, owner_id: int | None, today: str):
+    async with db.execute(
+        "SELECT mood_name, mood_day, COALESCE(imprint_score, 0), COALESCE(rebellious_until, 0), COALESCE(breakout_count, 0) "
+        "FROM pets WHERE chat_id=? AND pet_id=?",
+        (chat_id, pet_id)
+    ) as cur:
+        row = await cur.fetchone()
+    mood_name = row[0] if row else None
+    mood_day = row[1] if row else None
+    imprint_score = int(row[2]) if row and row[2] is not None else 0
+    rebellious_until = int(row[3]) if row and row[3] is not None else 0
+    breakout_count = int(row[4]) if row and row[4] is not None else 0
+
+    owner_pet_count = 0
+    if owner_id:
+        async with db.execute(
+            "SELECT COUNT(*) FROM pets WHERE chat_id=? AND owner_id=?",
+            (chat_id, owner_id)
+        ) as cur:
+            owner_row = await cur.fetchone()
+        owner_pet_count = int(owner_row[0]) if owner_row and owner_row[0] is not None else 0
+
+    if mood_day != today or not mood_name:
+        mood_name = _daily_pet_mood(chat_id, pet_id, owner_pet_count, today)
+        await db.execute(
+            "UPDATE pets SET mood_name=?, mood_day=? WHERE chat_id=? AND pet_id=?",
+            (mood_name, today, chat_id, pet_id)
+        )
+
+    return {
+        "mood_name": mood_name,
+        "mood_day": today,
+        "imprint_score": imprint_score,
+        "rebellious_until": rebellious_until,
+        "breakout_count": breakout_count,
+        "owner_pet_count": owner_pet_count,
+    }
+
+
+async def maybe_grant_owner_prestige_title(db, chat_id: int, owner_id: int, today: str) -> tuple[str | None, int | None]:
+    async with db.execute(
+        """
+        SELECT
+          COUNT(*) AS pet_count,
+          SUM(COALESCE(pet_xp, 0)) AS total_bond,
+          MAX(COALESCE(fullcare_streak, 0)) AS max_streak,
+          SUM(CASE WHEN COALESCE(pet_xp, 0) >= 80 THEN 1 ELSE 0 END) AS high_bond_pets,
+          SUM(CASE WHEN day_ymd=? AND COALESCE(care_done_today, 0) >= ? THEN 1 ELSE 0 END) AS fully_cared_today
+        FROM pets
+        WHERE chat_id=? AND owner_id=?
+        """,
+        (today, CARES_PER_DAY, chat_id, owner_id)
+    ) as cur:
+        row = await cur.fetchone()
+    pet_count = int(row[0]) if row and row[0] is not None else 0
+    total_bond = int(row[1]) if row and row[1] is not None else 0
+    max_streak = int(row[2]) if row and row[2] is not None else 0
+    high_bond_pets = int(row[3]) if row and row[3] is not None else 0
+    fully_cared_today = int(row[4]) if row and row[4] is not None else 0
+
+    title = None
+    if pet_count >= 2 and fully_cared_today == pet_count:
+        title = TITLE_UNANTASTBAR
+    elif pet_count >= 3 and total_bond >= 120:
+        title = TITLE_LEINENKOENIG
+    elif high_bond_pets >= 2:
+        title = TITLE_ZUCHTMEISTER
+    elif max_streak >= 3:
+        title = TITLE_KETTENHALTER
+    elif fully_cared_today >= 1:
+        title = TITLE_MASTEROFPUPPETS
+
+    if not title:
+        return None, None
+
+    until_ts = await set_temp_title(db, chat_id, owner_id, title, PRESTIGE_TITLE_DURATION_S)
+    return title, until_ts
+
+
 def fullcare_evolution_title(fullcare_days: int) -> str:
     days = max(0, int(fullcare_days))
     for needed_days, title in FULLCARE_EVOLUTION_STAGES:
@@ -2222,6 +2402,8 @@ async def do_care(update, context, action_key, tame_lines):
             return
 
         care = await get_care(db, chat_id, pet.id)
+        today = today_ymd()
+        pet_state = await ensure_pet_dynamic_state(db, chat_id, pet.id, owner.id, today)
         async with db.execute(
             "SELECT COALESCE(pet_xp,0) FROM pets WHERE chat_id=? AND pet_id=?",
             (chat_id, pet.id)
@@ -2233,7 +2415,8 @@ async def do_care(update, context, action_key, tame_lines):
         now = int(time.time())
         care_window_since = now - RUNAWAY_HOURS * 3600
         care_window = await _care_count_in_window(db, chat_id, pet.id, owner.id, care_window_since)
-        if await _should_runaway(
+        care_deficit = max(0, RUNAWAY_MIN_CARES_IN_WINDOW - (care_window + 1))
+        runaway_due = await _should_runaway(
             db,
             chat_id,
             pet.id,
@@ -2241,7 +2424,8 @@ async def do_care(update, context, action_key, tame_lines):
             care["acquired_ts"] if care else None,
             now,
             care_window=care_window + 1
-        ):
+        )
+        if runaway_due and care_window < 3:
             await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet.id))
             await _apply_runaway_owner_penalty(db, chat_id, owner.id)
             await db.commit()
@@ -2254,13 +2438,27 @@ async def do_care(update, context, action_key, tame_lines):
             )
             return
 
+        rebellion_line = None
+        if (
+            care["acquired_ts"] if care else None
+        ) and now - int(care["acquired_ts"]) >= RUNAWAY_HOURS * 3600 and (care_deficit >= REBELLION_DEFICIT_TRIGGER or runaway_due):
+            rebellious_until = max(int(pet_state["rebellious_until"]), now + REBELLIOUS_DURATION_S)
+            await db.execute(
+                "UPDATE pets SET rebellious_until=?, breakout_count=COALESCE(breakout_count, 0) + 1 WHERE chat_id=? AND pet_id=?",
+                (rebellious_until, chat_id, pet.id)
+            )
+            pet_state["rebellious_until"] = rebellious_until
+            rebellion_line = random.choice(REBELLION_LINES).format(
+                pet=nice_name_html(pet),
+                owner=mention_html(owner.id, owner.username or None),
+            )
+
         cd_key = f"care:{action_key}:{owner.id}:{pet.id}"
         left = await get_cd_left(db, chat_id, owner.id, cd_key)
         if left > 0:
             await msg.reply_text("Langsam, Casanova. Etwas Geduld.")
             return
 
-        today = today_ymd()
         done = care["done"] if (care and care["day"] == today) else 0
         if done >= CARES_PER_DAY:
             await msg.reply_text("Heute ist das Haustier bereits bestens versorgt. Morgen wieder.")
@@ -2270,11 +2468,15 @@ async def do_care(update, context, action_key, tame_lines):
         await set_care(db, chat_id, pet.id, now, done, today)
 
         bond_text = None
-        gained_bond = CARE_XP_PER_ACTION
+        style_delta = _care_style_delta(action_key)
+        imprint_score = max(-12, min(12, int(pet_state["imprint_score"]) + style_delta))
+        rebellious_penalty = 1 if int(pet_state["rebellious_until"] or 0) > now else 0
+        gained_bond = max(1, CARE_XP_PER_ACTION - rebellious_penalty)
         new_bond = prev_bond + gained_bond
         current_fullcare_days = 0
         current_fullcare_streak = 0
         bonus_text = None
+        jealousy_line = None
         if done >= CARES_PER_DAY:
             async with db.execute(
                 "SELECT pet_skill, care_bonus_day, COALESCE(fullcare_streak, 0), fullcare_last_day, COALESCE(fullcare_days, 0) "
@@ -2296,16 +2498,16 @@ async def do_care(update, context, action_key, tame_lines):
             gained_bond += FULL_CARE_XP_BONUS
             new_bond = prev_bond + gained_bond
             await db.execute(
-                "UPDATE pets SET pet_xp=?, fullcare_streak=?, fullcare_last_day=?, fullcare_days=? "
+                "UPDATE pets SET pet_xp=?, fullcare_streak=?, fullcare_last_day=?, fullcare_days=?, imprint_score=?, rebellious_until=0 "
                 "WHERE chat_id=? AND pet_id=?",
-                (new_bond, streak, today, fullcare_days, chat_id, pet.id)
+                (new_bond, streak, today, fullcare_days, imprint_score, chat_id, pet.id)
             )
 
-            mood = pet_mood_label(done, streak)
+            mood = render_pet_mood(pet_state["mood_name"], done, streak, 0, now)
             bonus_lines = [
                 f"Bindung heute: +{gained_bond} ({done}x Pflege + Full-Care-Bonus).",
                 f"Bindung gesamt: <b>{new_bond}</b> | Wesen: <b>{escape(pet_bond_title(new_bond), False)}</b>.",
-                f"Stimmung: <b>{escape(mood, False)}</b>.",
+                f"Laune: <b>{escape(mood, False)}</b> | Prägung: <b>{escape(pet_imprint_label(imprint_score), False)}</b>.",
                 f"Perfekte Tage gesamt: <b>{fullcare_days}</b>.",
                 f"Streak voller Tage: <b>{streak}</b>.",
             ]
@@ -2336,19 +2538,46 @@ async def do_care(update, context, action_key, tame_lines):
                 f"<b>{escape(TITLE_MASTEROFPUPPETS, False)}</b> für {mins} Minuten."
             )
             bonus_lines.append(title_line)
+            prestige_title, prestige_until = await maybe_grant_owner_prestige_title(db, chat_id, owner.id, today)
+            if prestige_title and prestige_until and prestige_title != TITLE_MASTEROFPUPPETS:
+                mins = max(1, (prestige_until - int(time.time())) // 60)
+                bonus_lines.append(
+                    f"Prestige eskaliert: {mention_html(owner.id, owner.username or None)} trägt jetzt "
+                    f"<b>{escape(prestige_title, False)}</b> für {mins} Minuten."
+                )
             bonus_text = "\n".join(bonus_lines)
         else:
             await db.execute(
-                "UPDATE pets SET pet_xp=? WHERE chat_id=? AND pet_id=?",
-                (new_bond, chat_id, pet.id)
+                "UPDATE pets SET pet_xp=?, imprint_score=? WHERE chat_id=? AND pet_id=?",
+                (new_bond, imprint_score, chat_id, pet.id)
             )
+            if int(pet_state["owner_pet_count"]) >= 2 and pet_state["mood_name"] in {"Besitzergreifend", "Fordernd", "Provokant"}:
+                async with db.execute(
+                    """
+                    SELECT p.pet_id, pl.username
+                    FROM pets p
+                    LEFT JOIN players pl ON pl.chat_id=p.chat_id AND pl.user_id=p.pet_id
+                    WHERE p.chat_id=? AND p.owner_id=? AND p.pet_id<>?
+                    ORDER BY COALESCE(p.last_care_ts, 0) DESC, p.pet_id ASC
+                    LIMIT 1
+                    """,
+                    (chat_id, owner.id, pet.id)
+                ) as cur:
+                    sibling_row = await cur.fetchone()
+                if sibling_row:
+                    sibling_id = int(sibling_row[0])
+                    sibling_name = sibling_row[1] if len(sibling_row) > 1 else None
+                    jealousy_line = random.choice(JEALOUSY_LINES).format(
+                        pet=nice_name_html(pet),
+                        other_pet=mention_html(sibling_id, sibling_name or None),
+                    )
 
         new_bond_title = pet_bond_title(new_bond)
         if new_bond_title != prev_bond_title:
             bond_text = (
                 f"Neue Bindung: <b>{escape(new_bond_title, False)}</b> | "
                 f"{nice_name_html(pet)} | Owner: {mention_html(owner.id, owner.username or None)} | "
-                f"Pflege <b>{done}/{CARES_PER_DAY}</b>"
+                f"Pflege <b>{done}/{CARES_PER_DAY}</b> | Prägung: <b>{escape(pet_imprint_label(imprint_score), False)}</b>"
             )
 
         await set_cd(db, chat_id, owner.id, cd_key, CARE_COOLDOWN_S)
@@ -2365,14 +2594,20 @@ async def do_care(update, context, action_key, tame_lines):
     if bonus_text:
         bonus_msg = await msg.reply_text(bonus_text, parse_mode=ParseMode.HTML)
         cleanup_message_ids.append(bonus_msg.message_id)
+    if rebellion_line:
+        rebel_msg = await msg.reply_text(rebellion_line, parse_mode=ParseMode.HTML)
+        cleanup_message_ids.append(rebel_msg.message_id)
+    if jealousy_line:
+        jealous_msg = await msg.reply_text(jealousy_line, parse_mode=ParseMode.HTML)
+        cleanup_message_ids.append(jealous_msg.message_id)
     if done % CARES_PER_DAY == 0:
-        progress_mood = pet_mood_label(done, current_fullcare_streak)
+        progress_mood = render_pet_mood(pet_state["mood_name"], done, current_fullcare_streak, 0, now)
         finish_line = random.choice(random.choice(FULL_CARE_FINISH_POOLS))
         progress_text = (
             f"Pflege-Stand: {nice_name_html(owner)} hat {nice_name_html(pet)} "
             f"<b>{done}/{CARES_PER_DAY}</b> gepflegt. "
             f"Bindung: <b>{new_bond}</b> | Wesen: <b>{escape(pet_bond_title(new_bond), False)}</b> | "
-            f"Stimmung: <b>{escape(progress_mood, False)}</b>.\n"
+            f"Laune: <b>{escape(progress_mood, False)}</b> | Prägung: <b>{escape(pet_imprint_label(imprint_score), False)}</b>.\n"
             f"{escape(finish_line, False)}"
         )
         await _send_or_replace_level_message(context, chat_id, msg, progress_text)
@@ -3533,6 +3768,8 @@ _OWNERSHIP_FEATURES = create_ownership_features({
     "_skill_label": _skill_label,
     "pet_bond_title": pet_bond_title,
     "pet_mood_label": pet_mood_label,
+    "render_pet_mood": render_pet_mood,
+    "pet_imprint_label": pet_imprint_label,
     "pet_level_title": pet_level_title,
     "fullcare_evolution_title": fullcare_evolution_title,
     "get_pet_lock_until": get_pet_lock_until,
@@ -5322,6 +5559,7 @@ async def _attempt_pet_buy(update: Update, context: ContextTypes.DEFAULT_TYPE, r
                 "UPDATE players SET coins=coins+? WHERE chat_id=? AND user_id=?",
                 (refund, chat_id, buyer_id)
             )
+        prestige_title, _prestige_until = await maybe_grant_owner_prestige_title(db, chat_id, buyer_id, today)
 
         await db.commit()
 
@@ -5334,6 +5572,7 @@ async def _attempt_pet_buy(update: Update, context: ContextTypes.DEFAULT_TYPE, r
         prev_owner_tag = mention_html(int(prev_owner), prev_owner_uname or None)
         source_txt = f" Geklaut von {prev_owner_tag}."
     risk_success_txt = ""
+    prestige_txt = f" Neuer Titel: <b>{escape(prestige_title, False)}</b>." if prestige_title else ""
     if risk_amount > 0 and prev_owner and prev_owner != buyer_id:
         risk_success_txt = (
             f" Risk: {risk_amount} Coins für +{int(round(risk_bonus * 100))}% Klau-Chance."
@@ -5341,7 +5580,7 @@ async def _attempt_pet_buy(update: Update, context: ContextTypes.DEFAULT_TYPE, r
     await msg.reply_text(
         f"{nice_name_html(buyer)} hat {escape(target_tag, False)} für {price} Coins gekauft. Neuer Preis: {new_price}. "
         f"Skill: <b>{escape(skill_meta['name'], False)}</b>{reroll_txt} - {escape(skill_meta['desc'], False)}."
-        f"{source_txt}{refund_txt}{risk_success_txt}",
+        f"{source_txt}{refund_txt}{risk_success_txt}{prestige_txt}",
         parse_mode=ParseMode.HTML
     )
 
