@@ -11,7 +11,6 @@ def create_ownership_features(deps: dict):
     _skill_label = deps["_skill_label"]
     pet_bond_title = deps.get("pet_bond_title", deps["pet_level_title"])
     pet_mood_label = deps.get("pet_mood_label", lambda care_done_today, fullcare_streak: "Unruhig")
-    fullcare_evolution_title = deps["fullcare_evolution_title"]
     get_pet_lock_until = deps["get_pet_lock_until"]
     get_active_titles_map = deps["get_active_titles_map"]
     with_title_suffix = deps["with_title_suffix"]
@@ -92,14 +91,10 @@ def create_ownership_features(deps: dict):
             ) as cur:
                 lrow = await cur.fetchone()
             pet_xp = int(lrow[0]) if lrow else 0
-            fullcare_days = int(lrow[1]) if lrow else 0
             fullcare_streak = int(lrow[2]) if lrow else 0
             care_done_today = int(lrow[3]) if lrow else 0
             bond_txt = f"Bindung: {pet_xp} | Wesen: {pet_bond_title(pet_xp)} | Stimmung: {pet_mood_label(care_done_today, fullcare_streak)}"
-            evolution_txt = (
-                f"Evolution: {fullcare_evolution_title(fullcare_days)} | "
-                f"Perfekte Tage: {fullcare_days} | Streak: {fullcare_streak}"
-            )
+            progress_txt = f"Perfekte Tage: {int(lrow[1]) if lrow else 0} | Streak: {fullcare_streak}"
 
             owner_uname = None
             if owner_id:
@@ -126,12 +121,12 @@ def create_ownership_features(deps: dict):
             raw_tag = f"@{owner_uname}" if owner_uname else f"[ID:{owner_id}](tg://user?id={owner_id})"
             tag = with_title_suffix(raw_tag, owner_title)
             await update.effective_message.reply_text(
-                f"Besitzer: {tag}. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{bond_txt}\n{evolution_txt}",
+                f"Besitzer: {tag}. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{bond_txt}\n{progress_txt}",
                 parse_mode="Markdown"
             )
         else:
             await update.effective_message.reply_text(
-                f"Kein Besitzer. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{bond_txt}\n{evolution_txt}"
+                f"Kein Besitzer. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{bond_txt}\n{progress_txt}"
             )
 
     async def cmd_ownerlist(update, context):
@@ -214,14 +209,13 @@ def create_ownership_features(deps: dict):
                 skill_name = _skill_meta(pet_skill)["name"]
                 bond_name = pet_bond_title(pet_xp)
                 mood_name = pet_mood_label(care_done_today, fullcare_streak)
-                evolution_name = fullcare_evolution_title(fullcare_days)
                 if locked_until > now:
                     mins_total = (locked_until - now) // 60
                     hrs, mins = divmod(mins_total, 60)
                     lock_txt = f" [LOCK {hrs}h{mins:02d}m]"
                 out.append(
                     f" - {pet_tag}  (<b>{price}</b>) [Bindung: {pet_xp} | {escape(bond_name, False)}] "
-                    f"[Stimmung: {escape(mood_name, False)}] [Evo: {escape(evolution_name, False)}] "
+                    f"[Stimmung: {escape(mood_name, False)}] [Perfekte Tage: {fullcare_days} | Streak: {fullcare_streak}] "
                     f"[{escape(skill_name, False)}]{lock_txt}"
                 )
             out.append("")

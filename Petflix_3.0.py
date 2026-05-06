@@ -80,7 +80,7 @@ STICKER_CHAT_CLEANUP_S = 30
 RUNAWAY_HOURS = RUNAWAY_WINDOW_DAYS * 24
 LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
-TITLE_BESTIENZAEHMER = "Bestienzähmer 🐉"
+TITLE_MASTEROFPUPPETS = "MasterofPuppets"
 TITLE_DURATION_S = 2 * 3600
 DAILY_GIFT_COINS = 25000
 DAILY_CURSE_PENALTY = 150
@@ -486,29 +486,53 @@ PET_BOND_STAGES = [
     (0, "Scheu"),
 ]
 FULLCARE_EVOLUTION_STAGES = [
-    (30, "Legendärer Bändiger"),
-    (14, "Gold-Zähmer"),
-    (7, "Silber-Zähmer"),
-    (3, "Bronze-Zähmer"),
-    (1, "Bestienzähmer"),
+    (30, "Hörig"),
+    (14, "Unterworfen"),
+    (7, "Gefügig"),
+    (3, "Gezähmt"),
+    (1, "Frech"),
 ]
 
-FULL_CARE_FINISH_LINES = [
-    "10 von 10. Stark. Das Pet ist versorgt und du hast endlich für einen Moment so getan, als wärst du im echten Leben auch zu irgendwas zu gebrauchen.",
-    "Vollpflege erreicht. Rührend. Dein größter Tageserfolg bleibt trotzdem, dass nichts dabei in Flammen aufgegangen ist.",
-    "Fertig. Das Pet lebt noch, du auch. Für euch beide ist das heute schon deutlich mehr, als man erwarten durfte.",
-    "10/10 geschafft. Herzlichen Glückwunsch zum absoluten Minimum, das du jetzt mit verdächtig viel Stolz vor dir herträgst.",
-    "Pflege komplett. Das Pet ist zufrieden, der Chat müde und du wieder mal unangenehm begeistert von durchschnittlicher Leistung.",
-    "Volle Punktzahl bei der Pflege. Fast schade, dass es für Sozialkompetenz keinen eigenen Balken gibt.",
-    "Durchgezogen. Das Pet hat jetzt mehr emotionale Stabilität als der Mensch, der es gepflegt hat.",
-    "10 Pflegeaktionen. Beeindruckend, wenn man bedenkt, dass du sonst schon an einfacheren Dingen charakterlich scheiterst.",
-    "Perfekt gepflegt. Wenn Selbstüberschätzung Kalorien verbrennen würde, wärst du jetzt wenigstens sportlich.",
-    "Komplett versorgt. Das Pet hat was davon, du vor allem wieder einen Grund, dich für völlig übertrieben großartig zu halten.",
-    "10 von 10. Ein kleiner Schritt für die Pflege, ein riesiger Sprung für dein überzogenes Sendungsbewusstsein.",
-    "Pflege voll. Das Tier wirkt ausgeglichener, du dafür noch arroganter. Irgendwas muss der Preis ja sein.",
-    "Tagespflege abgeschlossen. Schön zu sehen, dass du wenigstens digital Fürsorge imitieren kannst.",
-    "Volle Pflege. Das Pet ist jetzt offiziell besser behandelt worden als jede Diskussion, an der du jemals beteiligt warst.",
-    "Geschafft. Das Pet hat Bindung aufgebaut und du direkt wieder diese peinliche Aura von 'Seht her, ich kann Aufgaben beenden'.",
+FULL_CARE_FINISH_LINES_SARCASTIC = [
+    "10 von 10. Stark. Das Pet ist versorgt und du hast für einen kurzen Moment überzeugend kaschiert, wie nutzlos du sonst durchs Leben stolperst.",
+    "Vollpflege erreicht. Faszinierend, wie viel Stolz du aus einer Aufgabe ziehst, die selbst ein halb komatöser Goldfisch noch begriffen hätte.",
+    "10/10 geschafft. Gratulation zum absoluten Mindeststandard, den du jetzt wieder präsentierst, als hättest du nebenbei noch die Zivilisation gerettet.",
+    "Pflege komplett. Das Tier ist zufrieden, der Chat erschöpft und du wieder unerträglich verliebt in dein eigenes Mittelmaß.",
+    "Volle Punktzahl. Schön, dass du wenigstens bei digitaler Fürsorge kurz vergessen kannst, was für eine charakterliche Dauerbaustelle du sonst bist.",
+    "Pflege komplett. Beeindruckend, wie du aus banaler Routine jedes Mal eine peinliche Heldensaga für geistig Unterforderte machst.",
+    "Tagesziel erreicht. Das Pet wurde gepflegt, dein Ego gefüttert und der Rest der Welt musste trotzdem weiter mit dir leben.",
+    "Volle Pflege. Für jemanden mit deiner Ausstrahlung ist das überraschend nah an Kompetenz.",
+]
+
+FULL_CARE_FINISH_LINES_BLACK = [
+    "Fertig. Das Pet lebt noch. Dein Ruf leider auch. Beides war heute nicht zwingend selbstverständlich.",
+    "Durchgezogen. Das Pet hat jetzt mehr emotionale Reife als der Mensch, der es zehnmal hintereinander angefasst hat.",
+    "10 Pflegeaktionen. Beeindruckend, wenn man bedenkt, dass du im Rest deines Daseins schon an deutlich kleineren Hürden lächerlich scheiterst.",
+    "Perfekt gepflegt. Wenn peinliche Selbstbeweihräucherung Energie erzeugen würde, könntest du damit eine Kleinstadt versorgen.",
+    "10 von 10. Ein kleiner Schritt für die Pflege, ein riesiger Sprung für dein krankhaft überfüttertes Ego.",
+    "Pflege voll. Das Tier wirkt ruhiger, du dafür noch arroganter. Irgendwer musste an dieser Nummer ja verlieren.",
+    "Volle Pflege. Das Pet wurde heute offiziell besser behandelt als jede Person, die jemals den Fehler gemacht hat, dich ernst zu nehmen.",
+    "Pflege abgeschlossen. Das Tier ist jetzt ausgeglichener und du bleibst trotzdem das lauteste Problem im Raum.",
+]
+
+FULL_CARE_FINISH_LINES_VICIOUS = [
+    "Komplett versorgt. Das Pet profitiert davon, du nur insofern, dass du wieder einen Vorwand hast, dich für massiv wichtiger zu halten als du bist.",
+    "Geschafft. Das Pet hat Bindung aufgebaut und du sofort wieder diese widerliche Aura von 'Bitte bewundert mich für das absolute Minimum'.",
+    "10 von 10. Du hast eine simple Aufgabe erledigt und klingst innerlich trotzdem schon wie die Dankesrede eines größenwahnsinnigen Dorfidioten.",
+    "Vollpflege. Das Pet hat jetzt Struktur im Tag, du dagegen immer noch nur zufällig zusammengehaltene Restwürde.",
+    "Sauber durchgezogen. Mehr Verlässlichkeit als in deiner kompletten Persönlichkeit war heute offenbar wirklich nicht drin.",
+    "10/10. Sogar das Pet blickt inzwischen, dass es hier der vernünftigere Teil dieser Beziehung ist.",
+    "Perfekt. Das Tier hat Fürsorge bekommen und du den kurzen, erbärmlichen Dopaminstoß, den du sonst nur aus Selbsttäuschung kennst.",
+    "Komplett gepflegt. Schön, dass wenigstens einer von euch beiden heute nicht völlig verwahrlost rüberkommt.",
+    "10 von 10. Du klammerst dich an diese Leistung wie andere an Würde. Nur dass deine halt deutlich schlechter gealtert ist.",
+    "Fertig gepflegt. Fast süß, wie du jedes Mal so tust, als hätte dieses bisschen Konsequenz nicht schon alle Erwartungen an dich restlos übererfüllt.",
+    "10/10 geschafft. Nicht schlecht für jemanden, der sonst selbst beim Geradeausdenken aussieht, als würde er sich dabei verletzen.",
+]
+
+FULL_CARE_FINISH_POOLS = [
+    FULL_CARE_FINISH_LINES_SARCASTIC,
+    FULL_CARE_FINISH_LINES_BLACK,
+    FULL_CARE_FINISH_LINES_VICIOUS,
 ]
 
 # =========================
@@ -1948,7 +1972,7 @@ def fullcare_evolution_title(fullcare_days: int) -> str:
     for needed_days, title in FULLCARE_EVOLUTION_STAGES:
         if days >= needed_days:
             return title
-    return "Pflegekueken"
+    return "Frech"
 
 def is_group(update: Update) -> bool:
     return update.effective_chat and update.effective_chat.type in {ChatType.GROUP, ChatType.SUPERGROUP}
@@ -2277,13 +2301,12 @@ async def do_care(update, context, action_key, tame_lines):
                 (new_bond, streak, today, fullcare_days, chat_id, pet.id)
             )
 
-            evolution_title = fullcare_evolution_title(fullcare_days)
             mood = pet_mood_label(done, streak)
             bonus_lines = [
                 f"Bindung heute: +{gained_bond} ({done}x Pflege + Full-Care-Bonus).",
                 f"Bindung gesamt: <b>{new_bond}</b> | Wesen: <b>{escape(pet_bond_title(new_bond), False)}</b>.",
                 f"Stimmung: <b>{escape(mood, False)}</b>.",
-                f"Perfekte Tage gesamt: <b>{fullcare_days}</b> | Evolutionsstufe: <b>{escape(evolution_title, False)}</b>.",
+                f"Perfekte Tage gesamt: <b>{fullcare_days}</b>.",
                 f"Streak voller Tage: <b>{streak}</b>.",
             ]
 
@@ -2304,13 +2327,13 @@ async def do_care(update, context, action_key, tame_lines):
                 db,
                 chat_id=chat_id,
                 user_id=owner.id,
-                title=TITLE_BESTIENZAEHMER,
+                title=TITLE_MASTEROFPUPPETS,
                 duration_s=TITLE_DURATION_S,
             )
             mins = max(1, (until_ts - int(time.time())) // 60)
             title_line = (
                 f"Titel aktiv: {mention_html(owner.id, owner.username or None)} ist jetzt "
-                f"<b>{escape(TITLE_BESTIENZAEHMER, False)}</b> für {mins} Minuten."
+                f"<b>{escape(TITLE_MASTEROFPUPPETS, False)}</b> für {mins} Minuten."
             )
             bonus_lines.append(title_line)
             bonus_text = "\n".join(bonus_lines)
@@ -2322,11 +2345,10 @@ async def do_care(update, context, action_key, tame_lines):
 
         new_bond_title = pet_bond_title(new_bond)
         if new_bond_title != prev_bond_title:
-            evolution_name = fullcare_evolution_title(current_fullcare_days)
             bond_text = (
                 f"Neue Bindung: <b>{escape(new_bond_title, False)}</b> | "
                 f"{nice_name_html(pet)} | Owner: {mention_html(owner.id, owner.username or None)} | "
-                f"Pflege <b>{done}/{CARES_PER_DAY}</b> | Evo: <b>{escape(evolution_name, False)}</b>"
+                f"Pflege <b>{done}/{CARES_PER_DAY}</b>"
             )
 
         await set_cd(db, chat_id, owner.id, cd_key, CARE_COOLDOWN_S)
@@ -2344,14 +2366,13 @@ async def do_care(update, context, action_key, tame_lines):
         bonus_msg = await msg.reply_text(bonus_text, parse_mode=ParseMode.HTML)
         cleanup_message_ids.append(bonus_msg.message_id)
     if done % CARES_PER_DAY == 0:
-        progress_evolution = fullcare_evolution_title(current_fullcare_days)
         progress_mood = pet_mood_label(done, current_fullcare_streak)
-        finish_line = random.choice(FULL_CARE_FINISH_LINES)
+        finish_line = random.choice(random.choice(FULL_CARE_FINISH_POOLS))
         progress_text = (
             f"Pflege-Stand: {nice_name_html(owner)} hat {nice_name_html(pet)} "
             f"<b>{done}/{CARES_PER_DAY}</b> gepflegt. "
             f"Bindung: <b>{new_bond}</b> | Wesen: <b>{escape(pet_bond_title(new_bond), False)}</b> | "
-            f"Stimmung: <b>{escape(progress_mood, False)}</b> | Evo: <b>{escape(progress_evolution, False)}</b>.\n"
+            f"Stimmung: <b>{escape(progress_mood, False)}</b>.\n"
             f"{escape(finish_line, False)}"
         )
         await _send_or_replace_level_message(context, chat_id, msg, progress_text)
