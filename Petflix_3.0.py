@@ -459,7 +459,7 @@ SUPERWORDS = list(dict.fromkeys(_add_umlaut_variants(SUPERWORDS)))
 # =========================
 # /steal
 # =========================
-STEAL_SUCCESS_CHANCE = 0.50
+STEAL_SUCCESS_CHANCE = 0.45
 STEAL_COOLDOWN_S = 30
 STEAL_FAIL_PENALTY_RATIO = 0.20
 
@@ -4150,7 +4150,7 @@ async def register_commands(application: Application):
         BotCommand("balance", "Zeigt deinen Coin-Kontostand"),
         BotCommand("treat", "Schenke Coins an einen User"),
         BotCommand("leckerli", "Schenke Coins an einen User"),
-        BotCommand("steal", "Versuche Coins zu klauen (48% Chance)"),
+        BotCommand("steal", "Versuche Coins zu klauen (45% Basis, Risiko je Intensität)"),
         BotCommand("fehde", "Zeigt aktive Rivalitaeten und Stufen"),
         BotCommand("buy", "Kaufe einen anderen User"),
         BotCommand("risk", "Klauversuch mit Coin-Risiko für mehr Chance"),

@@ -73,6 +73,53 @@ def create_admin_coin_commands(deps: dict):
         except Exception:
             return template
 
+    def calculate_intensity(amount: int, victim_coins: int) -> dict:
+        base = max(1, int(victim_coins or 0))
+        ratio = float(amount) / float(base)
+        if ratio <= 0.15:
+            return {
+                "key": "sneaky",
+                "label": "Sneaky",
+                "chance_mod": 0.12,
+                "penalty_ratio": 0.12,
+                "multiplier": 0.90,
+            }
+        if ratio <= 0.40:
+            return {
+                "key": "normal",
+                "label": "Normal",
+                "chance_mod": 0.00,
+                "penalty_ratio": 0.20,
+                "multiplier": 1.00,
+            }
+        return {
+            "key": "bold",
+            "label": "Bold",
+            "chance_mod": -0.18,
+            "penalty_ratio": 0.35,
+            "multiplier": 1.35,
+        }
+
+    def calculate_chance(
+        base_chance: float,
+        feud_bonus: float,
+        revenge_bonus: float,
+        admin_bonus: float,
+        intensity_mod: float,
+        defense_bonus: float,
+        user_id: int,
+    ) -> float:
+        raw = base_chance + feud_bonus + revenge_bonus + admin_bonus + intensity_mod - defense_bonus
+        return _cap_success_chance(raw, user_id)
+
+    def calculate_penalty(own_coins: int, penalty_ratio: float) -> int:
+        if own_coins <= 0:
+            return 0
+        return max(1, int(own_coins * float(penalty_ratio)))
+
+    def calculate_multiplier(multiplier: float) -> float:
+        return float(multiplier)
+
     async def cmd_adminping(update, context):
         if not is_group(update):
             return
@@ -395,20 +442,34 @@ def create_admin_coin_commands(deps: dict):
                     parse_mode=ParseMode.HTML
                 )
 
+            victim_coins = await _get_coins(db, chat_id, tid)
+            intensity = calculate_intensity(amount, victim_coins)
             feud_before = await get_feud_state(db, chat_id, thief.id, tid)
             feud_stage = int(feud_before["stage"] or 0)
             feud_bonus = FEUD_STAGE_BONUS.get(feud_stage, FEUD_STAGE_BONUS[0])
             revenge_left = await get_cd_left(db, chat_id, thief.id, feud_revenge_key(tid))
             revenge_bonus = FEUD_REVENGE_CHANCE_BONUS if revenge_left > 0 else 0.0
-            base_chance = 0.90 if thief.id == ADMIN_ID else STEAL_SUCCESS_CHANCE
-            success_chance = _cap_success_chance(base_chance + feud_bonus["chance"] + revenge_bonus, thief.id)
+            admin_bonus = 0.45 if thief.id == ADMIN_ID else 0.0
+            defense_bonus = min(0.12, max(0, int(feud_before.get("success_count") or 0)) * 0.03)
+            success_chance = calculate_chance(
+                STEAL_SUCCESS_CHANCE,
+                float(feud_bonus["chance"]),
+                revenge_bonus,
+                admin_bonus,
+                float(intensity["chance_mod"]),
+                defense_bonus,
+                thief.id,
+            )
+            chance_pct = int(round(success_chance * 100))
             target_tag = mention_html(tid, uname or None)
             thief_tag = mention_html(thief.id, thief.username or None)
+            intensity_label = escape(str(intensity["label"]), quote=False)
+            defense_pct = int(round(defense_bonus * 100))
 
             force_fail = tid == ADMIN_ID and thief.id != ADMIN_ID
             if force_fail or random.random() > success_chance:
                 thief_old = await _get_coins(db, chat_id, thief.id)
-                penalty = max(1, int(thief_old * STEAL_FAIL_PENALTY_RATIO)) if thief_old > 0 else 0
+                penalty = calculate_penalty(thief_old, float(intensity["penalty_ratio"]))
                 feud_after = await register_feud_clash(db, chat_id, thief.id, tid, False)
                 await db.execute(
                     "UPDATE players SET coins=MAX(0, coins-?) WHERE chat_id=? AND user_id=?",
@@ -420,12 +481,18 @@ def create_admin_coin_commands(deps: dict):
                     _pick_text(
                         text_cfg,
                         "steal_fail",
-                        "War wohl nix. {thief} hat versucht {target} zu beklauen - erwischt. (-{penalty} / 20%)"
+                        "War wohl nix. {thief} hat versucht {target} zu beklauen - erwischt. (-{penalty} / {penalty_pct}%)"
                     ),
                     thief=thief_tag,
                     target=target_tag,
                     penalty=penalty,
+                    penalty_pct=int(round(float(intensity["penalty_ratio"]) * 100)),
                 )]
+                lines.append(
+                    f"Chance: <b>{chance_pct}%</b> | Intensität: <b>{intensity_label}</b>"
+                )
+                if defense_bonus > 0:
+                    lines.append(f"Defensivbonus von {target_tag}: <b>-{defense_pct}%</b>.")
                 if feud_after["stage_changed"]:
                     trigger = _pick_text(text_cfg, f"feud_stage_{feud_after['stage']}", "")
                     if not trigger:
@@ -436,10 +503,11 @@ def create_admin_coin_commands(deps: dict):
                         lines.append(trigger)
                 return await update.effective_message.reply_text("\n".join(lines), parse_mode=ParseMode.HTML)
 
-            victim_coins = await _get_coins(db, chat_id, tid)
             stage_multiplier = 1.0 + float(feud_bonus["steal_pct"])
+            intensity_multiplier = calculate_multiplier(float(intensity["multiplier"]))
             boosted_amount = max(1, int(round(amount * stage_multiplier)))
-            stolen = min(boosted_amount, victim_coins)
+            final_amount = max(1, int(round(boosted_amount * intensity_multiplier)))
+            stolen = min(final_amount, victim_coins)
             if stolen <= 0:
                 feud_after = await register_feud_clash(db, chat_id, thief.id, tid, False)
                 await set_cd(db, chat_id, thief.id, "steal", STEAL_COOLDOWN_S)
@@ -448,6 +516,11 @@ def create_admin_coin_commands(deps: dict):
                     _pick_text(text_cfg, "steal_empty", "{target} ist sowieso pleite. Nix zu holen."),
                     target=target_tag,
                 )]
+                lines.append(
+                    f"Chance: <b>{chance_pct}%</b> | Intensität: <b>{intensity_label}</b>"
+                )
+                if defense_bonus > 0:
+                    lines.append(f"Defensivbonus von {target_tag}: <b>-{defense_pct}%</b>.")
                 if feud_after["stage_changed"]:
                     trigger = _pick_text(text_cfg, f"feud_stage_{feud_after['stage']}", "")
                     if not trigger:
@@ -478,6 +551,18 @@ def create_admin_coin_commands(deps: dict):
             stolen=stolen,
             requested=amount,
         )]
+        lines.append(
+            _fmt(
+                _pick_text(
+                    text_cfg,
+                    "steal_chance_line",
+                    "Chance: <b>{chance}</b> | Intensität: <b>{intensity}</b> | Beutefaktor: <b>x{multiplier}</b>"
+                ),
+                chance=f"{chance_pct}%",
+                intensity=intensity_label,
+                multiplier=f"{intensity_multiplier:.2f}",
+            )
+        )
         if feud_stage > 0:
             lines.append(_fmt(
                 _pick_text(
@@ -493,6 +578,16 @@ def create_admin_coin_commands(deps: dict):
             lines.append(_fmt(
                 _pick_text(text_cfg, "steal_revenge_used", "Rachefenster genutzt: +{chance_bonus}% Erfolg."),
                 chance_bonus=int(FEUD_REVENGE_CHANCE_BONUS * 100),
+            ))
+        if defense_bonus > 0:
+            lines.append(_fmt(
+                _pick_text(
+                    text_cfg,
+                    "steal_defense_bonus",
+                    "Defensivbonus von {target}: <b>-{defense_bonus}%</b> Erfolg."
+                ),
+                target=target_tag,
+                defense_bonus=defense_pct,
             ))
         if feud_after["stage_changed"]:
             trigger = _pick_text(text_cfg, f"feud_stage_{feud_after['stage']}", "")
