@@ -471,7 +471,7 @@ BUY_SUCCESS_MIN = 0.05   # Bei 10/10 Pflege fast nicht kaufbar
 BUY_FAIL_PENALTY_RATIO = 0.20  # Bei Fehlversuch immer 20% Coins weg
 CARE_FIFTYFIFTY_UNTIL = 4
 CARE_HARD_PROTECT_START = 8
-RISK_BONUS_PER_PRICE = 0.20  # Risiko in Hoehe des Preises => +20% Chance
+RISK_BONUS_PER_PRICE = 0.20  # Risiko in Höhe des Preises => +20% Chance
 RISK_MAX_BONUS = 0.35        # Maximal +35% durch Risiko
 
 # =========================
@@ -506,7 +506,7 @@ PET_SKILLS = {
     },
     "goldesel": {
         "name": "Petflix Prime",
-        "desc": f"Bei {CARES_PER_DAY}/{CARES_PER_DAY} Pflege erhaelt der Owner +{FULL_CARE_OWNER_BONUS} Bonus/Tag.",
+        "desc": f"Bei {CARES_PER_DAY}/{CARES_PER_DAY} Pflege erhält der Owner +{FULL_CARE_OWNER_BONUS} Bonus/Tag.",
         "weight": 13,
     },
     "chamaeleon": {
@@ -703,7 +703,7 @@ BOX_STANDARD_FLAVOR_TEXTS = [
     "Staub hoch, Puls runter, Griff rein.",
     "Da drin riecht es nach Schrott und Glück.",
     "Ein kleiner Schnitt am Finger. Gutes Omen.",
-    "Die Kiste klingt leer. Meistens luegt sowas.",
+    "Die Kiste klingt leer. Meistens lügt sowas.",
     "Etwas scheppert. Hoffentlich kein billiger Fluch.",
     "Schwarzmarktware. Sieht man, fühlt man, kauft man trotzdem.",
     "Der Deckel springt auf wie eine schlechte Entscheidung.",
@@ -734,11 +734,11 @@ BOX_STANDARD_FLAVOR_TEXTS = [
     "Da ist Bewegung drin. Oder nur Einbildung.",
     "Das Ding fühlt sich an wie ein Fehltritt mit Preisetikett.",
     "Billig gebaut, teuer zu bereuen.",
-    "Kurz vorm öffnen ist immer alles noch möglich.",
-    "Ein Splitter bleibt haengen. Souvenir.",
+    "Kurz vorm Öffnen ist immer alles noch möglich.",
+    "Ein Splitter bleibt hängen. Souvenir.",
     "Die Kiste knirscht wie ein Kiefer unter Druck.",
     "Unfreundliche Verpackung. Ehrliches Konzept.",
-    "Du ?ffnest sie wie eine Wunde.",
+    "Du öffnest sie wie eine Wunde.",
     "Einmal schief gelacht, einmal falsch gekauft.",
     "Die Box ist klein. Der Schaden nicht immer.",
     "Das Schloss war ein Witz. Hoffentlich bleibt's dabei.",
@@ -750,13 +750,13 @@ BOX_STANDARD_FLAVOR_TEXTS = [
     "Kein Geschmack, aber Wirkung.",
     "Kurz still. Dann knallt der Deckel hoch.",
     "Das Teil sieht aus wie gelagertes Pech.",
-    "Ein Griff zu tief, ein Fehler zu sp?t.",
+    "Ein Griff zu tief, ein Fehler zu spät.",
     "Mehr Risiko passt kaum in so wenig Holz.",
     "Die Nägel halten noch. Dein Kontostand vielleicht nicht.",
     "Innen riecht es nach Metall und Fehlentscheidungen.",
     "Das ist keine Box. Das ist Absicht.",
     "Der Deckel geht hoch wie ein Messerarm.",
-    "Kleiner Einkauf, gro?es Echo.",
+    "Kleiner Einkauf, großes Echo.",
     "Billig vom Markt, brutal im Nachgang.",
     "Da drin liegt selten Zuneigung.",
     "Die Kiste fühlt sich an wie Hohn zum Mitnehmen.",
@@ -769,15 +769,15 @@ BOX_STANDARD_FLAVOR_TEXTS = [
     "Einmal drehen, einmal atmen, einmal bereuen.",
     "Schmutzige Ware aus sauber schlechten Händen.",
     "Das Teil kostet Nerven extra.",
-    "Sieht aus wie Restposten aus der Hoelle.",
-    "Der Deckel l?sst sich leichter öffnen als dein Glück.",
-    "Da drin ist alles erlaubt ausser Fairness.",
+    "Sieht aus wie Restposten aus der Hölle.",
+    "Der Deckel lässt sich leichter öffnen als dein Glück.",
+    "Da drin ist alles erlaubt außer Fairness.",
     "Ein Knistern, dann Stille. Immer verdächtig.",
     "Der Griff fühlt sich an wie kalter Spott.",
     "Nichts an dieser Kiste will nett sein.",
     "Schwarzmarkt-Pappe für Kellerseelen.",
     "Ein kurzer Zug und die Box gibt klein bei.",
-    "Du ?ffnest das Ding wie ein Urteil.",
+    "Du öffnest das Ding wie ein Urteil.",
     "Wenig Stil, viel Potenzial für Schaden.",
     "Wenn Holz drohen könnte, klang es genau so.",
     "Einmal geschnauft, dann aufgerissen.",
@@ -795,7 +795,7 @@ BOX_STANDARD_FLAVOR_TEXTS = [
     "Der Karton wäre netter gewesen.",
     "Kellerkauf. Schnell, dumm, verlockend.",
     "Einmal geöffnet, einmal markiert.",
-    "Kleines Paket, grosses Potenzial für Ärger.",
+    "Kleines Paket, großes Potenzial für Ärger.",
 ]
 BOX_ABYSS_FLAVOR_TEXTS = [
     "Der Deckel klebt, als wäre Blut dran gewesen.",
@@ -820,7 +820,7 @@ BOX_ABYSS_FLAVOR_TEXTS = [
     "Das Teil wurde gebaut, um Konsequenzen zu liefern.",
     "Schon der Griff fühlt sich strafbar an.",
     "Nichts an dieser Box glaubt an ein Happy End.",
-    "Du reissst den Deckel auf wie eine Wunde, die wieder arbeitet.",
+    "Du reißt den Deckel auf wie eine Wunde, die wieder arbeitet.",
     "Einmal offen, einmal tiefer drin.",
     "Das Holz knackt wie Rippen unter Zeitdruck.",
     "Kurz das Gefühl, beobachtet zu werden.",
@@ -834,14 +834,14 @@ BOX_ABYSS_FLAVOR_TEXTS = [
     "Ein Ruck und der Abend kippt.",
     "Die Kiste hat die Ausstrahlung eines Kofferraums bei Nacht.",
     "Da drin lagert nur, was sonst keiner anfassen will.",
-    "Einmal geöffnet, einmal tiefer in der Scheisse.",
+    "Einmal geöffnet, einmal tiefer in der Scheiße.",
     "Selbst der Staub sieht aggressiv aus.",
     "Das Holz fühlt sich an wie getrocknete Drohung.",
-    "Du ?ffnest nicht. Du l?st aus.",
+    "Du öffnest nicht. Du löst aus.",
     "Ein Schatten im Inneren. Oder nur Wunschdenken.",
     "Der Deckel geht hoch wie eine Ansage.",
     "Die Box hat die Laune eines Schlachthofs.",
-    "Kurz das Gefühl, sie lieber wieder zu schließen. Zu spaet.",
+    "Kurz das Gefühl, sie lieber wieder zu schließen. Zu spät.",
     "Hier drin lagert kein Gewinn, hier drin wartet Einfluss.",
     "Das Ding klingt wie Ketten in einer Treppe nach unten.",
     "Abyss-Kisten kommen nie allein, nur mit Folgen.",
@@ -855,13 +855,13 @@ BOX_ABYSS_FLAVOR_TEXTS = [
     "Der Abgrund ist klein verpackt und trotzdem zu viel.",
     "Die Kiste ist dicht. Der Druck nicht.",
     "Jemand hat das Ding mit Absicht böse gemacht.",
-    "Innen wartet keine überraschung, sondern eine Haltung.",
+    "Innen wartet keine Überraschung, sondern eine Haltung.",
     "Das Schloss hängt dran wie ein Zahn kurz vorm Ziehen.",
     "Du knickst den Deckel hoch wie eine Tat.",
     "Abyss-Ware schmeckt immer nach übertrieben.",
     "Das Teil wirkt, als würde es Namen sammeln.",
     "Kein Licht drin, nur Wirkung.",
-    "Der Deckel faellt nach hinten wie ein Leichensackverschluss.",
+    "Der Deckel fällt nach hinten wie ein Leichensackverschluss.",
     "Etwas Schweres liegt im Ton dieser Kiste.",
     "Der Griff ist kalt genug für eine letzte Warnung.",
     "Du wolltest Spannung. Hier ist sie.",
@@ -871,7 +871,7 @@ BOX_ABYSS_FLAVOR_TEXTS = [
     "Abyss heißt: Man bezahlt schon für den Fehler.",
     "Das Ding sieht aus, als wäre Mitleid ab Werk entfernt.",
     "Der Inhalt hat keinen Grund, fair zu sein.",
-    "Du oeffnest die Kiste wie einen Bericht über Gewalt.",
+    "Du öffnest die Kiste wie einen Bericht über Gewalt.",
     "Innen ist nur Material für starke Nerven.",
     "Die Kanten fühlen sich an wie eine Warnung mit Griff.",
     "Das Schloss war schwach. Der Ausgang selten.",
@@ -882,7 +882,7 @@ BOX_ABYSS_FLAVOR_TEXTS = [
     "Ab hier wird nichts mehr freundlich formuliert.",
     "Die Kiste gibt dir genau eine Sache nie: Sicherheit.",
     "Ein dunkler Hohlraum mit Ambitionen.",
-    "Das Holz knurrt fast beim öffnen.",
+    "Das Holz knurrt fast beim Öffnen.",
     "Hier drin wird nicht geliefert, hier drin wird verpasst.",
     "Die Box hat die Energie eines nassen Messers.",
     "Der Abgrund passt erschreckend gut in beide Hände.",
@@ -890,14 +890,14 @@ BOX_ABYSS_FLAVOR_TEXTS = [
     "Ein Ruck am Deckel und das Schicksal hat wieder Dienst.",
     "Das Teil klingt, als würde es sich über dich freuen.",
     "Kein Samt, kein Gold, nur Konsequenz.",
-    "Abyss bedeutet: Alles eine Nummer haerter als noetig.",
+    "Abyss bedeutet: Alles eine Nummer härter als nötig.",
     "Der Deckel öffnet sich wie ein Geständnis unter Zwang.",
-    "Dieses Ding ist verpackte R?cksichtslosigkeit.",
+    "Dieses Ding ist verpackte Rücksichtslosigkeit.",
     "Der Inhalt hat bestimmt schlechte Absichten.",
     "Ein Griff tiefer und die Stimmung kippt mit.",
     "Das hier ist kein Kauf, das ist ein Test.",
     "Abyss-Kram kommt selten leise.",
-    "Das Ding wurde für Leute gebaut, die Schmerz mit Stil m?gen.",
+    "Das Ding wurde für Leute gebaut, die Schmerz mit Stil mögen.",
 ]
 
 FLUCH_LINES = [
@@ -945,14 +945,14 @@ FLUCH_LINES = [
 ]
 
 FLUCH_LINES.extend([
-    "{user}, dein Fluch heute: Jede ruhige Minute klingt ploetzlich nach deinem eigenen Versagen. Laut. Nah. Ohne Pause.",
+    "{user}, dein Fluch heute: Jede ruhige Minute klingt plötzlich nach deinem eigenen Versagen. Laut. Nah. Ohne Pause.",
     "{user}, du ziehst heute Unglück an wie andere Leute Parfum. Nur dass deins nach Keller und Panik riecht.",
     "{user}, jede Türspaltbreite heute ein Fehler. Dahinter wartet nichts Gutes und es kennt deinen Namen.",
     "{user}, dein Schatten geht heute nicht hinter dir. Er geht vor dir und lacht, wenn du stolperst.",
     "{user}, du hast heute das Charisma eines nassen Kellertuchs. Und selbst das wäre noch schmeichelhaft.",
-    "{user}, dein Spiegel zeigt dir heute exakt, was alle anderen schon laengst denken: peinlich, verflucht, verloren.",
-    "{user}, heute findet dich jedes Pech. Schnell. Praezise. Mit Genuss.",
-    "{user}, selbst deine Ausreden kriechen heute auf Knien vor mir an. Erbaermlicher wird's nicht.",
+    "{user}, dein Spiegel zeigt dir heute exakt, was alle anderen schon längst denken: peinlich, verflucht, verloren.",
+    "{user}, heute findet dich jedes Pech. Schnell. Präzise. Mit Genuss.",
+    "{user}, selbst deine Ausreden kriechen heute auf Knien vor mir an. Erbärmlicher wird's nicht.",
     "{user}, dein Tag fühlt sich heute an wie ein Horrorfilm mit dir als billigster Nebenrolle.",
     "{user}, dein Fluch ist simpel: Egal was du anfasst, es wirkt danach noch trauriger als vorher.",
     "{user}, du bringst heute selbst Neonlicht dazu, müde auszusehen.",
@@ -967,13 +967,13 @@ FLUCH_LINES.extend([
     "{user}, selbst der Nebel will heute Abstand von dir. So schlimm ist die Lage.",
     "{user}, heute fühlt sich jeder Schritt an, als hätte das Universum persönlich was gegen dich.",
     "{user}, du bist heute der Grund, warum Geister lieber tagsüber schlafen.",
-    "{user}, dein Name klingt heute wie eine Warnung. Und alle sollten drauf hoeren.",
+    "{user}, dein Name klingt heute wie eine Warnung. Und alle sollten drauf hören.",
     "{user}, jede Minute heute ein kleiner Absturz. Ganz ohne Rettungssystem.",
     "{user}, dein Fluch hat heute Taktgefühl. Er trifft genau dann, wenn's maximal peinlich wird.",
     "{user}, du stolperst heute nicht über Dinge. Die Dinge stolpern über dich und verlieren dabei Respekt.",
-    "{user}, heute bist du atmosphaerisch irgendwo zwischen Stromausfall und Fehlentscheidung.",
+    "{user}, heute bist du atmosphärisch irgendwo zwischen Stromausfall und Fehlentscheidung.",
     "{user}, dein Gesichtsausdruck heute: jemand, der schon beim Start verloren hat.",
-    "{user}, jede Fensterscheibe spiegelt heute nur Entt?uschung zurück.",
+    "{user}, jede Fensterscheibe spiegelt heute nur Enttäuschung zurück.",
     "{user}, dein Fluch heute ist ein leises Kichern direkt hinter dir. Konstant. Nah. Gemein.",
     "{user}, du bist heute so verhext, dass selbst Kalender dir ausweichen würden.",
     "{user}, heute ist alles gegen dich. Sogar die Dinge, die dich gar nicht kennen.",
@@ -997,45 +997,45 @@ FLUCH_LINES.extend([
     "{user}, heute riecht jede Stille nach drohendem Kontrollverlust.",
     "{user}, du bist heute so verflucht, dass selbst Zufall nach Plan aussieht.",
     "{user}, dein Tag wurde heute offenbar von bösem Humor geschrieben.",
-    "{user}, heute ist jede Kleinigkeit bereit, dir die letzte Nervenfaser rauszureissen.",
+    "{user}, heute ist jede Kleinigkeit bereit, dir die letzte Nervenfaser rauszureißen.",
     "{user}, dein Fluch heute: schlechtes Karma mit Ausdauer.",
-    "{user}, sogar dein Echo klingt heute enttaeuscht von dir.",
-    "{user}, heute ist dein Glück irgendwo abgeschlossen und der Schluessel absichtlich weg.",
+    "{user}, sogar dein Echo klingt heute enttäuscht von dir.",
+    "{user}, heute ist dein Glück irgendwo abgeschlossen und der Schlüssel absichtlich weg.",
     "{user}, dein Fluch ist heute ein permanentes Gefühl von 'gleich kippt was um'.",
     "{user}, du ziehst heute Ungnade an wie Magnetstaub.",
     "{user}, heute ist jeder Blick in den Spiegel ein kleiner Bosskampf.",
     "{user}, dein Schatten hat heute die bessere Laune. Das sollte dir zu denken geben.",
-    "{user}, dein Tag steht heute unter dem Motto: hätte schlimmer kommen k?nnen. Kam's aber nicht.",
+    "{user}, dein Tag steht heute unter dem Motto: hätte schlimmer kommen können. Kam's aber nicht.",
     "{user}, heute sind sogar deine guten Ideen nur anders verpackte Katastrophen.",
-    "{user}, dein Fluch heute ist hochkonzentrierte Bloesse ohne Exit.",
-    "{user}, du bist heute das menschliche Geraeusch einer schiefen Kellertreppe.",
+    "{user}, dein Fluch heute ist hochkonzentrierte Blöße ohne Exit.",
+    "{user}, du bist heute das menschliche Geräusch einer schiefen Kellertreppe.",
     "{user}, jeder Versuch von dir, cool zu wirken, wird heute direkt vom Universum gecancelt.",
-    "{user}, dein Name steht heute intern bei den Daemonen unter 'gleich nochmal treten'.",
+    "{user}, dein Name steht heute intern bei den Dämonen unter 'gleich nochmal treten'.",
     "{user}, heute fühlt sich jeder Raum mit dir sofort unwohler an.",
     "{user}, dein Fluch heute ist eine exakte Kopie deiner drei peinlichsten Momente. Endlosschleife inklusive.",
     "{user}, heute kannst du dich drehen wie du willst. Das Unheil steht schon richtig.",
-    "{user}, du bist heute atmosphaerisch eine Mischung aus Flurlicht und schlechtem Gewissen.",
-    "{user}, dein Tag wurde heute mit extra viel Nein gew?rzt.",
-    "{user}, heute wartet hinter jeder Ecke eine weitere kleine Demuetigung auf dich.",
+    "{user}, du bist heute atmosphärisch eine Mischung aus Flurlicht und schlechtem Gewissen.",
+    "{user}, dein Tag wurde heute mit extra viel Nein gewürzt.",
+    "{user}, heute wartet hinter jeder Ecke eine weitere kleine Demütigung auf dich.",
     "{user}, dein Fluch heute ist nicht laut. Nur konsequent. Und böse genug.",
-    "{user}, selbst tote Geraeusche im Haus klingen heute genervt von dir.",
+    "{user}, selbst tote Geräusche im Haus klingen heute genervt von dir.",
     "{user}, dein Unglück ist heute punctual, motiviert und in Bestform.",
     "{user}, heute verliert sogar dein Stolz beim Warmmachen.",
     "{user}, dein Fluch heute ist Schieflage auf allen Ebenen. Sozial, kosmisch, karmisch.",
     "{user}, du wirkst heute wie jemand, den selbst Geister nur widerwillig heimsuchen.",
-    "{user}, heute ist jeder Lichtschalter nur eine andere Art von Entt?uschung.",
+    "{user}, heute ist jeder Lichtschalter nur eine andere Art von Enttäuschung.",
     "{user}, dein Tag hat heute Ketten um und zieht dich absichtlich langsamer nach unten.",
     "{user}, dein Fluch heute ist eine sehr persönliche Form von Pech.",
     "{user}, du bist heute der eine Name, den man bei Mitternacht besser nicht sagt.",
-    "{user}, jede Uhr tickt heute für dich ein bisschen h?sslicher.",
-    "{user}, dein Fluch heute ist premium. Teuer, pr?zise, sch?dlich.",
+    "{user}, jede Uhr tickt heute für dich ein bisschen hässlicher.",
+    "{user}, dein Fluch heute ist Premium. Teuer, präzise, schädlich.",
     "{user}, heute fühlt sich jeder Fehler von dir an wie Absicht. Gegen dich.",
-    "{user}, dein Tag klingt heute wie Schritte im Dachboden, obwohl da niemand sein duerfte.",
-    "{user}, heute zerfaellt selbst deine Restwürde in kleinen, peinlichen Portionen.",
+    "{user}, dein Tag klingt heute wie Schritte im Dachboden, obwohl da niemand sein dürfte.",
+    "{user}, heute zerfällt selbst deine Restwürde in kleinen, peinlichen Portionen.",
     "{user}, dein Fluch heute ist ein enger Raum, schlechtes Licht und kein Ausweg.",
-    "{user}, du bist heute so verhext, dass selbst schlechte Vorzeichen nervoes werden.",
-    "{user}, jede Hoffnung in deiner Naehe hat heute vorsichtshalber gekuendigt.",
-    "{user}, dein Fluch heute ist ein gruendliches, kaltes 'selber schuld' aus dem Off.",
+    "{user}, du bist heute so verhext, dass selbst schlechte Vorzeichen nervös werden.",
+    "{user}, jede Hoffnung in deiner Nähe hat heute vorsichtshalber gekündigt.",
+    "{user}, dein Fluch heute ist ein gründliches, kaltes 'selber schuld' aus dem Off.",
     "{user}, heute ist dein Timing so tot, dass es schon im Keller wohnt.",
     "{user}, du bist heute die Art von Stimmung, bei der selbst Regen sagt: mir reicht's.",
     "{user}, dein Fluch heute ist einfache Mathematik: du plus Pech gleich Unterhaltung für andere.",
@@ -1044,28 +1044,28 @@ FLUCH_LINES.extend([
     "{user}, dein Tag wurde heute mit Absicht dunkler eingestellt.",
     "{user}, heute passt einfach alles gegen dich zusammen. Fast schon beeindruckend.",
     "{user}, dein Fluch heute ist ein sehr langsamer Absturz mit guter Akustik.",
-    "{user}, du bist heute der Grund, warum man Kellert?ren doppelt abschlie?t.",
+    "{user}, du bist heute der Grund, warum man Kellertüren doppelt abschließt.",
 ])
 
 FLUCH_LINES.extend([
-    "{user}, heute klebt dir das Pech so tief im Gesicht, dass selbst Mitleid einen R?ckzieher macht.",
-    "{user}, dein Fluch heute ist ein offener Abgrund mit deinem Namen dran. Und du laeufst schon darauf zu.",
+    "{user}, heute klebt dir das Pech so tief im Gesicht, dass selbst Mitleid einen Rückzieher macht.",
+    "{user}, dein Fluch heute ist ein offener Abgrund mit deinem Namen dran. Und du läufst schon darauf zu.",
     "{user}, jede Minute heute fühlt sich an wie ein gezielter Tritt auf den letzten Rest deiner Würde.",
     "{user}, dein Tag ist heute kein Absturz mehr. Das ist kontrollierter Zerfall mit Ansage.",
-    "{user}, heute wirst du vom Unglück nicht begleitet. Es f?hrt dich an der Leine.",
+    "{user}, heute wirst du vom Unglück nicht begleitet. Es führt dich an der Leine.",
     "{user}, dein Fluch heute frisst dir erst die Laune, dann die Haltung und zum Schluss jeden Stolz weg.",
     "{user}, du klingst heute wie jemand, der schon verloren hat und trotzdem weiter erniedrigt wird.",
     "{user}, dein Schatten wirkt heute, als hätte selbst er keine Lust mehr, mit dir gesehen zu werden.",
     "{user}, heute trifft dich das Karma nicht hart. Es nimmt Anlauf.",
-    "{user}, dein Fluch heute ist rohe Demuetigung in Zeitlupe. Jeder sieht zu, keiner stoppt es.",
+    "{user}, dein Fluch heute ist rohe Demütigung in Zeitlupe. Jeder sieht zu, keiner stoppt es.",
     "{user}, sogar deine besten Ausreden sehen heute aus wie verweste Reste von Selbstachtung.",
     "{user}, dein Tag hat heute die Energie eines verschlossenen Kellers und du bist das, was darin vergessen wurde.",
-    "{user}, heute rei?t dir jeder kleine Fehler gleich ein gr??eres Loch in den Tag.",
+    "{user}, heute reißt dir jeder kleine Fehler gleich ein größeres Loch in den Tag.",
     "{user}, dein Fluch heute ist das sichere Gefühl, dass unter dir jederzeit alles wegbrechen kann.",
-    "{user}, du bist heute die Sorte Warnschild, die man zu sp?t liest und sofort bereut.",
+    "{user}, du bist heute die Sorte Warnschild, die man zu spät liest und sofort bereut.",
     "{user}, heute hängt das Scheitern an dir wie nasse Erde an einem Grabstein.",
     "{user}, dein Fluch heute ist so böse abgestimmt, dass sogar Hoffnung nur noch kurz auflacht und verschwindet.",
-    "{user}, jedes bisschen Ruhe heute ist nur die Pause, bevor dich der naechste Schlag laecherlich macht.",
+    "{user}, jedes bisschen Ruhe heute ist nur die Pause, bevor dich der nächste Schlag lächerlich macht.",
     "{user}, dein Tag wurde heute mit Absicht gegen jede Form von Gnade gebaut.",
     "{user}, du bist heute nicht einfach Opfer eines Fluchs. Du bist sein Lieblingsprojekt."
 ])
@@ -1112,10 +1112,10 @@ LOVE_COUNT_ANY_EMOJI = True
 LOVE_REMIND_1_S = 60 * 60
 LOVE_REMIND_2_S = 105 * 60
 LOVE_NICKNAMES = [
-    "schatz", "maus", "engel", "baerchen", "baerchen", "sonnenschein",
-    "liebling", "hase", "baby", "s??er", "s??e", "s??er", "s??e",
+    "schatz", "maus", "engel", "bärchen", "bärchen", "sonnenschein",
+    "liebling", "hase", "baby", "süßer", "süße", "süßer", "süße",
     "herz", "prinz", "prinzessin", "zucker", "schnucki",
-    "sternchen", "traeumchen", "keks", "zuckerstueck", "goldstueck",
+    "sternchen", "träumchen", "keks", "zuckerstück", "goldstück",
     "perle", "liebchen", "schnecke", "knutschkugel", "honig"
 ]
 LOVE_EMOJIS = ["\U0001f495", "\U0001f496", "\U0001f60d", "\U0001f970", "\U0001f339", "\U0001f618", "\U0001f48b", "\u2764\ufe0f", "\U0001f498", "\U0001f338", "\U0001f49e", "\u2728"]
@@ -1158,7 +1158,7 @@ LOVE_TEXT_RULES = LoveTextRules(
 )
 LOVE_MASTER_LINES = [
     "Der Master muss nichts beweisen. Andere beweisen sich vor ihm. +5000 Coins.",
-    "Der Master wird nicht gepr?ft. Der Master pr?ft. Belohnung: +5000 Coins.",
+    "Der Master wird nicht geprüft. Der Master prüft. Belohnung: +5000 Coins.",
     "Für den Master gelten keine Aufgaben. Er setzt die Regeln. +5000 Coins.",
     "Der Master schuldet niemandem einen Liebesbeweis. Er ist bereits das Gesetz. +5000 Coins.",
     "Kein Test für den Master. Er kann alles, er ist alles, und nimmt +5000 Coins mit.",
@@ -2390,11 +2390,11 @@ async def do_care(update, context, action_key, tame_lines):
         pet.username = None
 
     if pet.id == owner.id:
-        await msg.reply_text("Selbstpflege ist wichtig, aber z?hlt hier nicht.")
+        await msg.reply_text("Selbstpflege ist wichtig, aber zählt hier nicht.")
         return
 
     async with aiosqlite.connect(DB) as db:
-        # Besitz pr?fen
+        # Besitz prüfen
         async with db.execute("SELECT owner_id FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet.id)) as cur:
             row = await cur.fetchone()
         if not row or row[0] != owner.id:
@@ -2963,7 +2963,7 @@ async def cmd_verfluchen(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not tid:
             uid, uname = await pick_random_player_excluding(chat_id, exclude_ids={update.effective_user.id})
             if not uid:
-                return await update.effective_message.reply_text("Keine Opfer verf?gbar. Postet mehr, dann kann ich euch schlimmer behandeln.")
+                return await update.effective_message.reply_text("Keine Opfer verfügbar. Postet mehr, dann kann ich euch schlimmer behandeln.")
             tid, tname = uid, uname
 
         shield_left = await get_cd_left(db, chat_id, tid, CURSE_SHIELD_KEY)
@@ -2995,7 +2995,7 @@ async def cmd_boxen(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Coins, Bindung, Fluchschild oder ein brutaler Titel.\n"
         "Kaufen: <code>/buyboxkeller</code> oder <code>/buybox keller</code>\n\n"
         f"2. Abyss-Kiste - <b>{BOX_ABYSS_COST}</b> Coins\n"
-        "Gr??ere Drops, gr??ere Treffer, gr??ere Schmerzen.\n"
+        "Größere Drops, größere Treffer, größere Schmerzen.\n"
         "Kaufen: <code>/buyboxabyss</code> oder <code>/buybox abyss</code>\n\n"
         "Wer zu lang auf seinen Coins sitzt, fault mit ihnen zusammen."
     )
@@ -3273,7 +3273,7 @@ async def cmd_hass(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if not uid:
             return await update.effective_message.reply_text(
-                "Keine weiteren Opfer verf?gbar. Alle anderen leiden bereits."
+                "Keine weiteren Opfer verfügbar. Alle anderen leiden bereits."
             )
 
         expires = await _start_hass(
@@ -3294,7 +3294,7 @@ async def cmd_hass(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.effective_message.reply_text(
             f"🖤 <b>/hass</b> scharfgestellt.\n"
-            f"Ausgel?st von: {caller_tag}\n"
+            f"Ausgelöst von: {caller_tag}\n"
             f"Ziel: {target}\n"
             f"Challenge: <b>{HASS_REQUIRED}x /selbst</b> in 2 Stunden\n"
             f"Deadline: <b>{until}</b>\n"
@@ -3324,7 +3324,7 @@ async def cmd_selbst(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with aiosqlite.connect(DB) as db:
         row = await _get_hass_for_user(db, chat_id, uid)
         if not row or int(row[8]) != 1:
-            return await update.effective_message.reply_text("Noe. /selbst z?hlt nur, wenn du gerade Hass-Status hast.")
+            return await update.effective_message.reply_text("Nö. /selbst zählt nur, wenn du gerade Hass-Status hast.")
 
         _, uname, _, _, expires_ts, required, done, penalty, active = row
         now = int(time.time())
@@ -3341,7 +3341,7 @@ async def cmd_selbst(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
             await _finish_hass(db, chat_id, uid)
             await db.commit()
-            return await update.effective_message.reply_text("Zu sp?t, aber du warst eh fertig. Challenge geschlossen.")
+            return await update.effective_message.reply_text("Zu spät, aber du warst eh fertig. Challenge geschlossen.")
 
         # In Zeit: zählen
         inc = await _increment_selbst(db, chat_id, uid)
@@ -3581,7 +3581,7 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         active_ids = await _get_active_love_user_ids(db, chat_id)
         if uid in active_ids:
             return await msg.reply_text(
-                "Für diese Person l?uft bereits eine Liebes-Bombe."
+                "Für diese Person läuft bereits eine Liebes-Bombe."
             )
 
         expires = await _start_love(db, chat_id, int(uid), uname, caller.id)
@@ -3593,13 +3593,13 @@ async def cmd_liebes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(
         (
             "💣 <b>Liebes-Bombe detoniert.</b>\n"
-            f"Ausgel?st von: {caller_tag}\n"
+            f"Ausgelöst von: {caller_tag}\n"
             f"Ziel: {target}\n"
             f"Zeit: <b>{LOVE_CHALLENGE_HOURS}h</b> (Deadline: <b>{until}</b>)\n\n"
             "Jetzt gibt's kein Rumgeeier mehr: Du lieferst einen übertriebenen Liebesbrief in den Chat oder gehst komplett unter.\n"
-            f"- Mindestens {LOVE_MIN_WORDS} W?rter\n"
+            f"- Mindestens {LOVE_MIN_WORDS} Wörter\n"
             f"- Mindestens {LOVE_MIN_EMOJIS} Emojis (beliebig)\n"
-            f"- Mindestens {LOVE_MIN_SENTENCES} Satz/Saetze (Satzzeichen optional)\n\n"
+            f"- Mindestens {LOVE_MIN_SENTENCES} Sätze (Satzzeichen optional)\n\n"
             "Der Bot wird dich zwischendurch jagen, falls du wieder nur dumm rumsitzt.\n"
             f"Ziehst du's durch: <b>+{LOVE_REWARD} Coins</b> + ein Monat lang 'mein Liebesgeständnis'.\n"
             f"Verkackst du's: <b>-{LOVE_PENALTY_PERCENT}% deiner Coins</b> und der Chat sieht, was für ein peinlicher Totalausfall du bist."
@@ -3620,7 +3620,7 @@ async def cmd_resetsuperwords(update: Update, context: ContextTypes.DEFAULT_TYPE
         await db.commit()
 
     await update.effective_message.reply_text(
-        f"Superwort-Cooldowns wurden zurückgesetzt. {cleared} aktuell gesperrte Superworte sind sofort wieder verf?gbar."
+        f"Superwort-Cooldowns wurden zurückgesetzt. {cleared} aktuell gesperrte Superworte sind sofort wieder verfügbar."
     )
 
 
@@ -3650,7 +3650,7 @@ async def cmd_superwordsstatus(update: Update, context: ContextTypes.DEFAULT_TYP
     await update.effective_message.reply_text(
         (
             "✨ <b>Superwort-Status</b>\n"
-            f"Geladene Eintr?ge: <b>{loaded_total}</b>\n"
+            f"Geladene Einträge: <b>{loaded_total}</b>\n"
             f"Gesamt (eindeutige Superworte): <b>{unique_total}</b>\n"
             f"Aktuell gefundene Worte: <b>{found}</b>\n"
             f"Verbleibende Worte: <b>{remaining}</b>"
@@ -4151,7 +4151,7 @@ async def register_commands(application: Application):
         BotCommand("treat", "Schenke Coins an einen User"),
         BotCommand("leckerli", "Schenke Coins an einen User"),
         BotCommand("steal", "Versuche Coins zu klauen (45% Basis, Risiko je Intensität)"),
-        BotCommand("fehde", "Zeigt aktive Rivalitaeten und Stufen"),
+        BotCommand("fehde", "Zeigt aktive Blutrache und Stufen"),
         BotCommand("buy", "Kaufe einen anderen User"),
         BotCommand("risk", "Klauversuch mit Coin-Risiko für mehr Chance"),
         BotCommand("release", "Gib dein Haustier frei"),
@@ -5797,7 +5797,7 @@ async def cmd_sendalluser(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not rows:
         await context.bot.send_message(
             chat_id=admin_chat_id,
-            text="<b>players daten</b>\nKeine Eintr?ge vorhanden.",
+            text="<b>Players-Daten</b>\nKeine Einträge vorhanden.",
             parse_mode=ParseMode.HTML
         )
         return await update.effective_message.reply_text("Players-Tabelle per DM geschickt.")

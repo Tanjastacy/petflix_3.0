@@ -8,7 +8,7 @@
   "steal_empty": "{target} ist leergeräumt bis auf die Knochen. Da gibt's nichts mehr zu holen außer Restscham.",
   "steal_success": "{thief} schlägt bei {target} ein, reißt brutal {stolen} Coins an sich und lässt nur Verwüstung und Demütigung liegen.",
   "steal_chance_line": "Chance: <b>{chance}</b> | Intensität: <b>{intensity}</b> | Beutefaktor: <b>x{multiplier}</b>",
-  "steal_feud_bonus": "Der Hass hat die Leine übernommen: <b>{stage}</b> ist aktiv. (+{chance_bonus}% Erfolg, +{loot_bonus}% Beute).",
+  "steal_feud_bonus": "Die Blutrache ist entfesselt: <b>{stage}</b> ist aktiv. (+{chance_bonus}% Erfolg, +{loot_bonus}% Beute).",
   "steal_revenge_used": "Rache frisst den Rest Verstand. Der Gegenschlag bekommt +{chance_bonus}% Erfolg.",
   "steal_defense_bonus": "Defensivbonus von {target}: <b>-{defense_bonus}%</b> Erfolg.",
   "feud_heat_update": "Die Blutrache fault nicht ab, sie wird giftiger. Heat jetzt bei <b>{heat}</b> ({stage}).",
