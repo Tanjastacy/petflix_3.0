@@ -52,7 +52,7 @@ def create_admin_coin_commands(deps: dict):
     register_feud_clash = deps.get("register_feud_clash", _default_register_feud_clash)
 
     def _cap_success_chance(chance: float, user_id: int) -> float:
-        return min(0.97 if user_id == ADMIN_ID else 0.90, max(0.01, chance))
+        return min(0.90, max(0.01, chance))
 
     def _steal_texts() -> dict:
         data = load_json_dict(STEAL_TEXTS_PATH)
@@ -104,12 +104,11 @@ def create_admin_coin_commands(deps: dict):
         base_chance: float,
         feud_bonus: float,
         revenge_bonus: float,
-        admin_bonus: float,
         intensity_mod: float,
         defense_bonus: float,
         user_id: int,
     ) -> float:
-        raw = base_chance + feud_bonus + revenge_bonus + admin_bonus + intensity_mod - defense_bonus
+        raw = base_chance + feud_bonus + revenge_bonus + intensity_mod - defense_bonus
         return _cap_success_chance(raw, user_id)
 
     def calculate_penalty(own_coins: int, penalty_ratio: float) -> int:
@@ -284,9 +283,9 @@ def create_admin_coin_commands(deps: dict):
         ) as cur:
             rows = await cur.fetchall()
         if not rows:
-            return _pick_text(text_cfg, "feud_overview_empty", "Keine aktive Fehde. Klaut euch erst mal warm.")
+            return _pick_text(text_cfg, "feud_overview_empty", "Keine aktive Blutrache. Klaut euch erst mal warm.")
 
-        lines = [_pick_text(text_cfg, "feud_overview_header", "<b>Aktive Fehden</b>")]
+        lines = [_pick_text(text_cfg, "feud_overview_header", "<b>Aktive Blutrache</b>")]
         for user_a, user_b, heat, clash_count, success_count, _last_attack_ts, active_until_ts in rows:
             async with db.execute(
                 "SELECT username FROM players WHERE chat_id=? AND user_id=?",
@@ -358,7 +357,7 @@ def create_admin_coin_commands(deps: dict):
                     _pick_text(
                         text_cfg,
                         "feud_report_inactive",
-                        "<b>Fehdebericht</b>\n{viewer} vs {target}\nNoch keine aktive Fehde.\nHeat: <b>{heat}</b> | Clashes: <b>{clashes}</b>"
+                        "<b>Blutrachebericht</b>\n{viewer} vs {target}\nNoch keine aktive Blutrache.\nHeat: <b>{heat}</b> | Clashes: <b>{clashes}</b>"
                     ),
                     viewer=viewer_tag,
                     target=target_tag,
@@ -383,7 +382,7 @@ def create_admin_coin_commands(deps: dict):
                 _pick_text(
                     text_cfg,
                     "feud_report_active",
-                    "<b>Fehdebericht</b>\n{viewer} vs {target}\nStufe: <b>{stage}</b>\nHeat: <b>{heat}</b> | Clashes: <b>{clashes}</b> | Erfolgreiche Klaue: <b>{wins}</b>\nBonus gegeneinander: +{chance_bonus}% Erfolg | +{loot_bonus}% Beute\nRachefenster: {revenge}",
+                    "<b>Blutrachebericht</b>\n{viewer} vs {target}\nStufe: <b>{stage}</b>\nHeat: <b>{heat}</b> | Clashes: <b>{clashes}</b> | Erfolgreiche Diebstähle: <b>{wins}</b>\nBonus gegeneinander: +{chance_bonus}% Erfolg | +{loot_bonus}% Beute\nRachefenster: {revenge}",
                 ),
                 viewer=viewer_tag,
                 target=target_tag,
@@ -449,13 +448,11 @@ def create_admin_coin_commands(deps: dict):
             feud_bonus = FEUD_STAGE_BONUS.get(feud_stage, FEUD_STAGE_BONUS[0])
             revenge_left = await get_cd_left(db, chat_id, thief.id, feud_revenge_key(tid))
             revenge_bonus = FEUD_REVENGE_CHANCE_BONUS if revenge_left > 0 else 0.0
-            admin_bonus = 0.45 if thief.id == ADMIN_ID else 0.0
             defense_bonus = min(0.12, max(0, int(feud_before.get("success_count") or 0)) * 0.03)
             success_chance = calculate_chance(
                 STEAL_SUCCESS_CHANCE,
                 float(feud_bonus["chance"]),
                 revenge_bonus,
-                admin_bonus,
                 float(intensity["chance_mod"]),
                 defense_bonus,
                 thief.id,
@@ -568,7 +565,7 @@ def create_admin_coin_commands(deps: dict):
                 _pick_text(
                     text_cfg,
                     "steal_feud_bonus",
-                    "Fehdenbonus aktiv: <b>{stage}</b> (+{chance_bonus}% Erfolg, +{loot_bonus}% Beute)."
+                    "Blutrachebonus aktiv: <b>{stage}</b> (+{chance_bonus}% Erfolg, +{loot_bonus}% Beute)."
                 ),
                 stage=escape(feud_stage_label(feud_stage), quote=False),
                 chance_bonus=int(feud_bonus["chance"] * 100),
@@ -602,7 +599,7 @@ def create_admin_coin_commands(deps: dict):
                 _pick_text(
                     text_cfg,
                     "feud_heat_update",
-                    "Fehde-Heat jetzt bei <b>{heat}</b> ({stage})."
+                    "Blutrache-Heat jetzt bei <b>{heat}</b> ({stage})."
                 ),
                 heat=feud_after["heat"],
                 stage=escape(feud_stage_label(feud_after["stage"]), quote=False),

@@ -306,7 +306,7 @@ async def test_steal_blocks_when_cooldown_active(admin_deps_factory, make_update
 
 
 @pytest.mark.asyncio
-async def test_steal_success_transfers_requested_amount(admin_deps_factory, make_update, db_path):
+async def test_steal_success_applies_bold_multiplier_for_large_heist(admin_deps_factory, make_update, db_path):
     commands = create_admin_coin_commands(admin_deps_factory(random_values=[0.10]))
     await set_player_coins(db_path, 111, "thief", 20)
     await set_player_coins(db_path, 222, "target", 70)
@@ -316,9 +316,9 @@ async def test_steal_success_transfers_requested_amount(admin_deps_factory, make
 
     await commands["cmd_steal"](update, context)
 
-    assert await get_player_coins(db_path, 111) == 70
-    assert await get_player_coins(db_path, 222) == 20
-    assert "klaut 50 Coins" in update.effective_message.replies[-1]["text"]
+    assert await get_player_coins(db_path, 111) == 88
+    assert await get_player_coins(db_path, 222) == 2
+    assert "klaut 68 Coins" in update.effective_message.replies[-1]["text"]
 
 
 @pytest.mark.asyncio
@@ -338,7 +338,7 @@ async def test_steal_success_only_takes_available_balance(admin_deps_factory, ma
 
 
 @pytest.mark.asyncio
-async def test_admin_steal_uses_hidden_90_percent_success(admin_deps_factory, make_update, db_path):
+async def test_admin_steal_no_longer_gets_hidden_success_bonus(admin_deps_factory, make_update, db_path):
     commands = create_admin_coin_commands(admin_deps_factory(random_values=[0.89]))
     await set_player_coins(db_path, TEST_ADMIN_ID, "owner", 20)
     await set_player_coins(db_path, 222, "target", 70)
@@ -348,9 +348,10 @@ async def test_admin_steal_uses_hidden_90_percent_success(admin_deps_factory, ma
 
     await commands["cmd_steal"](update, context)
 
-    assert await get_player_coins(db_path, TEST_ADMIN_ID) == 70
-    assert await get_player_coins(db_path, 222) == 20
-    assert "klaut 50 Coins" in update.effective_message.replies[-1]["text"]
+    assert await get_player_coins(db_path, TEST_ADMIN_ID) == 13
+    assert await get_player_coins(db_path, 222) == 70
+    assert "War wohl nix." in update.effective_message.replies[-1]["text"]
+    assert "(-7 / 35%)" in update.effective_message.replies[-1]["text"]
 
 
 @pytest.mark.asyncio
