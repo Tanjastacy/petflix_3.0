@@ -21,6 +21,7 @@ from runtime_features import create_runtime_features
 from ownership_features import create_ownership_features
 from economy_commands import create_economy_commands
 from jobs_watchdogs import create_jobs_watchdogs
+from petflix_cooldowns import get_cd_left, set_cd
 from petflix_db import db_init
 from petflix_texts import (
     DOM_FEMALE_DENY_LINES,
@@ -1227,26 +1228,6 @@ async def ensure_player(db, chat_id: int, user_id: int, username: str):
         """,
         (chat_id, user_id, username or "", START_COINS, USER_BASE_PRICE),
     )
-
-async def set_cd(db, chat_id: int, user_id: int, key: str, seconds: int):
-    ts = int(time.time()) + seconds
-    await db.execute(
-        """
-        INSERT INTO cooldowns(chat_id,user_id,key,ts) VALUES(?,?,?,?)
-        ON CONFLICT(chat_id,user_id,key) DO UPDATE SET ts=excluded.ts
-        """,
-        (chat_id, user_id, key, ts),
-    )
-
-async def get_cd_left(db, chat_id: int, user_id: int, key: str) -> int:
-    async with db.execute(
-        "SELECT ts FROM cooldowns WHERE chat_id=? AND user_id=? AND key=?",
-        (chat_id, user_id, key)
-    ) as cur:
-        row = await cur.fetchone()
-        if not row:
-            return 0
-        return max(0, row[0] - int(time.time()))
 
 async def claim_superword_once(db, chat_id: int, word: str, user_id: int) -> bool:
     now = int(time.time())
