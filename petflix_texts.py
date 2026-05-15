@@ -1656,3 +1656,110 @@ CARE_FALLBACK_TEXTS = {
             "{owner} lacht: 'Gutes Mädchen, nimm und wild – deine Belohnung ist mein Geschenk, verpackt in Spott, scharf und fein, du kleines, geiles Bild.' {pet} lachend schmelzend. 😈 Pflege {n}/{CARES_PER_DAY}."
     ],
 }
+
+CARE_COOL_TEXTS = {
+    "pet": [
+        "{owner} streicht {pet} ueber den Kopf und laesst die Hand einen Moment zu lange liegen: 'Brav. Genau diese Ruhe will ich sehen.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} krault {pet} langsam hinterm Ohr: 'Stillhalten, kleiner Schatten. Heute wird Bindung gesammelt.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "walk": [
+        "{owner} nimmt die Leine kurz und fuehrt {pet} durch den Chat: 'Schritt halten. Freiheit laeuft heute hinter mir.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} gibt ein leises Kommando und {pet} folgt sofort: 'Sauber. So sieht Kontrolle aus.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "kiss": [
+        "{owner} zieht {pet} nah heran und setzt einen Kuss wie ein Siegel: 'Markiert. Mehr musst du gerade nicht wissen.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} laesst den Kuss knapp vor den Lippen stoppen: 'Geduld, Pet. Vorfreude ist auch Pflege.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "dine": [
+        "{owner} hebt den Bissen und wartet auf den richtigen Blick: 'Erst Haltung, dann Belohnung.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} fuettert {pet} langsam und kontrolliert: 'Nicht gierig. Du nimmst, wenn ich es erlaube.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "massage": [
+        "{owner} loest langsam die Spannung aus {pet}s Schultern: 'Atmen. Heute gehoert sogar deine Ruhe mir.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} arbeitet sich ruhig ueber den Nacken: 'Weniger Trotz, mehr Vertrauen.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "lapdance": [
+        "{pet} bewegt sich langsam vor {owner}, jeder Takt ein kleiner Machtverlust: 'Genau so. Show mir, wem du gefallen willst.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} lehnt sich zurueck und hebt nur einen Finger: 'Nochmal. Diesmal mit weniger Stolz und mehr Feuer.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "knien": [
+        "{owner} zeigt nach unten: 'Knie. Nicht als Strafe, als Erinnerung an deinen Platz.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} sinkt vor {owner} auf die Knie und der Chat wird kurz still: 'Gute Entscheidung.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "kriechen": [
+        "{owner} gibt ein knappes Zeichen und {pet} setzt sich in Bewegung: 'Langsam. Jeder Meter zaehlt.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} kriecht naeher, waehrend {owner} nur zusieht: 'So kommt Gehorsam in Form.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "klaps": [
+        "{owner} setzt einen klaren Klaps und laechelt kalt: 'Timing stimmt. Haltung auch gleich.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} zuckt beim Klaps, bleibt aber brav stehen: 'Lernfaehig. Gefaehrlich niedlich.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "knabbern": [
+        "{owner} knabbert kurz an {pet}s Hals und markiert den Moment: 'Nur ein Hinweis. Kein Vorschlag.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} haelt still, als {owner} spielerisch zubeisst: 'Brav. Kleine Zeichen reichen manchmal.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "leine": [
+        "{owner} klickt die Leine ein und der Ton sagt alles: 'Ab jetzt wird nicht geraten, ab jetzt wird gefolgt.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} spuert die kurze Leine und sortiert sich sofort neu: 'Sehr gut. Kontrolle steht dir.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "halsband": [
+        "{owner} schliesst das Halsband mit ruhiger Hand: 'Passt. Als waere es nie anders gedacht gewesen.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} hebt das Kinn, waehrend {owner} das Halsband richtet: 'Schoen. Besitz kann elegant aussehen.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "lecken": [
+        "{owner} gibt das Zeichen und {pet} versteht sofort: 'Sauber arbeiten. Aufmerksamkeit ist dein einziger Luxus.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} folgt dem Befehl ohne Kommentar: 'Guter Dienst. Nicht reden, liefern.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "verweigern": [
+        "{owner} nimmt die Belohnung wieder weg: 'Fast. Dieses Wort wirst du heute noch hassen lernen.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} wartet auf mehr, doch {owner} laechelt nur: 'Nein ist auch eine Form von Pflege.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "kaefig": [
+        "{owner} schliesst die Tuer zum Kaefig: 'Nicht eng. Fokussiert.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} sitzt im Kaefig und beobachtet {owner}: 'Ruhe lernen. Blick halten. Nicht jammern.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "schande": [
+        "{owner} nennt {pet}s Schande leise genug fuer Gift, laut genug fuer Wirkung: 'Merken. Nicht wiederholen.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} senkt den Blick, waehrend {owner} die Schande sauber platziert: 'Das sitzt.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "erregen": [
+        "{owner} heizt {pet} mit einem Blick an und stoppt genau im richtigen Moment: 'Kontrolle ist, wenn du wartest.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} wird unruhig, {owner} bleibt ruhig: 'Feuer an. Ausweg aus.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "betteln": [
+        "{owner} hebt eine Augenbraue: 'Besser. Aber noch nicht schoen genug.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} bettelt leiser, genauer, brauchbarer: 'Da ist es. Dieses kleine bisschen Wahrheit.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "stumm": [
+        "{owner} legt einen Finger an {pet}s Lippen: 'Stille. Heute spricht dein Gehorsam.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} schluckt die Antwort runter und bleibt still: 'Endlich ein Satz, der funktioniert.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "bestrafen": [
+        "{owner} setzt die Strafe ohne Drama: 'Klar, kurz, verdient.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} nimmt die Strafe an, waehrend {owner} zaehlt: 'So wird aus Chaos wieder Form.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "loben": [
+        "{owner} nickt knapp: 'Gut gemacht. Mehr Lob gibt es, wenn du es nochmal beweist.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} bekommt ein seltenes Lob und versucht, nicht zu sehr zu strahlen: 'Spar dir das Grinsen. Aber ja, brav.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "dienen": [
+        "{owner} gibt eine kleine Aufgabe und {pet} erledigt sie sofort: 'Dienstbar, schnell, brauchbar. Weiter so.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} dient ohne Umwege, {owner} kontrolliert jedes Detail: 'Nicht perfekt. Aber interessant nah dran.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "demuetigen": [
+        "{owner} demuetigt {pet} mit einem Satz, der weich klingt und hart landet: 'Genau da gehoerst du hin.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} wird rot, {owner} bleibt eiskalt: 'Scham ist nur Wahrheit mit Beleuchtung.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "melken": [
+        "{owner} setzt den Rhythmus und laesst {pet} nicht ausweichen: 'Ruhig. Ich bestimme Tempo und Ende.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} verliert den Takt, {owner} holt ihn zurueck: 'Nein. Du folgst meinem Rhythmus.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "ohrfeige": [
+        "{owner} gibt eine klare Ohrfeige, nicht laut, aber praezise: 'Wach. Jetzt hoerst du wieder zu.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} haelt nach der Ohrfeige den Blick: 'Besser. Genau diese Aufmerksamkeit wollte ich.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "belohnen": [
+        "{owner} gibt {pet} eine kleine Belohnung und nimmt sich Zeit beim Blick: 'Verdient. Nicht gewoehnen.' Pflege {n}/{CARES_PER_DAY}.",
+        "{pet} bekommt das Leckerli, als waere es ein Orden: 'Brav genug fuer heute. Vielleicht.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+}

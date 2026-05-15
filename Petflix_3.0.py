@@ -63,6 +63,7 @@ from petflix_texts import (
     _TREASURE_METHODS,
     _TREASURE_STORIES,
     CARE_FALLBACK_TEXTS,
+    CARE_COOL_TEXTS,
 )
 
 from telegram import Update, BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
@@ -1998,7 +1999,9 @@ async def do_care(update, context, action_key, tame_lines):
         await set_cd(db, chat_id, owner.id, cd_key, CARE_COOLDOWN_S)
         await db.commit()
 
-    lines = get_cached_json(context, "care_responses", CARE_RESPONSES_PATH).get(action_key) or tame_lines
+    configured_lines = get_cached_json(context, "care_responses", CARE_RESPONSES_PATH).get(action_key) or tame_lines
+    cool_lines = CARE_COOL_TEXTS.get(action_key) or []
+    lines = cool_lines + configured_lines
     text = random.choice(lines)
     text = text.replace("{CARES_PER_DAY}", str(CARES_PER_DAY)).replace("{pets}", "{pet}")
     text = text.format(owner=nice_name_html(owner), pet=nice_name_html(pet), n=done)
@@ -3566,35 +3569,11 @@ async def register_commands(application: Application):
         BotCommand("buyboxabyss", "Kauft direkt die Abyss-Kiste"),
 
         # Pflege & Fun
-        BotCommand("pet", "Streicheln"),
-        BotCommand("walk", "Spazieren gehen"),
-        BotCommand("kiss", "Küssen"),
-        BotCommand("dine", "Dinner servieren"),
-        BotCommand("massage", "Massage geben"),
-        BotCommand("lapdance", "Lapdance"),
+        *[
+            BotCommand(command, description)
+            for command, description in iter_visible_care_commands()
+        ],
         BotCommand("dom", "Antwort auf Frauen mit Dom-Satz"),
-
-        # Skurril / BDSM
-        BotCommand("knien", "Auf die Knie"),
-        BotCommand("kriechen", "Auf allen Vieren kriechen"),
-        BotCommand("klaps", "5 symbolische Hiebe"),
-        BotCommand("knabbern", "Mit den Zähnen spielen"),
-        BotCommand("leine", "Virtuelle Leine anlegen"),
-        BotCommand("halsband", "Halsband anlegen"),
-        BotCommand("lecken", "Dienst: lecken (teuer)"),
-        BotCommand("verweigern", "Belohnung verweigern"),
-        BotCommand("kaefig", "Ab in den Käfig"),
-        BotCommand("schande", "Schande + Username"),
-        BotCommand("erregen", "Anheizen bis zur Verzweiflung"),
-        BotCommand("betteln", "Flehen & Winseln"),
-        BotCommand("stumm", "Schweigepflicht (Posts kosten)"),
-        BotCommand("bestrafen", "Strafe aus der Bot-Hölle"),
-        BotCommand("loben", "Kleines Lob verteilen"),
-        BotCommand("dienen", "Dienen (z. B. Fußmassage)"),
-        BotCommand("demuetigen", "Peinlichen Satz posten"),
-        BotCommand("melken", "Anzüglich melken"),
-        BotCommand("ohrfeige", "Virtuelle Ohrfeige"),
-        BotCommand("belohnen", "Leckerli geben"),
 
         # Special
         BotCommand("treasure", "Tägliche Schatzsuche starten"),
@@ -3616,113 +3595,58 @@ async def register_commands(application: Application):
     await application.bot.set_my_commands(commands)
 
 # =========================
-# Pflege-/Fun-Commands (benötigen do_care)
+# Pflege-/Fun-Commands (benoetigen do_care)
 # =========================
 
-async def cmd_pet(update, context):
-    tame = CARE_FALLBACK_TEXTS["pet"]
-    await do_care(update, context, "pet", tame)
+CARE_COMMANDS = {
+    "pet": {"commands": ("pet",), "description": "Pet streicheln"},
+    "walk": {"commands": ("spaziergang", "walk"), "description": "An der Leine ausfuehren"},
+    "kiss": {"commands": ("kuessen", "kiss"), "description": "Kuss verteilen"},
+    "dine": {"commands": ("fuettern", "dine"), "description": "Pet fuettern"},
+    "massage": {"commands": ("massage",), "description": "Verspannung loesen"},
+    "lapdance": {"commands": ("tanzen", "lapdance"), "description": "Schossshow starten"},
+    "knien": {"commands": ("knien",), "description": "Auf die Knie schicken"},
+    "kriechen": {"commands": ("kriechen",), "description": "Kriechgang befehlen"},
+    "klaps": {"commands": ("klaps",), "description": "Klaps verteilen"},
+    "knabbern": {"commands": ("knabbern",), "description": "Spielerisch markieren"},
+    "leine": {"commands": ("leine",), "description": "Leine anlegen"},
+    "halsband": {"commands": ("halsband",), "description": "Halsband schliessen"},
+    "lecken": {"commands": ("lecken",), "description": "Dienst einfordern"},
+    "verweigern": {"commands": ("verweigern",), "description": "Belohnung entziehen"},
+    "kaefig": {"commands": ("kaefig",), "description": "Ab in den Kaefig"},
+    "schande": {"commands": ("schande",), "description": "Schande aussprechen"},
+    "erregen": {"commands": ("erregen",), "description": "Anheizen"},
+    "betteln": {"commands": ("betteln",), "description": "Betteln lassen"},
+    "stumm": {"commands": ("stumm",), "description": "Still werden lassen"},
+    "bestrafen": {"commands": ("bestrafen",), "description": "Strafe setzen"},
+    "loben": {"commands": ("loben",), "description": "Lob verteilen"},
+    "dienen": {"commands": ("dienen",), "description": "Dienst abrufen"},
+    "demuetigen": {"commands": ("demuetigen",), "description": "Demut einfordern"},
+    "melken": {"commands": ("melken",), "description": "Melken"},
+    "ohrfeige": {"commands": ("ohrfeige",), "description": "Ohrfeige verteilen"},
+    "belohnen": {"commands": ("belohnen",), "description": "Leckerli geben"},
+}
 
-async def cmd_walk(update, context):
-    tame = CARE_FALLBACK_TEXTS["walk"]
-    await do_care(update, context, "walk", tame)
 
-async def cmd_kiss(update, context):
-    tame = CARE_FALLBACK_TEXTS["kiss"]
-    await do_care(update, context, "kiss", tame)
-
-async def cmd_dine(update, context):
-    tame = CARE_FALLBACK_TEXTS["dine"]
-    await do_care(update, context, "dine", tame)
-
-async def cmd_massage(update, context):
-    tame = CARE_FALLBACK_TEXTS["massage"]
-    await do_care(update, context, "massage", tame)
-
-async def cmd_lapdance(update, context):
-    tame = CARE_FALLBACK_TEXTS["lapdance"]
-    await do_care(update, context, "lapdance", tame)
+def iter_visible_care_commands():
+    for cfg in CARE_COMMANDS.values():
+        yield cfg["commands"][0], cfg["description"]
 
 
-async def cmd_knien(update, context):
-    tame = CARE_FALLBACK_TEXTS["knien"]
-    await do_care(update, context, "knien", tame)
+def _make_care_handler(action_key: str):
+    async def care_handler(update, context):
+        tame = CARE_FALLBACK_TEXTS[action_key]
+        await do_care(update, context, action_key, tame)
 
-async def cmd_kriechen(update, context):
-    tame = CARE_FALLBACK_TEXTS["kriechen"]
-    await do_care(update, context, "kriechen", tame)
+    care_handler.__name__ = f"cmd_care_{action_key}"
+    return care_handler
 
-async def cmd_klaps(update, context):
-    tame = CARE_FALLBACK_TEXTS["klaps"]
-    await do_care(update, context, "klaps", tame)
 
-async def cmd_knabbern(update, context):
-    tame = CARE_FALLBACK_TEXTS["knabbern"]
-    await do_care(update, context, "knabbern", tame)
-
-async def cmd_leine(update, context):
-    tame = CARE_FALLBACK_TEXTS["leine"]
-    await do_care(update, context, "leine", tame)
-
-async def cmd_halsband(update, context):
-    tame = CARE_FALLBACK_TEXTS["halsband"]
-    await do_care(update, context, "halsband", tame)
-
-async def cmd_lecken(update, context):
-    tame = CARE_FALLBACK_TEXTS["lecken"]
-    await do_care(update, context, "lecken", tame)
-
-async def cmd_verweigern(update, context):
-    tame = CARE_FALLBACK_TEXTS["verweigern"]
-    await do_care(update, context, "verweigern", tame)
-
-async def cmd_kaefig(update, context):
-    tame = CARE_FALLBACK_TEXTS["kaefig"]
-    await do_care(update, context, "kaefig", tame)
-
-async def cmd_schande(update, context):
-    tame = CARE_FALLBACK_TEXTS["schande"]
-    await do_care(update, context, "schande", tame)
-
-async def cmd_erregen(update, context):
-    tame = CARE_FALLBACK_TEXTS["erregen"]
-    await do_care(update, context, "erregen", tame)
-
-async def cmd_betteln(update, context):
-    tame = CARE_FALLBACK_TEXTS["betteln"]
-    await do_care(update, context, "betteln", tame)
-
-async def cmd_stumm(update, context):
-    tame = CARE_FALLBACK_TEXTS["stumm"]
-    await do_care(update, context, "stumm", tame)
-
-async def cmd_bestrafen(update, context):
-    tame = CARE_FALLBACK_TEXTS["bestrafen"]
-    await do_care(update, context, "bestrafen", tame)
-
-async def cmd_loben(update, context):
-    tame = CARE_FALLBACK_TEXTS["loben"]
-    await do_care(update, context, "loben", tame)
-
-async def cmd_dienen(update, context):
-    tame = CARE_FALLBACK_TEXTS["dienen"]
-    await do_care(update, context, "dienen", tame)
-
-async def cmd_demuetigen(update, context):
-    tame = CARE_FALLBACK_TEXTS["demuetigen"]
-    await do_care(update, context, "demuetigen", tame)
-
-async def cmd_melken(update, context):
-    tame = CARE_FALLBACK_TEXTS["melken"]
-    await do_care(update, context, "melken", tame)
-
-async def cmd_ohrfeige(update, context):
-    tame = CARE_FALLBACK_TEXTS["ohrfeige"]
-    await do_care(update, context, "ohrfeige", tame)
-
-async def cmd_belohnen(update, context):
-    tame = CARE_FALLBACK_TEXTS["belohnen"]
-    await do_care(update, context, "belohnen", tame)
+def register_care_handlers(app: Application):
+    for action_key, cfg in CARE_COMMANDS.items():
+        app.add_handler(
+            CommandHandler(list(cfg["commands"]), _make_care_handler(action_key), filters=CHAT_FILTER)
+        )
 
 # =========================
 # Moralsteuer Commands
@@ -4457,35 +4381,8 @@ def main():
     app.add_handler(CommandHandler("restorebackup", cmd_restorebackup, filters=CHAT_FILTER))
 
     # Pflege-/Fun-Commands
-    app.add_handler(CommandHandler("pet",      cmd_pet,      filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("walk",     cmd_walk,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("kiss",     cmd_kiss,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dine",     cmd_dine,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("massage",  cmd_massage,  filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("lapdance", cmd_lapdance, filters=CHAT_FILTER))
+    register_care_handlers(app)
     app.add_handler(CommandHandler("dom",      cmd_dom,      filters=CHAT_FILTER))
-
-    # Skurril/BDSM
-    app.add_handler(CommandHandler("knien",      cmd_knien,      filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("kriechen",   cmd_kriechen,   filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("klaps",      cmd_klaps,      filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("knabbern",   cmd_knabbern,   filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("leine",      cmd_leine,      filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("halsband",   cmd_halsband,   filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("lecken",     cmd_lecken,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("verweigern", cmd_verweigern, filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("kaefig",     cmd_kaefig,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("schande",    cmd_schande,    filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("erregen",    cmd_erregen,    filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("betteln",    cmd_betteln,    filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("stumm",      cmd_stumm,      filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("bestrafen",  cmd_bestrafen,  filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("loben",      cmd_loben,      filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("dienen",     cmd_dienen,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("demuetigen", cmd_demuetigen, filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("melken",     cmd_melken,     filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("ohrfeige",   cmd_ohrfeige,   filters=CHAT_FILTER))
-    app.add_handler(CommandHandler("belohnen",   cmd_belohnen,   filters=CHAT_FILTER))
 
     # ADMIN: Coins steuern (die, die dir gefehlt haben)
     app.add_handler(CommandHandler("addcoins",   cmd_addcoins,   filters=CHAT_FILTER))
