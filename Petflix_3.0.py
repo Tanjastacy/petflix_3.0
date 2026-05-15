@@ -23,6 +23,13 @@ from economy_commands import create_economy_commands
 from jobs_watchdogs import create_jobs_watchdogs
 from petflix_cooldowns import get_cd_left, set_cd
 from petflix_db import db_init
+from petflix_players import (
+    ensure_player as _ensure_player_base,
+    ensure_player_entry as _ensure_player_entry_base,
+    get_coins as _get_coins_base,
+    get_user_price as _get_user_price_base,
+    set_user_price,
+)
 from petflix_texts import (
     DOM_FEMALE_DENY_LINES,
     ADMIN_MORAL_TAX_REPLIES,
@@ -1204,30 +1211,12 @@ def fullcare_evolution_title(fullcare_days: int) -> str:
 def is_group(update: Update) -> bool:
     return update.effective_chat and update.effective_chat.type in {ChatType.GROUP, ChatType.SUPERGROUP}
 
-async def get_user_price(db, chat_id: int, user_id: int) -> int:
-    async with db.execute(
-        "SELECT price FROM players WHERE chat_id=? AND user_id=?",
-        (chat_id, user_id)
-    ) as cur:
-        row = await cur.fetchone()
-    return row[0] if row and row[0] is not None else USER_BASE_PRICE
-
-async def set_user_price(db, chat_id: int, user_id: int, price: int):
-    await db.execute("UPDATE players SET price=? WHERE chat_id=? AND user_id=?", (price, chat_id, user_id))
-
 async def ensure_player(db, chat_id: int, user_id: int, username: str):
-    await db.execute(
-        """
-        INSERT INTO players(chat_id, user_id, username, coins, price)
-        VALUES(?,?,?,?,?)
-        ON CONFLICT(chat_id, user_id) DO UPDATE SET
-          username=CASE
-            WHEN TRIM(COALESCE(excluded.username, '')) <> '' THEN excluded.username
-            ELSE players.username
-          END
-        """,
-        (chat_id, user_id, username or "", START_COINS, USER_BASE_PRICE),
-    )
+    await _ensure_player_base(db, chat_id, user_id, username, START_COINS, USER_BASE_PRICE)
+
+
+async def get_user_price(db, chat_id: int, user_id: int) -> int:
+    return await _get_user_price_base(db, chat_id, user_id, USER_BASE_PRICE)
 
 async def claim_superword_once(db, chat_id: int, word: str, user_id: int) -> bool:
     now = int(time.time())
@@ -2723,12 +2712,10 @@ async def _resolve_target(db, update: Update, context: ContextTypes.DEFAULT_TYPE
     return None, None
 
 async def _ensure_player_entry(db, chat_id: int, user_id: int, username: str | None):
-    await ensure_player(db, chat_id, user_id, username or "")
+    await _ensure_player_entry_base(db, chat_id, user_id, username, START_COINS, USER_BASE_PRICE)
 
 async def _get_coins(db, chat_id: int, user_id: int) -> int:
-    async with db.execute("SELECT coins FROM players WHERE chat_id=? AND user_id=?", (chat_id, user_id)) as cur:
-        row = await cur.fetchone()
-    return int(row[0]) if row else 0
+    return await _get_coins_base(db, chat_id, user_id)
 
 def _parse_amount_from_args(context: ContextTypes.DEFAULT_TYPE) -> int | None:
     if context.args:
