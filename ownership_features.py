@@ -10,9 +10,11 @@ def create_ownership_features(deps: dict):
     get_pet_skill = deps["get_pet_skill"]
     _skill_label = deps["_skill_label"]
     pet_bond_title = deps.get("pet_bond_title", deps["pet_level_title"])
+    pet_bond_percent = deps.get("pet_bond_percent", lambda points: max(0, min(100, int(points or 0))))
     pet_mood_label = deps.get("pet_mood_label", lambda care_done_today, fullcare_streak: "Unruhig")
     render_pet_mood = deps.get("render_pet_mood", lambda mood_name, care_done_today, fullcare_streak, rebellious_until, now_ts: mood_name or pet_mood_label(care_done_today, fullcare_streak))
-    pet_imprint_label = deps.get("pet_imprint_label", lambda score: "Abrichtbar")
+    pet_imprint_label = deps.get("pet_imprint_label", lambda score: "Loyal")
+    pet_status_label = deps.get("pet_status_label", lambda stage, rebellious_until, now_ts: "Wartet auf Fuehrung.")
     get_pet_lock_until = deps["get_pet_lock_until"]
     get_active_titles_map = deps["get_active_titles_map"]
     with_title_suffix = deps["with_title_suffix"]
@@ -88,7 +90,7 @@ def create_ownership_features(deps: dict):
             skill_txt = _skill_label(skill_key)
             async with db.execute(
                 "SELECT COALESCE(pet_xp,0), COALESCE(fullcare_days,0), COALESCE(fullcare_streak,0), COALESCE(care_done_today,0), "
-                "mood_name, COALESCE(imprint_score,0), COALESCE(rebellious_until,0) "
+                "mood_name, COALESCE(imprint_score,0), COALESCE(rebellious_until,0), COALESCE(breakout_count,0) "
                 "FROM pets WHERE chat_id=? AND pet_id=?",
                 (chat_id, target_id)
             ) as cur:
@@ -96,9 +98,18 @@ def create_ownership_features(deps: dict):
             pet_xp = int(lrow[0]) if lrow else 0
             fullcare_streak = int(lrow[2]) if lrow else 0
             care_done_today = int(lrow[3]) if lrow else 0
-            mood_name = render_pet_mood(lrow[4] if lrow else None, care_done_today, fullcare_streak, int(lrow[6]) if lrow else 0, int(time.time()))
+            now_ts = int(time.time())
+            rebellious_until = int(lrow[6]) if lrow else 0
+            rebellion_stage = int(lrow[7]) if lrow else 0
+            mood_name = render_pet_mood(lrow[4] if lrow else None, care_done_today, fullcare_streak, rebellious_until, now_ts)
             imprint_name = pet_imprint_label(int(lrow[5]) if lrow else 0)
-            bond_txt = f"Bindung: {pet_xp} | Wesen: {pet_bond_title(pet_xp)} | Laune: {mood_name} | Prägung: {imprint_name}"
+            status_name = pet_status_label(rebellion_stage, rebellious_until, now_ts)
+            bond_txt = (
+                f"Laune: {mood_name}\n"
+                f"Prägung: {imprint_name}\n"
+                f"Bindung: {pet_bond_percent(pet_xp)} %\n"
+                f"Status: {status_name}"
+            )
             progress_txt = f"Perfekte Tage: {int(lrow[1]) if lrow else 0} | Streak: {fullcare_streak}"
 
             owner_uname = None
@@ -157,7 +168,8 @@ def create_ownership_features(deps: dict):
                         COALESCE(p.care_done_today, 0)              AS care_done_today,
                         p.mood_name                                  AS mood_name,
                         COALESCE(p.imprint_score, 0)                AS imprint_score,
-                        COALESCE(p.rebellious_until, 0)             AS rebellious_until
+                        COALESCE(p.rebellious_until, 0)             AS rebellious_until,
+                        COALESCE(p.breakout_count, 0)               AS breakout_count
                     FROM pets p
                     LEFT JOIN players ou ON ou.chat_id=p.chat_id AND ou.user_id=p.owner_id
                     LEFT JOIN players pu ON pu.chat_id=p.chat_id AND pu.user_id=p.pet_id
@@ -167,7 +179,7 @@ def create_ownership_features(deps: dict):
                 """, (chat_id,)) as cur:
                     rows = await cur.fetchall()
                 title_user_ids = []
-                for owner_id, _, pet_id, _, _, _, _, _, _, _, _, _, _, _ in rows:
+                for owner_id, _, pet_id, _, _, _, _, _, _, _, _, _, _, _, _ in rows:
                     if owner_id:
                         title_user_ids.append(int(owner_id))
                     if pet_id:
@@ -183,7 +195,7 @@ def create_ownership_features(deps: dict):
             return await update.effective_message.reply_text("Noch keine Besitzverhältnisse. Kauf dir erstmal jemanden.")
 
         by_owner = {}
-        for owner_id, owner_uname, pet_id, pet_uname, price, locked_until, pet_skill, pet_xp, fullcare_days, fullcare_streak, care_done_today, mood_name, imprint_score, rebellious_until in rows:
+        for owner_id, owner_uname, pet_id, pet_uname, price, locked_until, pet_skill, pet_xp, fullcare_days, fullcare_streak, care_done_today, mood_name, imprint_score, rebellious_until, rebellion_stage in rows:
             by_owner.setdefault((owner_id, owner_uname), []).append(
                 (
                     pet_id,
@@ -198,6 +210,7 @@ def create_ownership_features(deps: dict):
                     mood_name,
                     int(imprint_score or 0),
                     int(rebellious_until or 0),
+                    int(rebellion_stage or 0),
                 )
             )
 
@@ -214,20 +227,20 @@ def create_ownership_features(deps: dict):
             total_value = sum(p[2] for p in pets)
 
             out.append(f"<b>{tag(owner_id, owner_uname)}</b>  <i>({len(pets)} Pet(s), Gesamtwert: {total_value})</i>")
-            for pet_id, pet_uname, price, locked_until, pet_skill, pet_xp, fullcare_days, fullcare_streak, care_done_today, mood_name, imprint_score, rebellious_until in pets:
+            for pet_id, pet_uname, price, locked_until, pet_skill, pet_xp, fullcare_days, fullcare_streak, care_done_today, mood_name, imprint_score, rebellious_until, rebellion_stage in pets:
                 pet_tag = tag(pet_id, pet_uname)
                 lock_txt = ""
                 skill_name = _skill_meta(pet_skill)["name"]
-                bond_name = pet_bond_title(pet_xp)
                 mood_name = render_pet_mood(mood_name, care_done_today, fullcare_streak, rebellious_until, now)
                 imprint_name = pet_imprint_label(imprint_score)
+                status_name = pet_status_label(rebellion_stage, rebellious_until, now)
                 if locked_until > now:
                     mins_total = (locked_until - now) // 60
                     hrs, mins = divmod(mins_total, 60)
                     lock_txt = f" [LOCK {hrs}h{mins:02d}m]"
                 out.append(
-                    f" - {pet_tag}  (<b>{price}</b>) [Bindung: {pet_xp} | {escape(bond_name, False)}] "
-                    f"[Laune: {escape(mood_name, False)} | Prägung: {escape(imprint_name, False)}] [Perfekte Tage: {fullcare_days} | Streak: {fullcare_streak}] "
+                    f" - {pet_tag}  (<b>{price}</b>) [Laune: {escape(mood_name, False)} | Prägung: {escape(imprint_name, False)} | Bindung: {pet_bond_percent(pet_xp)} %] "
+                    f"[Status: {escape(status_name, False)}] [Perfekte Tage: {fullcare_days} | Streak: {fullcare_streak}] "
                     f"[{escape(skill_name, False)}]{lock_txt}"
                 )
             out.append("")

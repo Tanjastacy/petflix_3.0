@@ -31,12 +31,50 @@ PET_DAILY_MOODS = [
     "Gierig nach Führung",
 ]
 
-REBELLION_LINES = [
-    "{pet} ist widerspenstig und zieht die Leine straff. {owner} merkt sofort, dass Nachlässigkeit heute nicht unkommentiert bleibt.",
-    "{pet} ist widerspenstig. Zu wenig Führung, zu viel Bequemlichkeit. {owner} darf das jetzt ausbaden.",
-    "{pet} probt offen Aufstand. Wer tagelang schludert, bekommt eben keine stille Hingabe zurück.",
-    "{pet} lässt {owner} spüren, dass Kontrolle kein Gerücht sein sollte, sondern tägliche Arbeit.",
-]
+REBELLION_STAGE_LINES = {
+    1: [
+        "{pet} schaut {owner} an, als wäre Pflege heute nur eine Empfehlung gewesen. War sie nicht.",
+        "{pet} dreht sich weg und verweigert den kleinen Bonus. Erst Führung, dann Nähe.",
+        "{pet} ist zickig, aber noch kontrollierbar. Das Schweigen ist trotzdem laut genug.",
+        "{pet} nimmt Pflege an, behält den Bonus aber demonstrativ für sich.",
+        "{pet} liegt quer auf dem Teppich und signalisiert: Das war knapp an Respekt vorbei.",
+        "{pet} ignoriert den Pflegebonus mit der Gelassenheit eines Tieres, das den Machtwechsel schon gerochen hat.",
+    ],
+    2: [
+        "{pet} schnüffelt am Coinbeutel von {owner}. Vernachlässigung hat jetzt Gebühren.",
+        "{pet} kassiert 5 % Owner-Tribut und nennt es emotionale Schadensregulierung.",
+        "{pet} wird frech und holt sich das, was {owner} ihm zuletzt an Aufmerksamkeit vorenthalten hat.",
+        "{pet} findet, dass schlechte Pflege nicht gratis bleibt, und greift nach Coins.",
+        "{pet} nimmt sich 5 % Entschädigung. Führung ohne Einsatz wird hier direkt abgerechnet.",
+        "{pet} hat Hunger auf Aufmerksamkeit bekommen und zahlt die Rechnung in Coins zurück.",
+    ],
+    3: [
+        "{pet} verweigert die Aktion. Erst Vertrauen, dann Spielchen.",
+        "{pet} bleibt sitzen und macht klar: Ohne Pflege keine Performance.",
+        "{pet} akzeptiert heute nur sanfte Wiedergutmachung. Harte Aktionen sind gesperrt.",
+        "{pet} schaut {owner} an und sagt mit jedem Pixel: Versuch es netter.",
+        "{pet} blockt ab. Das ist kein Trotz, das ist eine Quittung.",
+        "{pet} macht dicht und verlangt erst wieder Führung, bevor irgendetwas weitergeht.",
+    ],
+    4: [
+        "{pet} sprengt die Leine und läuft von {owner} weg. Pflegevertrag: gekündigt.",
+        "{pet} hat genug von halber Verantwortung und voller Ausrede.",
+        "{pet} verlässt den Besitzstand. {owner} darf jetzt über Konsequenzen nachdenken.",
+        "{pet} ist ausgebrochen. Der Teppich ist leer, die Schande bleibt.",
+        "{pet} rennt los. Nicht schnell, nur entschlossen enttäuscht.",
+        "{pet} zieht die Konsequenz und verschwindet aus dem Griff von {owner}.",
+    ],
+    5: [
+        "{pet} hat genug von schlechter Pflege und ist ausgebrochen. {owner} darf jetzt öffentlich erklären, warum er Verantwortung für ein virtuelles Pet übernommen und trotzdem versagt hat. Starkes Konzept.",
+        "{pet} startet die öffentliche Blamage. {owner} wollte Besitz, bekam Verantwortung und hat beides unterschätzt.",
+        "{pet} ist weg und hinterlässt nur eine Frage: Warum adoptieren, wenn man nicht liefern will?",
+        "{pet} hat die Bühne betreten. Thema des Abends: {owner} und die Kunst, ein virtuelles Pet zu enttäuschen.",
+        "{pet} erklärt die Pflegebeziehung offiziell für gescheitert. {owner} darf sich setzen, aber nicht bequem.",
+        "{pet} macht die Sache öffentlich. Wer so führt, wird hier nicht still verabschiedet.",
+    ],
+}
+
+REBELLION_LINES = [line for lines in REBELLION_STAGE_LINES.values() for line in lines]
 
 JEALOUSY_LINES = [
     "{other_pet} beobachtet das Ganze mit giftigem Blick. Aufmerksamkeit ist Besitzsache, nicht Charity.",

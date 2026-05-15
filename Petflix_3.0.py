@@ -54,7 +54,7 @@ from petflix_texts import (
     ADMIN_MORAL_TAX_REPLIES,
     RUNAWAY_LINES,
     PET_DAILY_MOODS,
-    REBELLION_LINES,
+    REBELLION_STAGE_LINES,
     JEALOUSY_LINES,
     FULL_CARE_FINISH_LINES_SARCASTIC,
     FULL_CARE_FINISH_LINES_BLACK,
@@ -203,33 +203,33 @@ BUY_REFUND_SKILL_RATIO = 0.15
 
 PET_SKILLS = {
     "schildwall": {
-        "name": "Petflix Firewall",
-        "desc": "Blockt Angreifer: -20% Kaufchance.",
+        "name": "Halsband-Profi",
+        "desc": "Sitzt eng und macht Klauversuche schwerer: -20% Kaufchance.",
         "weight": 25,
     },
     "treuesiegel": {
-        "name": "Besitzvertrag X",
-        "desc": f"Bei {CARES_PER_DAY}/{CARES_PER_DAY} Pflege ist Klauen nahezu unmöglich.",
+        "name": "Treueleine",
+        "desc": f"Bei {CARES_PER_DAY}/{CARES_PER_DAY} Pflege bleibt das Pet fast unantastbar.",
         "weight": 18,
     },
     "goldzahn": {
-        "name": "Coin-Rücklauf",
-        "desc": "Bei erfolgreichem Kauf: 15% Cashback auf den Kaufpreis.",
+        "name": "Münzschnüffler",
+        "desc": "Findet beim Kauf 15% vom Preis als dreckiges Trinkgeld zurück.",
         "weight": 18,
     },
     "wertanlage": {
-        "name": "Hype-Maschine",
-        "desc": f"Preis steigt nach Kauf um {PRICE_STEP_SKILL_BONUS} statt {USER_PRICE_STEP}.",
+        "name": "Wertmarke",
+        "desc": f"Preis steigt kontrollierter: +{PRICE_STEP_SKILL_BONUS} statt +{USER_PRICE_STEP}.",
         "weight": 16,
     },
     "goldesel": {
-        "name": "Petflix Prime",
-        "desc": f"Bei {CARES_PER_DAY}/{CARES_PER_DAY} Pflege erhält der Owner +{FULL_CARE_OWNER_BONUS} Bonus/Tag.",
+        "name": "Schoßtribut",
+        "desc": f"Bei perfekter Pflege zahlt das Pet +{FULL_CARE_OWNER_BONUS} Coins Tribut.",
         "weight": 13,
     },
     "chamaeleon": {
-        "name": "Patchnote",
-        "desc": "Bei Besitzerwechsel wird der Skill sofort neu ausgewürfelt.",
+        "name": "Rollenwechsel",
+        "desc": "Bei Besitzerwechsel wird die Rolle sofort neu ausgewürfelt.",
         "weight": 10,
     },
 }
@@ -704,6 +704,9 @@ def pet_bond_title(points: int) -> str:
 def pet_level_title(level: int) -> str:
     return pet_bond_title(level)
 
+def pet_bond_percent(points: int) -> int:
+    return max(0, min(100, int(points or 0)))
+
 def pet_mood_label(care_done_today: int, fullcare_streak: int) -> str:
     done = max(0, int(care_done_today))
     streak = max(0, int(fullcare_streak))
@@ -718,6 +721,58 @@ def pet_mood_label(care_done_today: int, fullcare_streak: int) -> str:
     return "Unruhig"
 
 
+def rebellion_stage_label(stage: int) -> str:
+    labels = {
+        0: "Ruhig",
+        1: "Zickig",
+        2: "Gierig",
+        3: "Verweigernd",
+        4: "Ausgebrochen",
+        5: "Blamage-Modus",
+    }
+    return labels.get(max(0, min(5, int(stage or 0))), "Zickig")
+
+
+def pet_status_label(stage: int, rebellious_until: int, now_ts: int) -> str:
+    stage = max(0, min(5, int(stage or 0)))
+    if stage >= 5:
+        return "Plant eine öffentliche Blamage gegen den Owner."
+    if stage == 4:
+        return "Hat die Leine gesprengt und ist kurz vor dem Ausbruch."
+    if stage == 3:
+        return "Verweigert harte Aktionen. Erst Vertrauen reparieren."
+    if stage == 2:
+        return "Hat Owner-Tribut gerochen und klaut bei Vernachlässigung."
+    if stage == 1 or int(rebellious_until or 0) > int(now_ts):
+        return "Beobachtet dich misstrauisch vom Teppich aus."
+    return "Liegt wachsam am Platz und wartet auf Führung."
+
+
+def rebellion_stage_from_deficit(care_deficit: int, runaway_due: bool, care_window: int) -> int:
+    if runaway_due and care_window < 3:
+        return 5
+    if runaway_due:
+        return 4
+    if care_deficit >= 7:
+        return 3
+    if care_deficit >= 5:
+        return 2
+    if care_deficit >= REBELLION_DEFICIT_TRIGGER:
+        return 1
+    return 0
+
+
+def rebellion_drama_text(stage: int, pet_tag: str, owner_tag: str) -> str:
+    stage = int(stage or 0)
+    if stage <= 0:
+        return ""
+    stage = min(5, stage)
+    pool = REBELLION_STAGE_LINES.get(stage, [])
+    if pool:
+        return random.choice(pool).format(pet=pet_tag, owner=owner_tag)
+    return ""
+
+
 def pet_imprint_label(score: int) -> str:
     points = int(score or 0)
     if points <= -8:
@@ -725,7 +780,7 @@ def pet_imprint_label(score: int) -> str:
     if points <= -3:
         return "Abgehärtet"
     if points < 3:
-        return "Abrichtbar"
+        return "Loyal"
     if points < 8:
         return "Fixiert"
     return "Hörig"
@@ -750,7 +805,7 @@ def _daily_pet_mood(chat_id: int, pet_id: int, owner_pet_count: int, today: str)
 
 def render_pet_mood(mood_name: str | None, care_done_today: int, fullcare_streak: int, rebellious_until: int, now_ts: int) -> str:
     if int(rebellious_until or 0) > int(now_ts):
-        return "Widerspenstig"
+        return "Zickig"
     if mood_name:
         return mood_name
     return pet_mood_label(care_done_today, fullcare_streak)
@@ -1009,12 +1064,19 @@ async def do_care(update, context, action_key, tame_lines):
             now,
             care_window=care_window + 1
         )
-        if runaway_due and care_window < 3:
+        prev_rebellion_stage = int(pet_state.get("breakout_count") or 0)
+        rebellion_stage = 0
+        rebellion_line = None
+        if (care["acquired_ts"] if care else None) and now - int(care["acquired_ts"]) >= RUNAWAY_HOURS * 3600:
+            rebellion_stage = max(prev_rebellion_stage, rebellion_stage_from_deficit(care_deficit, runaway_due, care_window))
+
+        if rebellion_stage >= 4:
             await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet.id))
             await _apply_runaway_owner_penalty(db, chat_id, owner.id)
             await db.commit()
             await msg.reply_text(
-                runaway_text(
+                rebellion_drama_text(
+                    rebellion_stage,
                     nice_name_html(pet),
                     mention_html(owner.id, owner.username or None),
                 ),
@@ -1022,20 +1084,45 @@ async def do_care(update, context, action_key, tame_lines):
             )
             return
 
-        rebellion_line = None
-        if (
-            care["acquired_ts"] if care else None
-        ) and now - int(care["acquired_ts"]) >= RUNAWAY_HOURS * 3600 and (care_deficit >= REBELLION_DEFICIT_TRIGGER or runaway_due):
+        if rebellion_stage > 0:
             rebellious_until = max(int(pet_state["rebellious_until"]), now + REBELLIOUS_DURATION_S)
             await db.execute(
-                "UPDATE pets SET rebellious_until=?, breakout_count=COALESCE(breakout_count, 0) + 1 WHERE chat_id=? AND pet_id=?",
-                (rebellious_until, chat_id, pet.id)
+                "UPDATE pets SET rebellious_until=?, breakout_count=MAX(COALESCE(breakout_count, 0), ?) WHERE chat_id=? AND pet_id=?",
+                (rebellious_until, rebellion_stage, chat_id, pet.id)
             )
             pet_state["rebellious_until"] = rebellious_until
-            rebellion_line = random.choice(REBELLION_LINES).format(
-                pet=nice_name_html(pet),
-                owner=mention_html(owner.id, owner.username or None),
+            pet_state["breakout_count"] = rebellion_stage
+            rebellion_line = rebellion_drama_text(
+                rebellion_stage,
+                nice_name_html(pet),
+                mention_html(owner.id, owner.username or None),
             )
+            if rebellion_stage >= 2 and prev_rebellion_stage < 2:
+                async with db.execute(
+                    "SELECT COALESCE(coins,0) FROM players WHERE chat_id=? AND user_id=?",
+                    (chat_id, owner.id)
+                ) as cur:
+                    owner_coin_row = await cur.fetchone()
+                owner_coins = int(owner_coin_row[0]) if owner_coin_row else 0
+                tribute = max(1, owner_coins * 5 // 100) if owner_coins > 0 else 0
+                if tribute > 0:
+                    await db.execute(
+                        "UPDATE players SET coins=MAX(0, coins-?) WHERE chat_id=? AND user_id=?",
+                        (tribute, chat_id, owner.id)
+                    )
+                    await db.execute(
+                        "UPDATE players SET coins=coins+? WHERE chat_id=? AND user_id=?",
+                        (tribute, chat_id, pet.id)
+                    )
+                    rebellion_line += f"\n{nice_name_html(pet)} klaut <b>{tribute}</b> Coins Owner-Tribut."
+
+        if rebellion_stage >= 3 and action_key in STRICT_CARE_ACTIONS:
+            await db.commit()
+            await msg.reply_text(
+                f"{nice_name_html(pet)} verweigert diese Aktion. Erst sanft führen: /pet, /kuessen, /fuettern, /massage, /loben oder /belohnen.",
+                parse_mode=ParseMode.HTML,
+            )
+            return
 
         cd_key = f"care:{action_key}:{owner.id}:{pet.id}"
         left = await get_cd_left(db, chat_id, owner.id, cd_key)
@@ -1079,24 +1166,25 @@ async def do_care(update, context, action_key, tame_lines):
             fullcare_days = prev_fullcare_days + 1
             current_fullcare_days = fullcare_days
             current_fullcare_streak = streak
-            gained_bond += FULL_CARE_XP_BONUS
+            if rebellion_stage < 1:
+                gained_bond += FULL_CARE_XP_BONUS
             new_bond = prev_bond + gained_bond
             await db.execute(
-                "UPDATE pets SET pet_xp=?, fullcare_streak=?, fullcare_last_day=?, fullcare_days=?, imprint_score=?, rebellious_until=0 "
+                "UPDATE pets SET pet_xp=?, fullcare_streak=?, fullcare_last_day=?, fullcare_days=?, imprint_score=?, rebellious_until=0, breakout_count=0 "
                 "WHERE chat_id=? AND pet_id=?",
                 (new_bond, streak, today, fullcare_days, imprint_score, chat_id, pet.id)
             )
 
             mood = render_pet_mood(pet_state["mood_name"], done, streak, 0, now)
             bonus_lines = [
-                f"Bindung heute: +{gained_bond} ({done}x Pflege + Full-Care-Bonus).",
+                f"Bindung heute: +{gained_bond} ({done}x Pflege{' + Full-Care-Bonus' if rebellion_stage < 1 else ' - Rebellion ignoriert Bonus'}).",
                 f"Bindung gesamt: <b>{new_bond}</b> | Wesen: <b>{escape(pet_bond_title(new_bond), False)}</b>.",
                 f"Laune: <b>{escape(mood, False)}</b> | Prägung: <b>{escape(pet_imprint_label(imprint_score), False)}</b>.",
                 f"Perfekte Tage gesamt: <b>{fullcare_days}</b>.",
                 f"Streak voller Tage: <b>{streak}</b>.",
             ]
 
-            if skill_key == "goldesel" and care_bonus_day != today:
+            if skill_key == "goldesel" and care_bonus_day != today and rebellion_stage < 1:
                 await db.execute(
                     "UPDATE players SET coins = coins + ? WHERE chat_id=? AND user_id=?",
                     (FULL_CARE_OWNER_BONUS, chat_id, owner.id)
@@ -1106,9 +1194,11 @@ async def do_care(update, context, action_key, tame_lines):
                     (today, chat_id, pet.id)
                 )
                 bonus_lines.append(
-                    f"Skill-Bonus <b>Petflix Prime</b>: {mention_html(owner.id, owner.username or None)} "
+                    f"Skill-Bonus <b>{escape(_skill_meta(skill_key)['name'], False)}</b>: {mention_html(owner.id, owner.username or None)} "
                     f"bekommt +{FULL_CARE_OWNER_BONUS} Coins für {CARES_PER_DAY}/{CARES_PER_DAY} Pflege."
                 )
+            elif skill_key == "goldesel" and rebellion_stage >= 1:
+                bonus_lines.append("Skill-Bonus blockiert: Rebellion ignoriert den Schoßtribut.")
             until_ts = await set_temp_title(
                 db,
                 chat_id=chat_id,
@@ -2325,9 +2415,11 @@ _OWNERSHIP_FEATURES = create_ownership_features({
     "get_pet_skill": get_pet_skill,
     "_skill_label": _skill_label,
     "pet_bond_title": pet_bond_title,
+    "pet_bond_percent": pet_bond_percent,
     "pet_mood_label": pet_mood_label,
     "render_pet_mood": render_pet_mood,
     "pet_imprint_label": pet_imprint_label,
+    "pet_status_label": pet_status_label,
     "pet_level_title": pet_level_title,
     "fullcare_evolution_title": fullcare_evolution_title,
     "get_pet_lock_until": get_pet_lock_until,
