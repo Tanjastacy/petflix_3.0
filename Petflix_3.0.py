@@ -39,6 +39,16 @@ from petflix_players import (
     get_user_price as _get_user_price_base,
     set_user_price,
 )
+from petflix_pets import (
+    apply_runaway_owner_penalty as _apply_runaway_owner_penalty,
+    care_count_in_window as _care_count_in_window,
+    care_count_last_24h as _care_count_last_24h,
+    get_care,
+    get_latest_owned_pet_id as _get_latest_owned_pet_id,
+    get_pet_lock_until,
+    set_care,
+    should_runaway as _should_runaway,
+)
 from petflix_texts import (
     DOM_FEMALE_DENY_LINES,
     ADMIN_MORAL_TAX_REPLIES,
@@ -638,75 +648,6 @@ def _today_bounds_unix() -> tuple[int, int]:
 
 
 
-async def get_care(db, chat_id, pet_id):
-    async with db.execute(
-        "SELECT last_care_ts, care_done_today, day_ymd, acquired_ts FROM pets WHERE chat_id=? AND pet_id=?",
-        (chat_id, pet_id)
-    ) as cur:
-        row = await cur.fetchone()
-    if not row:
-        return None
-    return {"last": row[0], "done": row[1], "day": row[2], "acquired_ts": row[3]}
-
-async def set_care(db, chat_id, pet_id, last, done, day):
-    await db.execute("""
-      INSERT INTO pets(chat_id, pet_id, last_care_ts, care_done_today, day_ymd)
-      VALUES(?,?,?,?,?)
-      ON CONFLICT(chat_id, pet_id) DO UPDATE SET
-        last_care_ts=excluded.last_care_ts,
-        care_done_today=excluded.care_done_today,
-        day_ymd=excluded.day_ymd
-    """, (chat_id, pet_id, last, done, day))
-    await db.commit()
-
-
-async def _care_count_in_window(db, chat_id: int, pet_id: int, owner_id: int, since_ts: int) -> int:
-    async with db.execute(
-        """
-        SELECT COUNT(*) FROM care_events
-        WHERE chat_id=? AND pet_id=? AND owner_id=? AND ts>=?
-        """,
-        (chat_id, pet_id, owner_id, since_ts)
-    ) as cur:
-        row = await cur.fetchone()
-    raw_events = int(row[0]) if row and row[0] is not None else 0
-    return max(0, raw_events // 2)
-
-
-async def _care_count_last_24h(db, chat_id: int, pet_id: int, owner_id: int, now_ts: int) -> int:
-    since_ts = now_ts - 24 * 3600
-    return await _care_count_in_window(db, chat_id, pet_id, owner_id, since_ts)
-
-
-async def _should_runaway(
-    db,
-    chat_id: int,
-    pet_id: int,
-    owner_id: int,
-    acquired_ts: int | None,
-    now_ts: int,
-    care_window: int | None = None
-) -> bool:
-    # Weglauf-Regel: Erst nach 3 Tagen Besitz und nur wenn im 3-Tage-Fenster
-    # weniger als 10 Pflegen eingetragen wurden.
-    if not owner_id:
-        return False
-    if not acquired_ts:
-        return False
-    if now_ts - int(acquired_ts) < RUNAWAY_HOURS * 3600:
-        return False
-    if care_window is None:
-        since_ts = now_ts - RUNAWAY_HOURS * 3600
-        care_window = await _care_count_in_window(db, chat_id, pet_id, owner_id, since_ts)
-    return care_window < RUNAWAY_MIN_CARES_IN_WINDOW
-
-
-async def _apply_runaway_owner_penalty(db, chat_id: int, owner_id: int):
-    await db.execute(
-        "UPDATE players SET coins = MAX(0, coins - (coins / 2)) WHERE chat_id=? AND user_id=?",
-        (chat_id, owner_id)
-    )
-
 def _skill_meta(skill_key: str | None) -> dict:
     return PET_SKILLS.get(skill_key or "", {"name": "Ohne Skill", "desc": "Kein passiver Effekt."})
 
@@ -911,18 +852,6 @@ async def ensure_player(db, chat_id: int, user_id: int, username: str):
 async def get_user_price(db, chat_id: int, user_id: int) -> int:
     return await _get_user_price_base(db, chat_id, user_id, USER_BASE_PRICE)
 
-async def _get_latest_owned_pet_id(db, chat_id: int, owner_id: int):
-    async with db.execute("""
-        SELECT pet_id
-        FROM pets
-        WHERE chat_id=? AND owner_id=?
-        ORDER BY COALESCE(last_care_ts, 0) DESC, pet_id ASC
-        LIMIT 1
-    """, (chat_id, owner_id)) as cur:
-        row = await cur.fetchone()
-    return int(row[0]) if row else None
-
-
 def _secs_until_tomorrow() -> int:
     now = _tz_now()
     tomorrow = (now + datetime.timedelta(days=1)).date()
@@ -930,14 +859,6 @@ def _secs_until_tomorrow() -> int:
     return max(1, int((midnight - now).total_seconds()))
 
 # 48h Mindestbesitz
-async def get_pet_lock_until(db, chat_id: int, pet_id: int) -> int:
-    async with db.execute(
-        "SELECT COALESCE(purchase_lock_until,0) FROM pets WHERE chat_id=? AND pet_id=?",
-        (chat_id, pet_id)
-    ) as cur:
-        row = await cur.fetchone()
-    return int(row[0]) if row else 0
-
 async def pick_random_player_excluding(chat_id: int, exclude_ids: set[int] | None = None):
     exclude_ids = exclude_ids or set()
     async with aiosqlite.connect(DB) as db:
