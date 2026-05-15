@@ -55,6 +55,9 @@ from petflix_texts import (
     RUNAWAY_LINES,
     PET_DAILY_MOODS,
     REBELLION_STAGE_LINES,
+    REBELLION_STAGE_EXTRA_LINES,
+    PET_STATUS_LINES,
+    CARE_STYLE_LINES,
     JEALOUSY_LINES,
     FULL_CARE_FINISH_LINES_SARCASTIC,
     FULL_CARE_FINISH_LINES_BLACK,
@@ -735,17 +738,10 @@ def rebellion_stage_label(stage: int) -> str:
 
 def pet_status_label(stage: int, rebellious_until: int, now_ts: int) -> str:
     stage = max(0, min(5, int(stage or 0)))
-    if stage >= 5:
-        return "Plant eine öffentliche Blamage gegen den Owner."
-    if stage == 4:
-        return "Hat die Leine gesprengt und ist kurz vor dem Ausbruch."
-    if stage == 3:
-        return "Verweigert harte Aktionen. Erst Vertrauen reparieren."
-    if stage == 2:
-        return "Hat Owner-Tribut gerochen und klaut bei Vernachlässigung."
-    if stage == 1 or int(rebellious_until or 0) > int(now_ts):
-        return "Beobachtet dich misstrauisch vom Teppich aus."
-    return "Liegt wachsam am Platz und wartet auf Führung."
+    if stage == 0 and int(rebellious_until or 0) > int(now_ts):
+        stage = 1
+    pool = PET_STATUS_LINES.get(stage) or PET_STATUS_LINES.get(0) or ["Liegt wachsam am Platz und wartet auf Fuehrung."]
+    return random.choice(pool)
 
 
 def rebellion_stage_from_deficit(care_deficit: int, runaway_due: bool, care_window: int) -> int:
@@ -767,7 +763,8 @@ def rebellion_drama_text(stage: int, pet_tag: str, owner_tag: str) -> str:
     if stage <= 0:
         return ""
     stage = min(5, stage)
-    pool = REBELLION_STAGE_LINES.get(stage, [])
+    pool = list(REBELLION_STAGE_LINES.get(stage, []))
+    pool.extend(REBELLION_STAGE_EXTRA_LINES.get(stage, []))
     if pool:
         return random.choice(pool).format(pet=pet_tag, owner=owner_tag)
     return ""
@@ -813,7 +810,8 @@ def render_pet_mood(mood_name: str | None, care_done_today: int, fullcare_streak
 
 async def ensure_pet_dynamic_state(db, chat_id: int, pet_id: int, owner_id: int | None, today: str):
     async with db.execute(
-        "SELECT mood_name, mood_day, COALESCE(imprint_score, 0), COALESCE(rebellious_until, 0), COALESCE(breakout_count, 0) "
+        "SELECT mood_name, mood_day, COALESCE(imprint_score, 0), COALESCE(rebellious_until, 0), COALESCE(breakout_count, 0), "
+        "COALESCE(hostage_until, 0), COALESCE(snatched_until, 0) "
         "FROM pets WHERE chat_id=? AND pet_id=?",
         (chat_id, pet_id)
     ) as cur:
@@ -823,6 +821,8 @@ async def ensure_pet_dynamic_state(db, chat_id: int, pet_id: int, owner_id: int 
     imprint_score = int(row[2]) if row and row[2] is not None else 0
     rebellious_until = int(row[3]) if row and row[3] is not None else 0
     breakout_count = int(row[4]) if row and row[4] is not None else 0
+    hostage_until = int(row[5]) if row and row[5] is not None else 0
+    snatched_until = int(row[6]) if row and row[6] is not None else 0
 
     owner_pet_count = 0
     if owner_id:
@@ -846,6 +846,8 @@ async def ensure_pet_dynamic_state(db, chat_id: int, pet_id: int, owner_id: int 
         "imprint_score": imprint_score,
         "rebellious_until": rebellious_until,
         "breakout_count": breakout_count,
+        "hostage_until": hostage_until,
+        "snatched_until": snatched_until,
         "owner_pet_count": owner_pet_count,
     }
 
@@ -1052,6 +1054,15 @@ async def do_care(update, context, action_key, tame_lines):
         prev_bond_title = pet_bond_title(prev_bond)
 
         now = int(time.time())
+        hostage_line = None
+        if int(pet_state.get("hostage_until") or 0) > now:
+            await db.execute(
+                "UPDATE pets SET hostage_until=0 WHERE chat_id=? AND pet_id=?",
+                (chat_id, pet.id)
+            )
+            pet_state["hostage_until"] = 0
+            hostage_line = f"{nice_name_html(pet)} ist nicht mehr Geisel. Die Leine sitzt wieder normal."
+
         care_window_since = now - RUNAWAY_HOURS * 3600
         care_window = await _care_count_in_window(db, chat_id, pet.id, owner.id, care_window_since)
         care_deficit = max(0, RUNAWAY_MIN_CARES_IN_WINDOW - (care_window + 1))
@@ -1258,8 +1269,9 @@ async def do_care(update, context, action_key, tame_lines):
         await db.commit()
 
     configured_lines = get_cached_json(context, "care_responses", CARE_RESPONSES_PATH).get(action_key) or tame_lines
+    style_lines = CARE_STYLE_LINES.get(action_key, [])
     cool_lines = CARE_COOL_TEXTS.get(action_key) or []
-    lines = cool_lines + configured_lines
+    lines = (style_lines * 3) + cool_lines + configured_lines
     text = random.choice(lines)
     text = text.replace("{CARES_PER_DAY}", str(CARES_PER_DAY)).replace("{pets}", "{pet}")
     text = text.format(owner=nice_name_html(owner), pet=nice_name_html(pet), n=done)
@@ -1273,6 +1285,9 @@ async def do_care(update, context, action_key, tame_lines):
     if rebellion_line:
         rebel_msg = await msg.reply_text(rebellion_line, parse_mode=ParseMode.HTML)
         cleanup_message_ids.append(rebel_msg.message_id)
+    if hostage_line:
+        hostage_msg = await msg.reply_text(hostage_line, parse_mode=ParseMode.HTML)
+        cleanup_message_ids.append(hostage_msg.message_id)
     if jealousy_line:
         jealous_msg = await msg.reply_text(jealousy_line, parse_mode=ParseMode.HTML)
         cleanup_message_ids.append(jealous_msg.message_id)
@@ -2521,6 +2536,7 @@ _ADMIN_COIN_CMDS = create_admin_coin_commands({
     "STEAL_SUCCESS_CHANCE": STEAL_SUCCESS_CHANCE,
     "STEAL_COOLDOWN_S": STEAL_COOLDOWN_S,
     "STEAL_FAIL_PENALTY_RATIO": STEAL_FAIL_PENALTY_RATIO,
+    "CARES_PER_DAY": CARES_PER_DAY,
     "FEUD_REVENGE_WINDOW_S": FEUD_REVENGE_WINDOW_S,
     "FEUD_REVENGE_CHANCE_BONUS": FEUD_REVENGE_CHANCE_BONUS,
     "FEUD_STAGE_BONUS": FEUD_STAGE_BONUS,
@@ -2548,6 +2564,7 @@ cmd_takecoins = _ADMIN_COIN_CMDS["cmd_takecoins"]
 cmd_setcoins = _ADMIN_COIN_CMDS["cmd_setcoins"]
 cmd_resetcoins = _ADMIN_COIN_CMDS["cmd_resetcoins"]
 cmd_steal = _ADMIN_COIN_CMDS["cmd_steal"]
+cmd_snatchsteal = _ADMIN_COIN_CMDS["cmd_snatchsteal"]
 cmd_fehde = _ADMIN_COIN_CMDS["cmd_fehde"]
 
 async def _fetch_gender_candidates(db, chat_id: int, include_assigned: bool):
@@ -2801,6 +2818,7 @@ async def register_commands(application: Application):
         BotCommand("treat", "Schenke Coins an einen User"),
         BotCommand("leckerli", "Schenke Coins an einen User"),
         BotCommand("steal", "Versuche Coins zu klauen (45% Basis, Risiko je Intensität)"),
+        BotCommand("snatchsteal", "Harter Steal mit Pet-Drama"),
         BotCommand("fehde", "Zeigt aktive Blutrache und Stufen"),
         BotCommand("buy", "Kaufe einen anderen User"),
         BotCommand("risk", "Klauversuch mit Coin-Risiko für mehr Chance"),
@@ -3624,6 +3642,7 @@ def register_coin_admin_handlers(app: Application):
     app.add_handler(CommandHandler("setcoins", cmd_setcoins, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("resetcoins", cmd_resetcoins, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("steal", cmd_steal, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("snatchsteal", cmd_snatchsteal, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("fehde", cmd_fehde, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("adminping", cmd_adminping, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("careminus", cmd_careminus, filters=CHAT_FILTER))

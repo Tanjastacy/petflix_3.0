@@ -1,7 +1,7 @@
 import aiosqlite
 
 
-SCHEMA_VERSION = 21
+SCHEMA_VERSION = 22
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -309,6 +309,20 @@ async def migrate_db(db, daily_curse_enabled=True, auto_curse_enabled=False, pet
         await _set_user_version(db, 21)
         current = 21
 
+    if current < 22:
+        if not await _table_has_column(db, "players", "blood_debt"):
+            await db.execute("ALTER TABLE players ADD COLUMN blood_debt INTEGER DEFAULT 0")
+        if not await _table_has_column(db, "pets", "snatched_until"):
+            await db.execute("ALTER TABLE pets ADD COLUMN snatched_until INTEGER DEFAULT 0")
+        if not await _table_has_column(db, "pets", "snatched_from_owner_id"):
+            await db.execute("ALTER TABLE pets ADD COLUMN snatched_from_owner_id INTEGER DEFAULT NULL")
+        if not await _table_has_column(db, "pets", "snatched_from_acquired_ts"):
+            await db.execute("ALTER TABLE pets ADD COLUMN snatched_from_acquired_ts INTEGER DEFAULT NULL")
+        if not await _table_has_column(db, "pets", "hostage_until"):
+            await db.execute("ALTER TABLE pets ADD COLUMN hostage_until INTEGER DEFAULT 0")
+        await _set_user_version(db, 22)
+        current = 22
+
     # Sicherheitsnetz für inkonsistente Alt-DBs:
     # Wenn user_version hoch ist, Spalten aber fehlen, ziehen wir sie hier trotzdem nach.
     if not await _table_has_column(db, "pets", "pet_skill"):
@@ -343,6 +357,16 @@ async def migrate_db(db, daily_curse_enabled=True, auto_curse_enabled=False, pet
         await db.execute("ALTER TABLE pets ADD COLUMN rebellious_until INTEGER DEFAULT 0")
     if not await _table_has_column(db, "pets", "breakout_count"):
         await db.execute("ALTER TABLE pets ADD COLUMN breakout_count INTEGER DEFAULT 0")
+    if not await _table_has_column(db, "players", "blood_debt"):
+        await db.execute("ALTER TABLE players ADD COLUMN blood_debt INTEGER DEFAULT 0")
+    if not await _table_has_column(db, "pets", "snatched_until"):
+        await db.execute("ALTER TABLE pets ADD COLUMN snatched_until INTEGER DEFAULT 0")
+    if not await _table_has_column(db, "pets", "snatched_from_owner_id"):
+        await db.execute("ALTER TABLE pets ADD COLUMN snatched_from_owner_id INTEGER DEFAULT NULL")
+    if not await _table_has_column(db, "pets", "snatched_from_acquired_ts"):
+        await db.execute("ALTER TABLE pets ADD COLUMN snatched_from_acquired_ts INTEGER DEFAULT NULL")
+    if not await _table_has_column(db, "pets", "hostage_until"):
+        await db.execute("ALTER TABLE pets ADD COLUMN hostage_until INTEGER DEFAULT 0")
     if not await _table_has_column(db, "settings", "daily_curse_enabled"):
         await db.execute(
             f"ALTER TABLE settings ADD COLUMN daily_curse_enabled INTEGER DEFAULT {1 if daily_curse_enabled else 0}"

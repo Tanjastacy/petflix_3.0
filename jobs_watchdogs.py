@@ -296,6 +296,48 @@ def create_jobs_watchdogs(deps: dict):
         now = int(time.time())
 
         async with aiosqlite.connect(deps["DB"]) as db:
+            async with db.execute(
+                """
+                SELECT p.pet_id, p.owner_id, p.snatched_from_owner_id, p.snatched_from_acquired_ts,
+                       pp.username, po.username
+                FROM pets p
+                LEFT JOIN players pp ON pp.chat_id=p.chat_id AND pp.user_id=p.pet_id
+                LEFT JOIN players po ON po.chat_id=p.chat_id AND po.user_id=p.snatched_from_owner_id
+                WHERE p.chat_id=? AND COALESCE(p.snatched_until, 0) > 0 AND COALESCE(p.snatched_until, 0) <= ?
+                """,
+                (chat_id, now)
+            ) as cur:
+                expired_snatches = await cur.fetchall()
+
+            for pet_id, owner_id, original_owner_id, original_acquired_ts, pet_username, original_owner_username in expired_snatches:
+                pet_id_i = int(pet_id)
+                if original_owner_id is None:
+                    await db.execute("DELETE FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id_i))
+                else:
+                    await db.execute(
+                        """
+                        UPDATE pets
+                        SET owner_id=?, acquired_ts=?, snatched_until=0, snatched_from_owner_id=NULL, snatched_from_acquired_ts=NULL, hostage_until=0
+                        WHERE chat_id=? AND pet_id=?
+                        """,
+                        (
+                            int(original_owner_id),
+                            int(original_acquired_ts or now),
+                            chat_id,
+                            pet_id_i,
+                        )
+                    )
+                pet_tag = mention_html(pet_id_i, pet_username or None)
+                if original_owner_id is None:
+                    msg = f"Pet-Diebstahl vorbei: {pet_tag} ist wieder frei."
+                else:
+                    owner_tag = mention_html(int(original_owner_id), original_owner_username or None)
+                    msg = f"Pet-Diebstahl vorbei: {pet_tag} ist wieder bei {owner_tag}."
+                try:
+                    await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode=ParseMode.HTML)
+                except Exception:
+                    pass
+
             await db.execute(
                 "UPDATE pets SET last_care_ts=? WHERE chat_id=? AND last_care_ts IS NULL",
                 (now, chat_id)

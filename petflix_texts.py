@@ -76,6 +76,97 @@ REBELLION_STAGE_LINES = {
 
 REBELLION_LINES = [line for lines in REBELLION_STAGE_LINES.values() for line in lines]
 
+REBELLION_STAGE_EXTRA_LINES = {
+    2: [
+        "{pet} macht kurz den Taschencheck bei {owner}. Schwache Pflege, kleine Strafe.",
+        "{pet} markiert 5 % des Coinbestands als sein eigenes Recht auf Protest.",
+        "{pet} bleibt freundlich genug zum Ansehen, aber unverschaemt genug fuer's Konto.",
+        "{pet} holt sich Tribut mit der Kaelte eines Tieres, das die Leine schon mitrechnet.",
+    ],
+    3: [
+        "{pet} zieht die Grenze sauber nach: erst Pflege, dann Zugriff.",
+        "{pet} macht keine falsche Bewegung mehr. Das Vertrauen ist gerade im Wartemodus.",
+        "{pet} reagiert nur noch auf ruhige Haende. Alles andere wird ignoriert.",
+        "{pet} haelt die Aktion an wie eine gesperrte Tuer. Schluesel gibt es erst spaeter.",
+    ],
+}
+
+PET_STATUS_LINES = {
+    0: [
+        "Liegt wachsam am Platz und wartet auf Fuehrung.",
+        "Ist ruhig, aber aufmerksam.",
+        "Beobachtet alles und entscheidet noch nicht.",
+    ],
+    1: [
+        "Beobachtet dich misstrauisch vom Teppich aus.",
+        "Ist zickig und gibt den Bonus nur widerwillig frei.",
+        "Antwortet knapp und merkt sich jeden Fehler.",
+        "Hat heute keinen Bock auf nette Ausreden.",
+    ],
+    2: [
+        "Hat Owner-Tribut gerochen und klaut bei Vernachlaessigung.",
+        "Ist schon mit einem Pfotenabdruck im Coinbeutel.",
+        "Rechnet die Pflege jetzt direkt in Coins ab.",
+        "Sieht die Leine, aber noch lieber die Geldtasche.",
+    ],
+    3: [
+        "Verweigert harte Aktionen. Erst Vertrauen reparieren.",
+        "Macht dicht und akzeptiert nur sanfte Fuehrung.",
+        "Hat die Regeln geprueft und kurz blockiert.",
+        "Ist auf Durchzug geschaltet, bis die Pflege wieder stimmt.",
+    ],
+    4: [
+        "Hat die Leine gesprengt und ist kurz vor dem Ausbruch.",
+        "Steht mit einer Pfote schon draussen.",
+        "Ist nicht mehr sicher im Griff und das weiss es auch.",
+        "Hat innerlich schon gekuendigt.",
+    ],
+    5: [
+        "Plant eine oeffentliche Blamage gegen den Owner.",
+        "Hat das Publikum schon im Blick.",
+        "Will die schlechte Pflege nicht nur spueren, sondern zeigen.",
+        "Ist bereit, den Chat ueber den Owner urteilen zu lassen.",
+    ],
+}
+
+CARE_STYLE_LINES = {
+    "pet": [
+        "{owner} streicht {pet} ueber den Kopf: 'Brav. Jetzt ruhig bleiben.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} laesst die Hand einen Moment laenger liegen: 'So sammelt man Bindung.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} fixiert {pet} mit einem Blick: 'Genau so. Gehorsam zuerst.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "walk": [
+        "{owner} nimmt die Leine kurz: 'Schritt halten. Ich fuehre.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} setzt das Tempo und {pet} folgt: 'Sauber. So passt das.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} laesst keinen Abstand zu: 'Nah bleiben. Heute gibt es Kontrolle.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "kiss": [
+        "{owner} zieht {pet} nah heran und setzt einen klaren Kuss: 'Markiert.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} haelt den Kuss kurz und bestimmt: 'Geduld lohnt sich.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} laesst {pet} nicht ausweichen: 'Ruhig. Das gehoert dazu.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "dine": [
+        "{owner} hebt das Futter nur dann hoch, wenn {pet} still bleibt: 'Erst Haltung, dann Belohnung.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} fuettert langsam und kontrolliert: 'Nimm es sauber an.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} bestimmt den Takt beim Fressen: 'Nicht gierig. Gehorch zuerst.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "massage": [
+        "{owner} loest die Spannung aus {pet}s Schultern: 'Atmen. Loslassen.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} arbeitet ruhig am Nacken: 'So sieht Pflege ohne Chaos aus.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} bleibt gelassen, waehrend {pet} weicher wird: 'Genau die Richtung.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "loben": [
+        "{owner} nickt knapp: 'Gut gemacht. Mehr gibt es, wenn du dranbleibst.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} gibt ein seltenes Lob: 'Brav. Genau diesen Zug braucht es.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} laesst Anerkennung kurz aufblitzen: 'Sauber. Nicht uebertreiben.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+    "belohnen": [
+        "{owner} gibt die Belohnung erst nach dem Blickkontakt: 'Verdient. Nicht gewoehnen.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} reicht den Bonus wie ein Zeichen von Kontrolle: 'Gut genug fuer heute.' Pflege {n}/{CARES_PER_DAY}.",
+        "{owner} belohnt ruhig und knapp: 'Das war sauber gespielt.' Pflege {n}/{CARES_PER_DAY}.",
+    ],
+}
+
 JEALOUSY_LINES = [
     "{other_pet} beobachtet das Ganze mit giftigem Blick. Aufmerksamkeit ist Besitzsache, nicht Charity.",
     "{other_pet} wird still und kalt. Offensichtlich teilst du Führung genauso schlecht wie Zuneigung.",
