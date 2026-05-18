@@ -234,20 +234,23 @@ def create_runtime_features(deps: dict):
             return
         text = (
             "<b>SOSPET</b>\n"
-            "Petflix ist ein Gruppen-Game mit Coins, Besitzsystem, Pflegeaktionen und Challenges.\n"
-            "\n<b>Schnellstart</b>\n"
-            "1) Schreibe normal im Chat für Coins\n"
-            "2) Nutze /buy oder /risk für Besitzaktionen\n"
-            "3) Pflege dein Pet regelmäßig mit /pet, /walk, /kiss, ...\n"
-            "\n<b>Wichtige Commands</b>\n"
-            "/balance, /daily, /treasure, /top, /prices\n"
-            "/treat (alias /leckerli), /buy, /risk, /steal, /fehde\n"
-            "/owner, /ownerlist, /release\n"
+            "Petflix ist ein Gruppen-Spiel mit Coins, Besitz, Pets, Pflege, Steals und kleinen Eskalationen.\n"
+            "\n<b>So läuft es</b>\n"
+            "Schreiben bringt Coins. Mit Coins kaufst du User, pflegst Pets, klaust, riskierst und sammelst Status.\n"
+            "\n<b>Coins</b>\n"
+            "/balance zeigt dein Konto. /daily und /treasure geben Nachschub. Mit /treat oder /leckerli schenkst du Coins.\n"
+            "\n<b>Besitz & Pets</b>\n"
+            "/buy kauft einen User. /owner und /ownerlist zeigen Besitz. /release gibt dein Pet frei.\n"
+            "Pets haben Laune, Bindung, Skills und Pflege. Schlechte Pflege kann Rebellion, Flucht oder Blamage auslösen.\n"
+            "\n<b>Pflege</b>\n"
+            "Nutze /pet, /spaziergang, /kuessen, /fuettern, /massage, /loben und weitere Pflegebefehle.\n"
+            "Gute Pflege stärkt Bindung. Vernachlässigung macht dein Pet zickig.\n"
+            "\n<b>Klauen & Drama</b>\n"
+            "/steal klaut Coins. Pets können schützen, verraten oder Bonusbeute finden.\n"
+            "/snatchsteal ist die härtere Variante mit mehr Pet-Drama. /fehde zeigt Blutschuld und Rache-Stufen.\n"
             "\n<b>Challenges</b>\n"
-            "/hass, /selbst, /liebes\n"
-            "\n<b>Admin</b>\n"
-            "/settings, /admin, /backupnow, /backups, /restorebackup\n"
-            "\nTipp: Die meisten Commands funktionieren als Reply oder mit @username."
+            "/hass, /selbst, /liebes und Superworte bringen extra Chaos, Strafen oder Belohnungen.\n"
+            "\nTipp: Viele Befehle funktionieren als Reply oder mit @username."
         )
         await update.effective_message.reply_text(text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
@@ -256,7 +259,7 @@ def create_runtime_features(deps: dict):
             await update.effective_message.reply_text("Dieses Spiel läuft nur in der vorgesehenen Gruppe.")
             return
         await update.effective_message.reply_text(
-            "Petflix ist aktiv. Nutze /sospet für die kurze Übersicht."
+            "Petflix läuft. Coins sammeln, User kaufen, Pets pflegen, Steals riskieren und Drama auslösen. Nutze /sospet für die Übersicht."
         )
 
     return {
