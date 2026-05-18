@@ -1,7 +1,8 @@
 import aiosqlite
+from brand_data import DEFAULT_BRANDS
 
 
-SCHEMA_VERSION = 22
+SCHEMA_VERSION = 23
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -15,6 +16,44 @@ async def _table_has_column(db, table: str, col: str) -> bool:
     async with db.execute(f"PRAGMA table_info({table})") as cur:
         cols = await cur.fetchall()
     return any(c[1] == col for c in cols)
+
+
+async def _ensure_brand_tables_and_seed(db):
+    await db.executescript("""
+    CREATE TABLE IF NOT EXISTS brand_catalog(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      category TEXT NOT NULL,
+      price INTEGER NOT NULL,
+      brand_type TEXT NOT NULL,
+      is_active INTEGER DEFAULT 1
+    );
+    CREATE TABLE IF NOT EXISTS user_brands(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      brand_id INTEGER NOT NULL,
+      bought_by_user_id INTEGER,
+      created_at TEXT NOT NULL,
+      UNIQUE(user_id, brand_id)
+    );
+    CREATE TABLE IF NOT EXISTS active_brands(
+      user_id INTEGER PRIMARY KEY,
+      active_self_brand_id INTEGER,
+      forced_brand_id INTEGER,
+      forced_by_owner_id INTEGER,
+      forced_at TEXT,
+      forced_remove_cost INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_brands_user ON user_brands(user_id);
+    CREATE INDEX IF NOT EXISTS idx_brand_catalog_category ON brand_catalog(category, price);
+    """)
+    await db.executemany(
+        """
+        INSERT OR IGNORE INTO brand_catalog(name, category, price, brand_type, is_active)
+        VALUES(?,?,?,?,1)
+        """,
+        DEFAULT_BRANDS,
+    )
 
 async def migrate_db(db, daily_curse_enabled=True, auto_curse_enabled=False, pet_level_from_xp_func=None):
     if pet_level_from_xp_func is None:
@@ -323,6 +362,11 @@ async def migrate_db(db, daily_curse_enabled=True, auto_curse_enabled=False, pet
         await _set_user_version(db, 22)
         current = 22
 
+    if current < 23:
+        await _ensure_brand_tables_and_seed(db)
+        await _set_user_version(db, 23)
+        current = 23
+
     # Sicherheitsnetz für inkonsistente Alt-DBs:
     # Wenn user_version hoch ist, Spalten aber fehlen, ziehen wir sie hier trotzdem nach.
     if not await _table_has_column(db, "pets", "pet_skill"):
@@ -392,6 +436,7 @@ async def migrate_db(db, daily_curse_enabled=True, auto_curse_enabled=False, pet
     CREATE INDEX IF NOT EXISTS idx_steal_feuds_active ON steal_feuds(chat_id, active_until_ts);
     CREATE INDEX IF NOT EXISTS idx_steal_feuds_last   ON steal_feuds(chat_id, last_attack_ts);
     """)
+    await _ensure_brand_tables_and_seed(db)
 
 async def db_init(db_path, daily_curse_enabled=True, auto_curse_enabled=False, pet_level_from_xp_func=None):
     if pet_level_from_xp_func is None:

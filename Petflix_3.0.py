@@ -21,6 +21,7 @@ from runtime_features import create_runtime_features
 from ownership_features import create_ownership_features
 from economy_commands import create_economy_commands
 from jobs_watchdogs import create_jobs_watchdogs
+from brand_features import create_brand_features
 from petflix_cooldowns import get_cd_left, set_cd
 from petflix_db import db_init
 from petflix_superwords import (
@@ -206,17 +207,17 @@ BUY_REFUND_SKILL_RATIO = 0.15
 
 PET_SKILLS = {
     "schildwall": {
-        "name": "Halsband-Profi",
+        "name": "Halsbandhörig",
         "desc": "Sitzt eng und macht Klauversuche schwerer: -20% Kaufchance.",
         "weight": 25,
     },
     "treuesiegel": {
-        "name": "Treueleine",
+        "name": "Kettengehorsam",
         "desc": f"Bei {CARES_PER_DAY}/{CARES_PER_DAY} Pflege bleibt das Pet fast unantastbar.",
         "weight": 18,
     },
     "goldzahn": {
-        "name": "Münzschnüffler",
+        "name": "Tributsklave",
         "desc": "Findet beim Kauf 15% vom Preis als dreckiges Trinkgeld zurück.",
         "weight": 18,
     },
@@ -226,7 +227,7 @@ PET_SKILLS = {
         "weight": 16,
     },
     "goldesel": {
-        "name": "Schoßtribut",
+        "name": "Schoßopfer",
         "desc": f"Bei perfekter Pflege zahlt das Pet +{FULL_CARE_OWNER_BONUS} Coins Tribut.",
         "weight": 13,
     },
@@ -1209,7 +1210,7 @@ async def do_care(update, context, action_key, tame_lines):
                     f"bekommt +{FULL_CARE_OWNER_BONUS} Coins für {CARES_PER_DAY}/{CARES_PER_DAY} Pflege."
                 )
             elif skill_key == "goldesel" and rebellion_stage >= 1:
-                bonus_lines.append("Skill-Bonus blockiert: Rebellion ignoriert den Schoßtribut.")
+                bonus_lines.append("Skill-Bonus blockiert: Rebellion ignoriert das Schoßopfer.")
             until_ts = await set_temp_title(
                 db,
                 chat_id=chat_id,
@@ -2441,10 +2442,12 @@ _OWNERSHIP_FEATURES = create_ownership_features({
     "get_active_titles_map": get_active_titles_map,
     "with_title_suffix": with_title_suffix,
     "_skill_meta": _skill_meta,
+    "get_active_brand_labels": None,
 })
 get_owner_id = _OWNERSHIP_FEATURES["get_owner_id"]
 set_owner = _OWNERSHIP_FEATURES["set_owner"]
 cmd_top = _OWNERSHIP_FEATURES["cmd_top"]
+cmd_profil = _OWNERSHIP_FEATURES["cmd_profil"]
 cmd_owner = _OWNERSHIP_FEATURES["cmd_owner"]
 cmd_ownerlist = _OWNERSHIP_FEATURES["cmd_ownerlist"]
 cmd_release = _OWNERSHIP_FEATURES["cmd_release"]
@@ -2566,6 +2569,26 @@ cmd_resetcoins = _ADMIN_COIN_CMDS["cmd_resetcoins"]
 cmd_steal = _ADMIN_COIN_CMDS["cmd_steal"]
 cmd_snatchsteal = _ADMIN_COIN_CMDS["cmd_snatchsteal"]
 cmd_fehde = _ADMIN_COIN_CMDS["cmd_fehde"]
+
+_BRAND_FEATURES = create_brand_features({
+    "aiosqlite": aiosqlite,
+    "datetime": datetime,
+    "random": random,
+    "escape": escape,
+    "DB": DB,
+    "ParseMode": ParseMode,
+    "is_group": is_group,
+    "mention_html": mention_html,
+    "_ensure_player_entry": _ensure_player_entry,
+    "_get_coins": _get_coins,
+})
+cmd_brandshop = _BRAND_FEATURES["cmd_brandshop"]
+cmd_brandkaufen = _BRAND_FEATURES["cmd_brandkaufen"]
+cmd_brandsetzen = _BRAND_FEATURES["cmd_brandsetzen"]
+cmd_meinebrands = _BRAND_FEATURES["cmd_meinebrands"]
+cmd_brandpet = _BRAND_FEATURES["cmd_brandpet"]
+cmd_brandablegen = _BRAND_FEATURES["cmd_brandablegen"]
+get_active_brand_labels = _BRAND_FEATURES["get_active_brand_labels"]
 
 async def _fetch_gender_candidates(db, chat_id: int, include_assigned: bool):
     if include_assigned:
@@ -2825,7 +2848,14 @@ async def register_commands(application: Application):
         BotCommand("release", "Gib dein Haustier frei"),
         BotCommand("niemals", "Admin-only: Niemand besitzt mich"),
         BotCommand("owner", "Zeigt den Besitzer eines Users"),
+        BotCommand("profil", "Kompaktes Petflix-Profil"),
         BotCommand("ownerlist", "Zeigt alle Besitzverhältnisse + Wert"),
+        BotCommand("brandshop", "Zeigt kaufbare Brandmarken"),
+        BotCommand("brandkaufen", "Kauft dir eine Brandmarke"),
+        BotCommand("brandsetzen", "Setzt deine aktive Brandmarke"),
+        BotCommand("meinebrands", "Zeigt deine Brandmarken"),
+        BotCommand("brandpet", "Zwingt deinem Pet eine Brandmarke auf"),
+        BotCommand("brandablegen", "Legt eine Owner-Brandmarke ab"),
         BotCommand("prices", "Zeigt Kaufpreise aller User"),
         BotCommand("top", "Top 10 Spieler nach Coins"),
         BotCommand("boxen", "Kurze Übersicht der Boxen"),
@@ -3613,9 +3643,16 @@ def register_economy_handlers(app: Application):
 def register_ownership_handlers(app: Application):
     app.add_handler(CommandHandler("buy", cmd_buy, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("risk", cmd_risk, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("profil", cmd_profil, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("owner", cmd_owner, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("ownerlist", cmd_ownerlist, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("release", cmd_release, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("brandshop", cmd_brandshop, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("brandkaufen", cmd_brandkaufen, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("brandsetzen", cmd_brandsetzen, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("meinebrands", cmd_meinebrands, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("brandpet", cmd_brandpet, filters=CHAT_FILTER))
+    app.add_handler(CommandHandler("brandablegen", cmd_brandablegen, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("niemals", cmd_niemals, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("prices", cmd_prices, filters=CHAT_FILTER))
     app.add_handler(CommandHandler("top", cmd_top, filters=CHAT_FILTER))

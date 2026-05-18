@@ -19,6 +19,71 @@ def create_ownership_features(deps: dict):
     get_active_titles_map = deps["get_active_titles_map"]
     with_title_suffix = deps["with_title_suffix"]
     _skill_meta = deps["_skill_meta"]
+    mention_html = deps.get("mention_html")
+
+    def html_user_tag(user_id: int, username: str | None):
+        if mention_html:
+            return mention_html(int(user_id), username or None)
+        label = f"@{username}" if username else f"ID:{user_id}"
+        return f"<a href='tg://user?id={int(user_id)}'>{escape(label, False)}</a>"
+
+    def format_coins(value: int) -> str:
+        return f"{int(value or 0):,}".replace(",", ".")
+
+    async def get_brand_details(db, chat_id: int, user_id: int):
+        async with db.execute(
+            """
+            SELECT sb.name, fb.name, ab.forced_by_owner_id, op.username, COALESCE(ab.forced_remove_cost, 0)
+            FROM active_brands ab
+            LEFT JOIN brand_catalog sb ON sb.id=ab.active_self_brand_id
+            LEFT JOIN brand_catalog fb ON fb.id=ab.forced_brand_id
+            LEFT JOIN players op ON op.chat_id=? AND op.user_id=ab.forced_by_owner_id
+            WHERE ab.user_id=?
+            """,
+            (chat_id, user_id),
+        ) as cur:
+            row = await cur.fetchone()
+        if not row:
+            return "Keine", "Keine", "Keine", 0
+        active_brand = row[0] or "Keine"
+        forced_brand = row[1] or "Keine"
+        forced_by = "Keine"
+        if row[1] and row[2]:
+            owner_name = f"@{row[3]}" if row[3] else f"ID:{row[2]}"
+            forced_by = owner_name
+        return active_brand, forced_brand, forced_by, int(row[4] or 0)
+
+    async def resolve_profile_target(db, update, context):
+        chat_id = update.effective_chat.id
+        if update.effective_message.reply_to_message and update.effective_message.reply_to_message.from_user:
+            user = update.effective_message.reply_to_message.from_user
+            return user.id, user.username or None
+        if context.args:
+            raw = context.args[0].strip().lstrip("@")
+            if raw.isdigit():
+                uid = int(raw)
+                async with db.execute(
+                    "SELECT username FROM players WHERE chat_id=? AND user_id=?",
+                    (chat_id, uid),
+                ) as cur:
+                    row = await cur.fetchone()
+                return uid, row[0] if row else None
+            async with db.execute(
+                "SELECT user_id, username FROM players WHERE chat_id=? AND lower(username)=lower(?)",
+                (chat_id, raw),
+            ) as cur:
+                row = await cur.fetchone()
+            if row:
+                return int(row[0]), row[1] or raw
+            return None, None
+        user = update.effective_user
+        return user.id, user.username or None
+
+    async def get_brand_labels(db, chat_id: int, user_id: int):
+        active_brand, forced_brand, forced_by, _ = await get_brand_details(db, chat_id, user_id)
+        if forced_brand != "Keine" and forced_by != "Keine":
+            forced_brand = f"{forced_brand} von {forced_by}"
+        return active_brand, forced_brand
 
     async def get_owner_id(db, chat_id: int, pet_id: int):
         async with db.execute("SELECT owner_id FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id)) as cur:
@@ -122,6 +187,7 @@ def create_ownership_features(deps: dict):
                     owner_uname = r2[0] if r2 else None
             title_map = await get_active_titles_map(db, chat_id, [owner_id] if owner_id else [])
             owner_title = title_map.get(int(owner_id)) if owner_id else None
+            active_brand, forced_brand, forced_by, forced_remove_cost = await get_brand_details(db, chat_id, target_id)
 
             lock_until = await get_pet_lock_until(db, chat_id, target_id)
             lock_txt = ""
@@ -137,13 +203,121 @@ def create_ownership_features(deps: dict):
             raw_tag = f"@{owner_uname}" if owner_uname else f"[ID:{owner_id}](tg://user?id={owner_id})"
             tag = with_title_suffix(raw_tag, owner_title)
             await update.effective_message.reply_text(
-                f"Besitzer: {tag}. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{bond_txt}\n{progress_txt}",
+                f"Besitzer: {tag}. Aktueller Preis: {price}.{lock_txt}\n"
+                f"Brandmarke: {active_brand}\n"
+                f"Owner-Brand: {forced_brand}\n"
+                f"Aufgezwungen von: {forced_by}\n"
+                f"Ablösekosten: {forced_remove_cost} Coins\n"
+                f"Skill: {skill_txt}\n{bond_txt}\n{progress_txt}",
                 parse_mode="Markdown"
             )
         else:
             await update.effective_message.reply_text(
-                f"Kein Besitzer. Aktueller Preis: {price}.{lock_txt}\nSkill: {skill_txt}\n{bond_txt}\n{progress_txt}"
+                f"Kein Besitzer. Aktueller Preis: {price}.{lock_txt}\n"
+                f"Brandmarke: {active_brand}\n"
+                f"Owner-Brand: {forced_brand}\n"
+                f"Aufgezwungen von: {forced_by}\n"
+                f"Ablösekosten: {forced_remove_cost} Coins\n"
+                f"Skill: {skill_txt}\n{bond_txt}\n{progress_txt}"
             )
+
+    async def cmd_profil(update, context):
+        if not is_group(update):
+            return
+
+        chat_id = update.effective_chat.id
+        async with aiosqlite.connect(DB) as db:
+            target_id, target_uname = await resolve_profile_target(db, update, context)
+            if target_id is None:
+                return await update.effective_message.reply_text("User nicht gefunden. Nutze /profil @username oder antworte auf eine Nachricht.")
+
+            async with db.execute(
+                "SELECT username, COALESCE(coins,0), COALESCE(price,0) FROM players WHERE chat_id=? AND user_id=?",
+                (chat_id, target_id),
+            ) as cur:
+                player = await cur.fetchone()
+            if player:
+                target_uname = player[0] or target_uname
+                coins = int(player[1] or 0)
+                price = int(player[2] or 0)
+            else:
+                coins = 0
+                price = await get_user_price(db, chat_id, target_id)
+
+            owner_id = await get_owner_id(db, chat_id, target_id)
+            owner_uname = None
+            if owner_id:
+                async with db.execute(
+                    "SELECT username FROM players WHERE chat_id=? AND user_id=?",
+                    (chat_id, owner_id),
+                ) as cur:
+                    row = await cur.fetchone()
+                    owner_uname = row[0] if row else None
+
+            async with db.execute(
+                "SELECT COUNT(*) FROM pets WHERE chat_id=? AND owner_id=?",
+                (chat_id, target_id),
+            ) as cur:
+                own_pet_count = int((await cur.fetchone())[0] or 0)
+
+            skill_key = await get_pet_skill(db, chat_id, target_id)
+            skill_txt = _skill_label(skill_key)
+            async with db.execute(
+                "SELECT COALESCE(pet_xp,0), COALESCE(fullcare_days,0), COALESCE(fullcare_streak,0), COALESCE(care_done_today,0), "
+                "mood_name, COALESCE(imprint_score,0), COALESCE(rebellious_until,0), COALESCE(breakout_count,0) "
+                "FROM pets WHERE chat_id=? AND pet_id=?",
+                (chat_id, target_id),
+            ) as cur:
+                pet_row = await cur.fetchone()
+            now_ts = int(time.time())
+            if pet_row:
+                pet_xp = int(pet_row[0] or 0)
+                fullcare_days = int(pet_row[1] or 0)
+                fullcare_streak = int(pet_row[2] or 0)
+                care_done_today = int(pet_row[3] or 0)
+                rebellious_until = int(pet_row[6] or 0)
+                rebellion_stage = int(pet_row[7] or 0)
+                mood_name = render_pet_mood(pet_row[4], care_done_today, fullcare_streak, rebellious_until, now_ts)
+                imprint_name = pet_imprint_label(int(pet_row[5] or 0))
+                status_name = pet_status_label(rebellion_stage, rebellious_until, now_ts)
+                bond_percent = pet_bond_percent(pet_xp)
+            else:
+                fullcare_days = 0
+                fullcare_streak = 0
+                care_done_today = 0
+                mood_name = "Keine"
+                imprint_name = "Keine"
+                status_name = "Kein Pet-Status vorhanden."
+                bond_percent = 0
+
+            active_brand, forced_brand, forced_by, forced_remove_cost = await get_brand_details(db, chat_id, target_id)
+            await db.commit()
+
+        target_tag = html_user_tag(target_id, target_uname)
+        owner_txt = html_user_tag(owner_id, owner_uname) if owner_id else "Niemand"
+        remove_txt = f"{format_coins(forced_remove_cost)} Coins" if forced_brand != "Keine" else "-"
+        text = (
+            f"<b>Petflix Profil: {target_tag}</b>\n\n"
+            f"Coins: <b>{format_coins(coins)}</b>\n"
+            f"Kaufpreis: <b>{format_coins(price)}</b> Coins\n\n"
+            f"Besitzer: {owner_txt}\n"
+            f"Eigene Pets: <b>{own_pet_count}</b>\n\n"
+            f"Brandmarke: {escape(active_brand, False)}\n"
+            f"Owner-Brand: {escape(forced_brand, False)}\n"
+            f"Aufgezwungen von: {escape(forced_by, False)}\n"
+            f"Ablösekosten: {escape(remove_txt, False)}\n\n"
+            f"Skill: {escape(skill_txt, False)}\n"
+            f"Laune: {escape(mood_name, False)}\n"
+            f"Prägung: {escape(imprint_name, False)}\n"
+            f"Bindung: <b>{bond_percent} %</b>\n\n"
+            f"<b>Pflege:</b>\n"
+            f"Heute: {care_done_today}\n"
+            f"Perfekte Tage: {fullcare_days}\n"
+            f"Streak: {fullcare_streak}\n\n"
+            f"<b>Status:</b>\n"
+            f"{escape(status_name, False)}"
+        )
+        await update.effective_message.reply_text(text, parse_mode="HTML", disable_web_page_preview=True)
 
     async def cmd_ownerlist(update, context):
         if not is_group(update):
@@ -185,6 +359,9 @@ def create_ownership_features(deps: dict):
                     if pet_id:
                         title_user_ids.append(int(pet_id))
                 titles = await get_active_titles_map(db, chat_id, title_user_ids)
+                brand_map = {}
+                for uid in set(title_user_ids):
+                    brand_map[int(uid)] = await get_brand_labels(db, chat_id, int(uid))
                 await db.commit()
         except Exception as e:
             return await update.effective_message.reply_text(
@@ -238,8 +415,10 @@ def create_ownership_features(deps: dict):
                     mins_total = (locked_until - now) // 60
                     hrs, mins = divmod(mins_total, 60)
                     lock_txt = f" [LOCK {hrs}h{mins:02d}m]"
+                active_brand, forced_brand = brand_map.get(int(pet_id), ("Keine", "Keine"))
                 out.append(
                     f" - {pet_tag}  (<b>{price}</b>) [Laune: {escape(mood_name, False)} | Prägung: {escape(imprint_name, False)} | Bindung: {pet_bond_percent(pet_xp)} %] "
+                    f"[Brandmarke: {escape(active_brand, False)} | Owner-Brand: {escape(forced_brand, False)}] "
                     f"[Status: {escape(status_name, False)}] [Perfekte Tage: {fullcare_days} | Streak: {fullcare_streak}] "
                     f"[{escape(skill_name, False)}]{lock_txt}"
                 )
@@ -275,6 +454,7 @@ def create_ownership_features(deps: dict):
         "get_owner_id": get_owner_id,
         "set_owner": set_owner,
         "cmd_top": cmd_top,
+        "cmd_profil": cmd_profil,
         "cmd_owner": cmd_owner,
         "cmd_ownerlist": cmd_ownerlist,
         "cmd_release": cmd_release,
