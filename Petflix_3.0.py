@@ -2941,11 +2941,42 @@ def _make_care_handler(action_key: str):
     return care_handler
 
 
+CARE_TEXT_ALIASES = {
+    command.lower(): action_key
+    for action_key, cfg in CARE_COMMANDS.items()
+    for command in cfg["commands"]
+}
+CARE_TEXT_PATTERN = r"(?i)^\s*(?:" + "|".join(
+    re.escape(command) for command in sorted(CARE_TEXT_ALIASES, key=len, reverse=True)
+) + r")(?:\s+.+)?\s*$"
+
+
+async def care_text_handler(update, context):
+    if not update.effective_message or not update.effective_message.text:
+        return
+    parts = update.effective_message.text.strip().split()
+    if not parts:
+        return
+    action_key = CARE_TEXT_ALIASES.get(parts[0].lower())
+    if not action_key:
+        return
+    context.args = parts[1:]
+    tame = CARE_FALLBACK_TEXTS[action_key]
+    await do_care(update, context, action_key, tame)
+
+
 def register_care_handlers(app: Application):
     for action_key, cfg in CARE_COMMANDS.items():
         app.add_handler(
             CommandHandler(list(cfg["commands"]), _make_care_handler(action_key), filters=CHAT_FILTER)
         )
+    app.add_handler(
+        MessageHandler(
+            filters.Chat(ALLOWED_CHAT_ID) & filters.TEXT & ~filters.COMMAND & ~filters.FORWARDED & filters.Regex(CARE_TEXT_PATTERN),
+            care_text_handler,
+        ),
+        group=0,
+    )
 
 # =========================
 # Moralsteuer Commands
