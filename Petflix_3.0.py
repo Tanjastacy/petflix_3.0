@@ -2934,8 +2934,15 @@ def iter_visible_care_commands():
 
 def _make_care_handler(action_key: str):
     async def care_handler(update, context):
-        tame = CARE_FALLBACK_TEXTS[action_key]
-        await do_care(update, context, action_key, tame)
+        try:
+            tame = CARE_FALLBACK_TEXTS[action_key]
+            await do_care(update, context, action_key, tame)
+        except Exception as e:
+            log.exception("care command failed: %s", action_key)
+            if update.effective_message:
+                await update.effective_message.reply_text(
+                    f"Pflegeaktion kaputt: {type(e).__name__}. Das ist kein Nein vom Pet, das ist ein Bot-Problem."
+                )
 
     care_handler.__name__ = f"cmd_care_{action_key}"
     return care_handler
@@ -2961,14 +2968,21 @@ async def care_text_handler(update, context):
     if not action_key:
         return
     context.args = parts[1:]
-    tame = CARE_FALLBACK_TEXTS[action_key]
-    await do_care(update, context, action_key, tame)
+    try:
+        tame = CARE_FALLBACK_TEXTS[action_key]
+        await do_care(update, context, action_key, tame)
+    except Exception as e:
+        log.exception("care text command failed: %s", action_key)
+        await update.effective_message.reply_text(
+            f"Pflegeaktion kaputt: {type(e).__name__}. Das ist kein Nein vom Pet, das ist ein Bot-Problem."
+        )
 
 
 def register_care_handlers(app: Application):
     for action_key, cfg in CARE_COMMANDS.items():
         app.add_handler(
-            CommandHandler(list(cfg["commands"]), _make_care_handler(action_key), filters=CHAT_FILTER)
+            CommandHandler(list(cfg["commands"]), _make_care_handler(action_key), filters=CHAT_FILTER),
+            group=-1,
         )
     app.add_handler(
         MessageHandler(
