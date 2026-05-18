@@ -85,6 +85,32 @@ def create_ownership_features(deps: dict):
             forced_brand = f"{forced_brand} von {forced_by}"
         return active_brand, forced_brand
 
+    async def get_brand_summary_map(db, user_ids: list[int]):
+        uniq_ids = sorted({int(uid) for uid in user_ids if uid})
+        if not uniq_ids:
+            return {}
+        placeholders = ",".join("?" for _ in uniq_ids)
+        async with db.execute(
+            f"""
+            SELECT ab.user_id, sb.name, fb.name
+            FROM active_brands ab
+            LEFT JOIN brand_catalog sb ON sb.id=ab.active_self_brand_id
+            LEFT JOIN brand_catalog fb ON fb.id=ab.forced_brand_id
+            WHERE ab.user_id IN ({placeholders})
+            """,
+            uniq_ids,
+        ) as cur:
+            rows = await cur.fetchall()
+        out = {}
+        for user_id, self_brand, forced_brand in rows:
+            parts = []
+            if self_brand:
+                parts.append(f"Brand: {self_brand}")
+            if forced_brand:
+                parts.append(f"Owner-Brand: {forced_brand}")
+            out[int(user_id)] = f" [{' | '.join(parts)}]" if parts else ""
+        return out
+
     async def get_owner_id(db, chat_id: int, pet_id: int):
         async with db.execute("SELECT owner_id FROM pets WHERE chat_id=? AND pet_id=?", (chat_id, pet_id)) as cur:
             row = await cur.fetchone()
@@ -111,6 +137,7 @@ def create_ownership_features(deps: dict):
             async with db.execute("SELECT username, user_id, coins FROM players WHERE chat_id=? ORDER BY coins DESC", (chat_id,)) as cur:
                 rows = await cur.fetchall()
             titles = await get_active_titles_map(db, chat_id, [int(r[1]) for r in rows])
+            brands = await get_brand_summary_map(db, [int(r[1]) for r in rows])
             await db.commit()
         if not rows:
             await update.effective_message.reply_text("Noch keine Spieler.")
@@ -119,6 +146,7 @@ def create_ownership_features(deps: dict):
         for i, (uname, uid, c) in enumerate(rows, start=1):
             raw_tag = f"@{uname}" if uname else f"ID:{uid}"
             raw_tag = with_title_suffix(raw_tag, titles.get(int(uid)))
+            raw_tag = f"{raw_tag}{brands.get(int(uid), '')}"
             tag = escape(raw_tag, quote=False)
             lines.append(f"{i}. {tag}: {c} Coins")
 
@@ -253,6 +281,8 @@ def create_ownership_features(deps: dict):
                 ) as cur:
                     row = await cur.fetchone()
                     owner_uname = row[0] if row else None
+            own_title_map = await get_active_titles_map(db, chat_id, [target_id])
+            own_title = own_title_map.get(int(target_id), "Keine")
 
             async with db.execute(
                 "SELECT COUNT(*) FROM pets WHERE chat_id=? AND owner_id=?",
@@ -302,6 +332,7 @@ def create_ownership_features(deps: dict):
             f"Kaufpreis: <b>{format_coins(price)}</b> Coins\n\n"
             f"Besitzer: {owner_txt}\n"
             f"Eigene Pets: <b>{own_pet_count}</b>\n\n"
+            f"Titel: {escape(own_title or 'Keine', False)}\n"
             f"Brandmarke: {escape(active_brand, False)}\n"
             f"Owner-Brand: {escape(forced_brand, False)}\n"
             f"Aufgezwungen von: {escape(forced_by, False)}\n"

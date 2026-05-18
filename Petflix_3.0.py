@@ -98,7 +98,7 @@ from petflix_texts import (
     CARE_COOL_TEXTS,
 )
 
-from telegram import Update, BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, Bot, Message, BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ChatType, ChatMemberStatus, ParseMode
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, ChatMemberHandler, CallbackQueryHandler,
@@ -145,6 +145,7 @@ LEVEL_DECAY_XP = 0
 LEVEL_DECAY_INTERVAL_S = 6 * 3600
 CARE_CHAT_CLEANUP_S = 90
 STICKER_CHAT_CLEANUP_S = 30
+BOT_MESSAGE_CLEANUP_S = 120
 RUNAWAY_HOURS = RUNAWAY_WINDOW_DAYS * 24
 LOCK_SECONDS = 0 * 3600  # 48h Mindestbesitz
 PETFLIX_TZ = os.environ.get("PETFLIX_TZ", "Europe/Berlin")
@@ -391,6 +392,9 @@ logging.basicConfig(
     level=logging.INFO
 )
 log = logging.getLogger("Petflix_2.0")
+_AUTO_DELETE_APP = None
+_ORIGINAL_REPLY_TEXT = Message.reply_text
+_ORIGINAL_SEND_MESSAGE = Bot.send_message
 
 # =========================
 # DB-Setup 
@@ -516,6 +520,48 @@ async def _delete_messages_job(context: ContextTypes.DEFAULT_TYPE):
             await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
         except Exception:
             pass
+
+
+def _should_auto_delete_bot_message(sent_message) -> bool:
+    if not sent_message or not getattr(sent_message, "chat", None):
+        return False
+    chat = sent_message.chat
+    if chat.type not in {ChatType.GROUP, ChatType.SUPERGROUP}:
+        return False
+    try:
+        return int(chat.id) == int(ALLOWED_CHAT_ID)
+    except Exception:
+        return str(chat.id) == str(ALLOWED_CHAT_ID)
+
+
+def _schedule_bot_message_cleanup(sent_message):
+    app = _AUTO_DELETE_APP
+    if not app or not getattr(app, "job_queue", None) or not _should_auto_delete_bot_message(sent_message):
+        return sent_message
+    try:
+        app.job_queue.run_once(
+            _delete_messages_job,
+            when=BOT_MESSAGE_CLEANUP_S,
+            data={"chat_id": sent_message.chat_id, "message_ids": [sent_message.message_id]},
+            name=f"bot_cleanup:{sent_message.chat_id}:{sent_message.message_id}",
+        )
+    except Exception:
+        pass
+    return sent_message
+
+
+async def _reply_text_with_cleanup(self, *args, **kwargs):
+    sent_message = await _ORIGINAL_REPLY_TEXT(self, *args, **kwargs)
+    return _schedule_bot_message_cleanup(sent_message)
+
+
+async def _send_message_with_cleanup(self, *args, **kwargs):
+    sent_message = await _ORIGINAL_SEND_MESSAGE(self, *args, **kwargs)
+    return _schedule_bot_message_cleanup(sent_message)
+
+
+Message.reply_text = _reply_text_with_cleanup
+Bot.send_message = _send_message_with_cleanup
 
 
 async def on_single_g_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -966,6 +1012,33 @@ async def get_active_titles_map(db, chat_id: int, user_ids: list[int]) -> dict[i
     async with db.execute(sql, params) as cur:
         rows = await cur.fetchall()
     return {int(uid): (title or "") for uid, title in rows}
+
+
+async def get_public_brand_summary_map(db, user_ids: list[int]) -> dict[int, str]:
+    uniq_ids = sorted({int(uid) for uid in user_ids if uid})
+    if not uniq_ids:
+        return {}
+    placeholders = ",".join("?" for _ in uniq_ids)
+    async with db.execute(
+        f"""
+        SELECT ab.user_id, sb.name, fb.name
+        FROM active_brands ab
+        LEFT JOIN brand_catalog sb ON sb.id=ab.active_self_brand_id
+        LEFT JOIN brand_catalog fb ON fb.id=ab.forced_brand_id
+        WHERE ab.user_id IN ({placeholders})
+        """,
+        uniq_ids,
+    ) as cur:
+        rows = await cur.fetchall()
+    out = {}
+    for user_id, self_brand, forced_brand in rows:
+        parts = []
+        if self_brand:
+            parts.append(f"Brand: {self_brand}")
+        if forced_brand:
+            parts.append(f"Owner-Brand: {forced_brand}")
+        out[int(user_id)] = f" [{' | '.join(parts)}]" if parts else ""
+    return out
 
 
 def with_title_suffix(label: str, title: str | None) -> str:
@@ -1918,16 +1991,19 @@ async def cmd_buybox_abyss(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cmd_prices(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_group(update): return
     chat_id = update.effective_chat.id
-    active_cutoff = int(time.time()) - SUPERWORD_COOLDOWN_S
     async with aiosqlite.connect(DB) as db:
         async with db.execute("SELECT username, user_id, price FROM players WHERE chat_id=? ORDER BY price DESC", (chat_id,)) as cur:
             rows = await cur.fetchall()
+        titles = await get_active_titles_map(db, chat_id, [int(r[1]) for r in rows])
+        brands = await get_public_brand_summary_map(db, [int(r[1]) for r in rows])
     if not rows:
         await update.effective_message.reply_text("Keine User gefunden.")
         return
     msg = "Preisliste aller User:\n"
     for username, uid, price in rows:
         uname = f"@{username}" if username else f"ID:{uid}"
+        uname = with_title_suffix(uname, titles.get(int(uid)))
+        uname = f"{uname}{brands.get(int(uid), '')}"
         msg += f"{uname}: {price} Coins\n"
     await update.effective_message.reply_text(msg)
 
@@ -3811,6 +3887,7 @@ def register_all_handlers(app: Application):
 # App-Setup / main()
 # =========================
 def main():
+    global _AUTO_DELETE_APP
     asyncio.run(db_init(DB, DAILY_CURSE_ENABLED, AUTO_CURSE_ENABLED, pet_level_from_xp))
 
     loop = asyncio.new_event_loop()
@@ -3822,6 +3899,7 @@ def main():
         .defaults(Defaults(parse_mode=ParseMode.HTML))
         .build()
     )
+    _AUTO_DELETE_APP = app
 
     # Telegram-Befehlsliste
     app.post_init = register_commands
