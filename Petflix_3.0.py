@@ -810,9 +810,13 @@ def render_pet_mood(mood_name: str | None, care_done_today: int, fullcare_streak
 
 
 async def ensure_pet_dynamic_state(db, chat_id: int, pet_id: int, owner_id: int | None, today: str):
+    async with db.execute("PRAGMA table_info(pets)") as cur:
+        pet_cols = {row[1] for row in await cur.fetchall()}
+    hostage_expr = "COALESCE(hostage_until, 0)" if "hostage_until" in pet_cols else "0"
+    snatched_expr = "COALESCE(snatched_until, 0)" if "snatched_until" in pet_cols else "0"
     async with db.execute(
         "SELECT mood_name, mood_day, COALESCE(imprint_score, 0), COALESCE(rebellious_until, 0), COALESCE(breakout_count, 0), "
-        "COALESCE(hostage_until, 0), COALESCE(snatched_until, 0) "
+        f"{hostage_expr}, {snatched_expr} "
         "FROM pets WHERE chat_id=? AND pet_id=?",
         (chat_id, pet_id)
     ) as cur:
