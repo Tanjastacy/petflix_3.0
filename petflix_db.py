@@ -1,8 +1,8 @@
 import aiosqlite
-from brand_data import DEFAULT_BRANDS
+from brand_data import DEFAULT_BRANDS, LEGACY_BRAND_RENAMES
 
 
-SCHEMA_VERSION = 23
+SCHEMA_VERSION = 24
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -47,6 +47,7 @@ async def _ensure_brand_tables_and_seed(db):
     CREATE INDEX IF NOT EXISTS idx_user_brands_user ON user_brands(user_id);
     CREATE INDEX IF NOT EXISTS idx_brand_catalog_category ON brand_catalog(category, price);
     """)
+    await _sync_brand_catalog_defaults(db)
     await db.executemany(
         """
         INSERT OR IGNORE INTO brand_catalog(name, category, price, brand_type, is_active)
@@ -54,6 +55,52 @@ async def _ensure_brand_tables_and_seed(db):
         """,
         DEFAULT_BRANDS,
     )
+
+
+async def _sync_brand_catalog_defaults(db):
+    for old_name, new_name in LEGACY_BRAND_RENAMES:
+        async with db.execute("SELECT id FROM brand_catalog WHERE name=?", (old_name,)) as cur:
+            old_row = await cur.fetchone()
+        if not old_row:
+            continue
+        old_id = int(old_row[0])
+
+        async with db.execute("SELECT id FROM brand_catalog WHERE name=?", (new_name,)) as cur:
+            new_row = await cur.fetchone()
+
+        if new_row and int(new_row[0]) != old_id:
+            new_id = int(new_row[0])
+            await db.execute(
+                """
+                INSERT OR IGNORE INTO user_brands(user_id, brand_id, bought_by_user_id, created_at)
+                SELECT user_id, ?, bought_by_user_id, created_at
+                FROM user_brands
+                WHERE brand_id=?
+                """,
+                (new_id, old_id),
+            )
+            await db.execute("DELETE FROM user_brands WHERE brand_id=?", (old_id,))
+            await db.execute(
+                "UPDATE active_brands SET active_self_brand_id=? WHERE active_self_brand_id=?",
+                (new_id, old_id),
+            )
+            await db.execute(
+                "UPDATE active_brands SET forced_brand_id=? WHERE forced_brand_id=?",
+                (new_id, old_id),
+            )
+            await db.execute("DELETE FROM brand_catalog WHERE id=?", (old_id,))
+        else:
+            await db.execute("UPDATE brand_catalog SET name=? WHERE id=?", (new_name, old_id))
+
+    for name, category, price, brand_type in DEFAULT_BRANDS:
+        await db.execute(
+            """
+            UPDATE brand_catalog
+            SET category=?, price=?, brand_type=?, is_active=1
+            WHERE name=?
+            """,
+            (category, price, brand_type, name),
+        )
 
 async def migrate_db(db, daily_curse_enabled=True, auto_curse_enabled=False, pet_level_from_xp_func=None):
     if pet_level_from_xp_func is None:
@@ -366,6 +413,11 @@ async def migrate_db(db, daily_curse_enabled=True, auto_curse_enabled=False, pet
         await _ensure_brand_tables_and_seed(db)
         await _set_user_version(db, 23)
         current = 23
+
+    if current < 24:
+        await _ensure_brand_tables_and_seed(db)
+        await _set_user_version(db, 24)
+        current = 24
 
     # Sicherheitsnetz für inkonsistente Alt-DBs:
     # Wenn user_version hoch ist, Spalten aber fehlen, ziehen wir sie hier trotzdem nach.
