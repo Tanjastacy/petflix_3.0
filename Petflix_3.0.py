@@ -128,6 +128,7 @@ STEAL_TEXTS_PATH = os.getenv("STEAL_TEXTS_PATH", "texts/steal_texts.json")
 START_COINS = 0
 DAILY_COINS = 0
 DAILY_COOLDOWN_S = 22 * 3600
+SUPERWORD_COOLDOWN_S = 24 * 3600
 MESSAGE_REWARD = 10
 USER_BASE_PRICE = 100
 USER_PRICE_STEP = 200  # 100 -> 300 -> 500 ...
@@ -466,7 +467,7 @@ async def _apply_hass_penalty(db, chat_id: int, user_id: int, penalty: int):
 
 def nice_name(u) -> str:
     # Anzeige-Name ohne HTML-Sicherheit (wird für Markdown benutzt)
-    return f"@{u.username}" if getattr(u, "username", None) else (u.full_name or str(u.id))
+    return f"@{u.username}" if getattr(u, "username", None) else (getattr(u, "full_name", None) or getattr(u, "first_name", None) or str(u.id))
 
 def nice_name_html(u) -> str:
     # Für alle Antworten, die mit HTML geparst werden (Default!)
@@ -984,8 +985,6 @@ async def do_care(update, context, action_key, tame_lines):
         return
     msg = update.effective_message
     chat_id = update.effective_chat.id
-    active_cutoff = int(time.time()) - SUPERWORD_COOLDOWN_S
-    active_cutoff = int(time.time()) - SUPERWORD_COOLDOWN_S
     owner = update.effective_user
 
     # Ziel bestimmen: Reply > @username/user_id > letztes Haustier
