@@ -183,7 +183,7 @@ TITLE_ZUCHTMEISTER = "Zuchtmeister"
 # =========================
 # /steal
 # =========================
-STEAL_SUCCESS_CHANCE = 0.45
+STEAL_SUCCESS_CHANCE = 0.60
 STEAL_COOLDOWN_S = 30
 STEAL_FAIL_PENALTY_RATIO = 0.20
 

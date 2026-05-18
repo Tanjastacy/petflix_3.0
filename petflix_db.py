@@ -2,7 +2,7 @@ import aiosqlite
 from brand_data import DEFAULT_BRANDS, LEGACY_BRAND_RENAMES
 
 
-SCHEMA_VERSION = 24
+SCHEMA_VERSION = 25
 
 async def _get_user_version(db) -> int:
     async with db.execute("PRAGMA user_version") as cur:
@@ -418,6 +418,11 @@ async def migrate_db(db, daily_curse_enabled=True, auto_curse_enabled=False, pet
         await _ensure_brand_tables_and_seed(db)
         await _set_user_version(db, 24)
         current = 24
+
+    if current < 25:
+        await _ensure_brand_tables_and_seed(db)
+        await _set_user_version(db, 25)
+        current = 25
 
     # Sicherheitsnetz für inkonsistente Alt-DBs:
     # Wenn user_version hoch ist, Spalten aber fehlen, ziehen wir sie hier trotzdem nach.

@@ -53,7 +53,7 @@ def create_admin_coin_commands(deps: dict):
     register_feud_clash = deps.get("register_feud_clash", _default_register_feud_clash)
 
     def _cap_success_chance(chance: float, user_id: int) -> float:
-        return min(0.90, max(0.01, chance))
+        return min(0.92, max(0.05, chance))
 
     def _steal_texts() -> dict:
         data = load_json_dict(STEAL_TEXTS_PATH)
@@ -81,7 +81,7 @@ def create_admin_coin_commands(deps: dict):
             return {
                 "key": "sneaky",
                 "label": "Sneaky",
-                "chance_mod": 0.12,
+                "chance_mod": 0.14,
                 "penalty_ratio": 0.12,
                 "multiplier": 0.90,
             }
@@ -96,7 +96,7 @@ def create_admin_coin_commands(deps: dict):
         return {
             "key": "bold",
             "label": "Bold",
-            "chance_mod": -0.18,
+            "chance_mod": -0.10,
             "penalty_ratio": 0.35,
             "multiplier": 1.35,
         }
@@ -529,8 +529,8 @@ def create_admin_coin_commands(deps: dict):
             feud_bonus = FEUD_STAGE_BONUS.get(feud_stage, FEUD_STAGE_BONUS[0])
             revenge_left = await get_cd_left(db, chat_id, thief.id, feud_revenge_key(tid))
             revenge_bonus = FEUD_REVENGE_CHANCE_BONUS if revenge_left > 0 else 0.0
-            defense_bonus = min(0.12, max(0, int(feud_before.get("success_count") or 0)) * 0.03)
-            blood_penalty = min(0.10, thief_debt_stage * 0.02)
+            defense_bonus = min(0.08, max(0, int(feud_before.get("success_count") or 0)) * 0.02)
+            blood_penalty = min(0.06, thief_debt_stage * 0.015)
             success_chance = calculate_chance(
                 STEAL_SUCCESS_CHANCE,
                 float(feud_bonus["chance"]),
@@ -618,12 +618,12 @@ def create_admin_coin_commands(deps: dict):
                 pet_bond = _pet_bond_percent(victim_pet_xp)
                 neglect_ratio = max(0.0, (CARES_PER_DAY - victim_pet_care) / float(max(1, CARES_PER_DAY)))
                 protect_chance = min(
-                    0.20,
-                    0.05 + (pet_bond / 1000.0) + (0.02 if victim_rebellious_until > int(__import__("time").time()) else 0.0) + (0.01 if snatch_mode else 0.0),
+                    0.14,
+                    0.03 + (pet_bond / 1400.0) + (0.01 if victim_rebellious_until > int(__import__("time").time()) else 0.0) + (0.01 if snatch_mode else 0.0),
                 )
                 betray_chance = min(
-                    0.20,
-                    0.02 + (neglect_ratio * 0.10) + min(0.05, victim_breakout * 0.01) + (0.02 if victim_rebellious_until > int(__import__("time").time()) else 0.0) - (pet_bond / 1000.0 * 0.35) + (0.03 if snatch_mode else 0.0),
+                    0.24,
+                    0.03 + (neglect_ratio * 0.12) + min(0.06, victim_breakout * 0.012) + (0.02 if victim_rebellious_until > int(__import__("time").time()) else 0.0) - (pet_bond / 1000.0 * 0.28) + (0.04 if snatch_mode else 0.0),
                 )
                 pet_roll = random.random()
                 victim_pet_name = victim_pet_tag or target_tag
@@ -733,7 +733,7 @@ def create_admin_coin_commands(deps: dict):
                         "UPDATE pets SET hostage_until=? WHERE chat_id=? AND pet_id=?",
                         (pet_host, chat_id, int(victim_pet[0]))
                     )
-                    hostage_line = f"{victim_pet_name} ist fuer 1h als Geisel markiert."
+                    hostage_line = f"{victim_pet_name} ist für 1h als Geisel markiert."
                     await _add_blood_debt(db, chat_id, thief.id, 1)
                 elif random.random() < 0.02:
                     temp_until = now_ts + 12 * 3600
@@ -753,7 +753,7 @@ def create_admin_coin_commands(deps: dict):
                             int(victim_pet[0]),
                         )
                     )
-                    temp_pet_line = f"{victim_pet_name} laeuft fuer 12h zum Dieb."
+                    temp_pet_line = f"{victim_pet_name} läuft für 12h zum Dieb."
                     await _add_blood_debt(db, chat_id, thief.id, 1)
             else:
                 free_uid, free_uname = await _get_random_free_pet_candidate(db, chat_id, exclude_ids={thief.id, tid})

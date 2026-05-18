@@ -1,8 +1,8 @@
 BRAND_CATEGORIES = [
     ("Pet-Brands", "Pet-Brands", ""),
     ("Owner-Brands", "Owner-Brands", ""),
-    ("Forced-Brands", "Forced-Brands", "Nur Owner koennen diese ihren Pets aufdruecken."),
-    ("Shame-Brands", "Shame-Brands", "Fuer alle, die digitale Selbstachtung fuer ueberschaetzt halten."),
+    ("Forced-Brands", "Forced-Brands", "Nur Owner können diese ihren Pets aufdrücken."),
+    ("Shame-Brands", "Shame-Brands", "Für alle, die digitale Selbstachtung für überschätzt halten."),
     ("Legendary-Brands", "Legendary-Brands", ""),
 ]
 
@@ -15,7 +15,7 @@ DEFAULT_BRANDS = [
     ("Too Expensive To Behave", "Pet-Brands", 1000, "self"),
     ("Luxus Auf Knien", "Pet-Brands", 1500, "self"),
     ("Owned And Annoying", "Pet-Brands", 1500, "self"),
-    ("Teuer Und Hoerig", "Pet-Brands", 1500, "self"),
+    ("Teuer Und Hörig", "Pet-Brands", 1500, "self"),
     ("Collar Included", "Pet-Brands", 2000, "self"),
     ("Bought With Regret", "Pet-Brands", 2500, "self"),
     ("Master of Puppets", "Owner-Brands", 1000, "owner"),
@@ -40,7 +40,7 @@ DEFAULT_BRANDS = [
     ("Sorry, My Owner Paid", "Forced-Brands", 3500, "forced"),
     ("Kein Refund", "Shame-Brands", 500, "shame"),
     ("Walking Receipt", "Shame-Brands", 750, "shame"),
-    ("Wuerde Verkauft", "Shame-Brands", 750, "shame"),
+    ("Würde Verkauft", "Shame-Brands", 750, "shame"),
     ("Public Mistake", "Shame-Brands", 1000, "shame"),
     ("Scham Deluxe", "Shame-Brands", 1500, "shame"),
     ("Bad Purchase Energy", "Shame-Brands", 1500, "shame"),
@@ -69,7 +69,8 @@ LEGACY_BRAND_RENAMES = [
     ("Bought, Not Broken", "Too Expensive To Behave"),
     ("Too Expensive To Own", "Luxus Auf Knien"),
     ("Dignity On Cooldown", "Owned And Annoying"),
-    ("Pretty Little Problem", "Teuer Und Hoerig"),
+    ("Pretty Little Problem", "Teuer Und Hörig"),
+    ("Teuer Und Hoerig", "Teuer Und Hörig"),
     ("Leashed But Untamed", "Collar Included"),
     ("Owner's Worst Investment", "Bought With Regret"),
     ("Ownerâ€™s Worst Investment", "Bought With Regret"),
@@ -95,7 +96,8 @@ LEGACY_BRAND_RENAMES = [
     ("Branded By Bad Taste", "Sorry, My Owner Paid"),
     ("Professional Disappointment", "Kein Refund"),
     ("Premium Embarrassment", "Walking Receipt"),
-    ("Walking Receipt", "Wuerde Verkauft"),
+    ("Walking Receipt", "Würde Verkauft"),
+    ("Wuerde Verkauft", "Würde Verkauft"),
     ("No Refund Available", "Public Mistake"),
     ("Public Shame Upgrade", "Scham Deluxe"),
     ("Personality Patch Failed", "Bad Purchase Energy"),
@@ -118,36 +120,36 @@ LEGACY_BRAND_RENAMES = [
 
 
 BRAND_BUY_LINES = [
-    '{user} kauft sich die Brandmarke "{brand}" fuer {price} Coins. Selbstachtung waere guenstiger gewesen, aber offenbar weniger sichtbar.',
-    '{user} traegt jetzt "{brand}". Ob das hilft? Nein. Aber es sieht teuer aus.',
-    '{user} hat {price} Coins fuer "{brand}" ausgegeben. Finanzielle Selbstkontrolle wurde offiziell beerdigt.',
-    '"{brand}" gehoert jetzt {user}. Die Gruppe wird gebeten, angemessen zu urteilen.',
-    '{user} hat sich "{brand}" gekauft. Ein kleiner Schritt fuer den Bot, ein grosser Rueckschritt fuer die Wuerde.',
+    '{user} kauft sich die Brandmarke "{brand}" für {price} Coins. Selbstachtung wäre günstiger gewesen, aber offenbar weniger sichtbar.',
+    '{user} trägt jetzt "{brand}". Ob das hilft? Nein. Aber es sieht teuer aus.',
+    '{user} hat {price} Coins für "{brand}" ausgegeben. Finanzielle Selbstkontrolle wurde offiziell beerdigt.',
+    '"{brand}" gehört jetzt {user}. Die Gruppe wird gebeten, angemessen zu urteilen.',
+    '{user} hat sich "{brand}" gekauft. Ein kleiner Schritt für den Bot, ein großer Rückschritt für die Würde.',
 ]
 
 
 BRAND_SET_LINES = [
-    '{user} traegt jetzt "{brand}". Tragisch, aber konsequent.',
-    'Aktive Brandmarke geaendert zu "{brand}". Die Aussenwirkung bleibt fragwuerdig.',
-    '{user} praesentiert sich ab jetzt als "{brand}". Niemand hat gefragt, aber hier sind wir.',
+    '{user} trägt jetzt "{brand}". Tragisch, aber konsequent.',
+    'Aktive Brandmarke geändert zu "{brand}". Die Außenwirkung bleibt fragwürdig.',
+    '{user} präsentiert sich ab jetzt als "{brand}". Niemand hat gefragt, aber hier sind wir.',
 ]
 
 
 BRAND_PET_LINES = [
     '{owner} kauft {pet} die Brandmarke "{brand}". {pet} wurde nicht gefragt. Das war vermutlich der Punkt.',
-    '{pet} traegt jetzt "{brand}", bezahlt von {owner}. Freiwilligkeit wurde kurz geprueft und dann ignoriert.',
+    '{pet} trägt jetzt "{brand}", bezahlt von {owner}. Freiwilligkeit wurde kurz geprüft und dann ignoriert.',
     '{owner} hat {pet} offiziell mit "{brand}" dekoriert. Geschmack bleibt weiterhin nicht strafbar, leider.',
-    '{pet} wurde von {owner} mit "{brand}" markiert. Die Wuerde kann spaeter gegen Coins zurueckgekauft werden.',
+    '{pet} wurde von {owner} mit "{brand}" markiert. Die Würde kann später gegen Coins zurückgekauft werden.',
     '{owner} hat {price} Coins bezahlt, damit {pet} jetzt "{brand}" tragen muss. Telegram war ein Fehler, aber wenigstens ein unterhaltsamer.',
 ]
 
 
 BRAND_REMOVE_LINES = [
-    '{pet} hat "{brand}" abgelegt und {price} Coins bezahlt. Wuerde zurueckgekauft. Gebraucht, aber funktional.',
+    '{pet} hat "{brand}" abgelegt und {price} Coins bezahlt. Würde zurückgekauft. Gebraucht, aber funktional.',
     '{pet} hat sich von "{brand}" freigekauft. Der Stolz war teuer, aber immerhin wieder da.',
     '{pet} zahlt {price} Coins, um "{brand}" loszuwerden. Der Owner wird gebeten, normal zu reagieren. Wird er nicht.',
-    '"{brand}" wurde entfernt. {pet} hat damit bewiesen, dass Scham kaeuflich ist.',
-    '{pet} kauft sich frei. Kurz dachte man, hier gaebe es Selbstbestimmung. Suess.',
+    '"{brand}" wurde entfernt. {pet} hat damit bewiesen, dass Scham käuflich ist.',
+    '{pet} kauft sich frei. Kurz dachte man, hier gäbe es Selbstbestimmung. Süß.',
 ]
 
 
